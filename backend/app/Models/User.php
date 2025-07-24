@@ -1,5 +1,5 @@
 <?php
-<?php
+
 namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -10,17 +10,19 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'userName',
+        'userFirstName',
+        'userLastName',
         'userAge',
         'userBirthDay',
         'userContactNumber',
-        'userAddress', // Add if present in migration
+        'userAddress',
         'userType',
         'email',
-        'userPassword', // or 'password' if you use Laravel default
+        'userPassword',
+        'email_verification_code',
         'email_verified_at',
         'user_contact_number_verified_at',
         'sms_verification_code',
@@ -28,8 +30,9 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     protected $hidden = [
-        'userPassword', // or 'password'
+        'userPassword',
         'remember_token',
+        'email_verification_code',
         'sms_verification_code',
         'sms_code_expires_at',
     ];
@@ -56,25 +59,39 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->userType === 'customer';
     }
 
-    public function customer()
+    public function hasVerifiedBoth()
     {
-        return $this->hasOne(Customer::class, 'userID', 'userID');
+        return $this->hasVerifiedEmail() && $this->hasVerifiedPhone();
+    }
+
+    public function hasVerifiedEmail()
+    {
+        return !is_null($this->email_verified_at);
+    }
+
+    public function hasVerifiedPhone()
+    {
+        return !is_null($this->user_contact_number_verified_at);
+    }
+
+    public function getAuthPassword()
+    {
+        return $this->userPassword;
+    }
+
+    // Relationships
+    public function admin()
+    {
+        return $this->hasOne(Administrator::class, 'user_id');
     }
 
     public function seller()
     {
-        return $this->hasOne(Seller::class, 'userID', 'userID');
-    }
-// ...existing code...
-
-    public function getAuthPassword()
-    {
-        return $this->userPassword; // or 'password'
+        return $this->hasOne(Seller::class, 'user_id');
     }
 
-    // Custom method to check if both email and SMS are verified
-    public function hasVerifiedBoth()
+    public function customer()
     {
-        return $this->hasVerifiedEmail() && $this->user_contact_number_verified_at !== null;
+        return $this->hasOne(Customer::class, 'user_id');
     }
 }

@@ -1,83 +1,36 @@
 <?php
 
-namespace App\Models;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
-
-class User extends Authenticatable implements MustVerifyEmail
+return new class extends Migration
 {
-    use HasFactory, Notifiable, HasApiTokens;
-
-   protected $fillable = [
-        'userName',
-        'userAge',
-        'userBirthDay',
-        'userContactNumber',
-        'userAddress',
-        'userType',
-        'email',
-        'userPassword',
-        'email_verified_at',
-        'user_contact_number_verified_at',
-        'sms_verification_code',
-        'sms_code_expires_at',
-        'email_verification_code', 
-    ];
-
-    protected $hidden = [
-        'userPassword',
-        'remember_token',
-        'sms_verification_code',
-        'sms_code_expires_at',
-        'email_verification_code', // <-- add this
-    ];
-    protected function casts(): array
+    public function up()
     {
-        return [
-            'userBirthDay' => 'date',
-            'email_verified_at' => 'datetime',
-            'user_contact_number_verified_at' => 'datetime',
-            'sms_code_expires_at' => 'datetime',
-        ];
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('userFirstName');
+            $table->string('userLastName');
+            $table->integer('userAge');
+            $table->date('userBirthDay');
+            $table->string('userContactNumber');
+            $table->string('userAddress');
+            $table->string('userType');
+            $table->string('email')->unique();
+            $table->string('userPassword');
+            $table->timestamp('email_verified_at')->nullable();
+            $table->timestamp('user_contact_number_verified_at')->nullable();
+            $table->string('sms_verification_code')->nullable();
+            $table->timestamp('sms_code_expires_at')->nullable();
+            $table->string('email_verification_code')->nullable();
+            $table->rememberToken();
+            $table->timestamps();
+        });
     }
 
-    public function isAdmin()
+    public function down()
     {
-        return $this->userType === 'admin';
+        Schema::dropIfExists('users');
     }
-
-    public function isSeller()
-    {
-        return $this->userType === 'seller';
-    }
-
-    public function isCustomer()
-    {
-        return $this->userType === 'customer';
-    }
-
-    public function getAuthPassword()
-    {
-        return $this->userPassword;
-    }
-
-    public function hasVerifiedBoth()
-    {
-        return $this->hasVerifiedEmail() && $this->user_contact_number_verified_at !== null;
-    }
-
-    // Add relationships to profile tables
-    public function sellerProfile()
-    {
-        return $this->hasOne(SellerProfile::class);
-    }
-
-    public function customerProfile()
-    {
-        return $this->hasOne(CustomerProfile::class);
-    }
-}
+};
