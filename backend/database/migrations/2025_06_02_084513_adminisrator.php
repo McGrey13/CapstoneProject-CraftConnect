@@ -12,10 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('administrators', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->string('adminEmail')->unique();
-            $table->string('adminPassword');
+            $table->id('adminID'); // Primary key for administrators table
+            $table->foreignId('user_id')->constrained('users', 'userID')->onDelete('cascade'); // Foreign key to users table
+            // Note: adminEmail and adminPassword are typically handled by the 'users' table if Administrator is a type of User.
+            // If they are specific to the administrator record and distinct from the user's main credentials, you can add them here.
+            // For this example, we assume authentication is via the 'users' table.
             $table->timestamps();
         });
     }

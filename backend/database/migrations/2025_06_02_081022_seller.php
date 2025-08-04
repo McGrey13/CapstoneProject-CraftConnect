@@ -15,11 +15,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('seller_profiles', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->string('selleremail')->unique();
-            $table->string('sellerPassword');
+        Schema::create('sellers', function (Blueprint $table) {
+            $table->id('sellerID'); // Primary key for sellers table
+            $table->foreignId('user_id')->constrained('users', 'userID')->onDelete('cascade'); // Foreign key to users table
+            // Note: sellerEmail and sellerPassword are typically handled by the 'users' table.
             $table->timestamps();
         });
     }
@@ -29,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('seller_profiles');
+        Schema::dropIfExists('sellers');
     }
 };

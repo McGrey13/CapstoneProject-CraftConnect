@@ -3,9 +3,15 @@
 namespace App\Http;
 
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
+use App\Http\Auth\Middleware\RoleMiddleware;
 
 class Kernel extends HttpKernel
 {
+
+    protected $routeMiddleware = [
+    // ... other middleware
+    'role' => RoleMiddleware::class,
+    ];
     /**
      * The application's global HTTP middleware stack.
      *
@@ -22,6 +28,8 @@ class Kernel extends HttpKernel
         // \App\Http\Middleware\TrimStrings::class,
         // \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
     ];
+
+    
 
     /**
      * The application's route middleware groups.
