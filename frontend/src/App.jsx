@@ -28,6 +28,15 @@ import SellersTable from './Components/Admin/SellersTable';
 import { Sidebar } from 'lucide-react';
 import SimplifiedCustomerDetail from './Components/Admin/SimplifiedCustomerDetail';
 import SimplifiedCustomerTable from './Components/Admin/SimplifiedCustomerTable';
+import MarketingTools from './Components/Seller/MarketingTools';
+import OrderInventoryManager from './Components/Seller/OrderInventoryManager';
+import PaymentSettings from './Components/Seller/PaymentSettings';
+import SellerLayout from './Components/Seller/SellerLayout';
+import SellerSettings from './Components/Seller/SellerSettings';
+import ShippingSettings from './Components/Seller/ShippingSettings';
+import SocialMedia from './Components/Seller/SocialMedia';
+import StorefrontCustomizer from './Components/Seller/StorefrontCustomizer';
+import WorkshopsEvents from './Components/Seller/WorkshopsEvents';
 
 
 function App() {
@@ -37,7 +46,7 @@ function App() {
         <Navbar />
         <div className="container">
           <Routes>
-            <Route path="/" element={<> <AdminLayout> <SimplifiedCustomerTable /> </AdminLayout> </>} /> 
+            <Route path="/" element={<WorkshopsEvents />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/categories" element={<Categories />} />
