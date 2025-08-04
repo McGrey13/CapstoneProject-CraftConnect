@@ -10,20 +10,22 @@ class ProductController extends Controller
 {
 
     public function index () {
-        $product  = Product::all();
-        return view('product.index', ['product'=> $product]);
+        // $product  = Product::all();
+        // return view('product.index', ['product'=> $product]);
+
+        return Product::all();
     }
 
-    public function create() {
-        return view('product.create');
-    }
+    // public function create() {
+    //     // return view('product.create');
+    // } 
 
     public function store(Request $request) {
 
         // dd($request);
         // return redirect()->route('product.index')->with('success', 'Product created successfully!');
 
-           $data = $request->validate([
+        $data = $request->validate([
         'productName' => 'required|string|max:255', 
         'productDescription' => 'nullable|string',
         'productPrice' => 'required|numeric',
@@ -31,24 +33,19 @@ class ProductController extends Controller
         'productVideo' => 'nullable|mimes:mp4,avi,mov|max:20480',
         ]);
 
-           if ($request->hasFile('productImage')) {
-        $data['productImage'] = $request->file('productImage')->store('images', 'public');
-    }
+    //        if ($request->hasFile('productImage')) {
+    //     $data['productImage'] = $request->file('productImage')->store('images', 'public');
+    // }
 
-    // Handle video upload
-    if ($request->hasFile('productVideo')) {
-        $data['productVideo'] = $request->file('productVideo')->store('videos', 'public');
-    }
+    // // Handle video upload
+    // if ($request->hasFile('productVideo')) {
+    //     $data['productVideo'] = $request->file('productVideo')->store('videos', 'public');  
+    // }
 
         Product::create($data);
 
-         return redirect()->route('product.index')->with('success', 'Product created successfully!');
+        //  return redirect()->route('product.index')->with('success', 'Product created successfully!');
     }
-
-    public function edit(Product $product){
-            return view('product.edit', ['product' => $product]);
-    }
-
     public function update (Product $product, Request $request){
         $data = $request->validate([
         'productName' => 'required|string|max:255', 
@@ -60,12 +57,17 @@ class ProductController extends Controller
 
         $product->update($data);
 
-        return redirect()->route('product.index')->with('success', 'Product updated successfully!');
+        // return redirect()->route('product.index')->with('success', 'Product updated successfully!');
     }
 
     public function destroy(Product $product) {
         $product->delete();
-        return redirect()->route('product.index')->with('success', 'Product deleted successfully!');
+        // return redirect()->route('product.index')->with('success', 'Product deleted successfully!');
+    }
+
+    public function search ($name){
+        $products = Product::where('productName', 'like', '%' . $name . '%')->get();
+        return response()->json($products);
     }
 }
   
