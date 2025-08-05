@@ -22,6 +22,7 @@ import ShippingSettings from './Components/Seller/ShippingSettings.jsx';
 import SocialMedia from './Components/Seller/SocialMedia.jsx';
 import SellerSettings from './Components/Seller/SellerSettings.jsx';
 import Dashboard from './Components/Admin/Dashboard';
+import AdminLayout from './Components/Admin/AdminLayout';
 
 function App() {
   return (
@@ -30,7 +31,7 @@ function App() {
       <div className="container">
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<SellerLayout />} />
+          <Route path="/" element={<AdminLayout />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/categories" element={<Categories />} />
@@ -39,18 +40,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/products" element={<ProductsPage />} />
 
-          {/* Seller routes with layout */}
-          <Route path="/seller" element={<SellerLayout />}>
-            <Route index element={<Dashboard/>} /> 
-            <Route path="workshops" element={<WorkshopsEvents />} />
-            <Route path="storefront" element={<StorefrontCustomizer />} />
-            <Route path="payments" element={<PaymentSettings />} />
-            <Route path="orders-inventory" element={<OrderInventoryManager />} />
-            <Route path="marketing" element={<MarketingTools />} />
-            <Route path="shipping" element={<ShippingSettings />} />
-            <Route path="social" element={<SocialMedia />} />
-            <Route path="settings" element={<SellerSettings />} />
-          </Route>
+          
         </Routes>
       </div>
       <Footer />
