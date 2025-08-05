@@ -5,8 +5,8 @@ import {
   DollarSign,
   Users,
   ShoppingBag,
-  Star
-} from 'lucide-react';
+  Star,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -14,9 +14,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import Sidebar from "./Sidebar";
 
-
+// Reusable Stat Card Component
 const StatCard = ({ title, value, description, icon, trend, trendValue }) => (
   <Card>
     <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -50,9 +49,26 @@ const StatCard = ({ title, value, description, icon, trend, trendValue }) => (
   </Card>
 );
 
+// Helper for status badge styles
+const getStatusStyle = (status) => {
+  switch (status) {
+    case "Completed":
+      return "bg-green-100 text-green-800";
+    case "Processing":
+      return "bg-blue-100 text-blue-800";
+    case "Shipped":
+      return "bg-yellow-100 text-yellow-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
 const Dashboard = () => {
+  const now = new Date();
+
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
@@ -61,11 +77,11 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="text-sm text-gray-500">
-          Last updated: {new Date().toLocaleDateString()} {" "}
-          {new Date().toLocaleTimeString()}
+          Last updated: {now.toLocaleDateString()} {now.toLocaleTimeString()}
         </div>
       </div>
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Revenue"
@@ -101,7 +117,9 @@ const Dashboard = () => {
         />
       </div>
 
+      {/* Bottom Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Orders */}
         <Card>
           <CardHeader>
             <CardTitle>Recent Orders</CardTitle>
@@ -150,7 +168,7 @@ const Dashboard = () => {
               ].map((order) => (
                 <div
                   key={order.id}
-                  className="flex items-center justify-between border-b pb-2"
+                  className="flex items-center justify-between border-b pb-2 pt-2"
                 >
                   <div>
                     <div className="font-medium">{order.id}</div>
@@ -162,29 +180,26 @@ const Dashboard = () => {
                     <div className="font-medium">{order.amount}</div>
                     <div className="text-sm text-gray-500">{order.date}</div>
                   </div>
-                  <div>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        order.status === "Completed"
-                          ? "bg-green-100 text-green-800"
-                          : order.status === "Processing"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
-                    >
-                      {order.status}
-                    </span>
-                  </div>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${getStatusStyle(
+                      order.status
+                    )}`}
+                  >
+                    {order.status}
+                  </span>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
+        {/* Top Rated Products */}
         <Card>
           <CardHeader>
             <CardTitle>Top Rated Products</CardTitle>
-            <CardDescription>Highest rated products this month</CardDescription>
+            <CardDescription>
+              Highest rated products this month
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -227,7 +242,7 @@ const Dashboard = () => {
               ].map((product) => (
                 <div
                   key={product.id}
-                  className="flex items-center justify-between border-b pb-2"
+                  className="flex items-center justify-between border-b pb-2 pt-2"
                 >
                   <div>
                     <div className="font-medium">{product.name}</div>

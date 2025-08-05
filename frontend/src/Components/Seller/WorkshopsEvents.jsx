@@ -519,20 +519,14 @@ const WorkshopCard = ({
 
 const WorkshopsEvents = () => {
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10 space-y-10">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-extrabold text-primary tracking-tight">Workshops & Events</h1>
-          <p className="text-muted-foreground text-base mt-1">
-            Inspire creativity through hands-on, memorable experiences.
-          </p>
-        </div>
-<div className="flex justify-end items-center mb-6">
-  <Button className="rounded-full bg-teal-600 text-white hover:bg-teal-700 shadow-md transition-transform hover:scale-105">
-    <Plus className="w-4 h-4 mr-2" /> Create New
-  </Button>
-</div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight">
+          Workshops & Events
+        </h1>
+        <Button>
+          <Plus className="h-4 w-4 mr-2" /> Create New Workshop
+        </Button>
       </div>
 
       {/* Grid */}
@@ -617,16 +611,9 @@ const WorkshopsEvents = () => {
             </div>
           </div>
 
-          {/* Location */}
-          <div>
-            <Label htmlFor="workshop-location" className="text-sm font-medium text-gray-700">
-              Location
-            </Label>
-            <Input
-              id="workshop-location"
-              placeholder="Your Studio or Online"
-              className="mt-1"
-            />
+          <div className="space-y-2">
+            <Label htmlFor="workshop-location">Location</Label>
+            <Input id="workshop-location" placeholder="Your Studio or Online" />
           </div>
 
           {/* Capacity & Price */}
