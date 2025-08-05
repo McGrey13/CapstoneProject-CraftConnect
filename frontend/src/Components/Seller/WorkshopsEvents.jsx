@@ -80,7 +80,7 @@ const WorkshopCard = ({
 
 const WorkshopsEvents = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white p-6 rounded-lg">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">
           Workshops & Events
@@ -158,7 +158,10 @@ const WorkshopsEvents = () => {
 
           <div className="space-y-2">
             <Label htmlFor="workshop-location">Location</Label>
-            <Input id="workshop-location" placeholder="Your Studio or Online" />
+            <Input
+              id="workshop-location"
+              placeholder="Your Studio or Online"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

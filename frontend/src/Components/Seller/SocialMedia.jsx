@@ -23,10 +23,9 @@ import {
   Clock,
 } from "lucide-react";
 
-
 const SocialMedia = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white p-6 rounded-lg">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Social Media</h1>
         <Button>Schedule Post</Button>
@@ -39,9 +38,10 @@ const SocialMedia = () => {
           <TabsTrigger value="scheduled">Scheduled Content</TabsTrigger>
         </TabsList>
 
+        {/* Connected Accounts */}
         <TabsContent value="accounts" className="space-y-4 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Instagram Card */}
+            {/* Instagram */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center">
@@ -67,7 +67,7 @@ const SocialMedia = () => {
               </CardContent>
             </Card>
 
-            {/* Facebook Card */}
+            {/* Facebook */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center">
@@ -91,7 +91,7 @@ const SocialMedia = () => {
               </CardContent>
             </Card>
 
-            {/* Twitter Card */}
+            {/* Twitter */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center">
@@ -113,14 +113,16 @@ const SocialMedia = () => {
               </CardContent>
             </Card>
 
-            {/* YouTube Card */}
+            {/* YouTube */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center">
                   <Youtube className="h-5 w-5 mr-2 text-red-600" />
                   YouTube
                 </CardTitle>
-                <CardDescription>Connect your YouTube channel</CardDescription>
+                <CardDescription>
+                  Connect your YouTube channel
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
@@ -137,6 +139,7 @@ const SocialMedia = () => {
           </div>
         </TabsContent>
 
+        {/* Create Post */}
         <TabsContent value="posts" className="space-y-4 pt-4">
           <Card>
             <CardHeader>
@@ -213,6 +216,7 @@ const SocialMedia = () => {
           </Card>
         </TabsContent>
 
+        {/* Scheduled Content */}
         <TabsContent value="scheduled" className="space-y-4 pt-4">
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="text-center py-8">

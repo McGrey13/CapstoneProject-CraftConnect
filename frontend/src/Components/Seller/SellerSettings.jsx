@@ -5,7 +5,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Button } from "../ui/button";
@@ -25,7 +24,7 @@ import {
 
 const SellerSettings = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white p-6 rounded-lg">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <Button>Save Changes</Button>
@@ -39,6 +38,7 @@ const SellerSettings = () => {
           <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
+        {/* Profile */}
         <TabsContent value="profile" className="space-y-4 pt-4">
           <Card>
             <CardHeader>
@@ -102,6 +102,7 @@ const SellerSettings = () => {
           </Card>
         </TabsContent>
 
+        {/* Account */}
         <TabsContent value="account" className="space-y-4 pt-4">
           <Card>
             <CardHeader>
@@ -150,6 +151,7 @@ const SellerSettings = () => {
           </Card>
         </TabsContent>
 
+        {/* Notifications */}
         <TabsContent value="notifications" className="space-y-4 pt-4">
           <Card>
             <CardHeader>
@@ -162,49 +164,48 @@ const SellerSettings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">New Order Notifications</p>
-                  <p className="text-sm text-gray-500">
-                    Receive notifications when you get a new order
-                  </p>
+              {[
+                {
+                  id: "new-order",
+                  title: "New Order Notifications",
+                  desc: "Receive notifications when you get a new order",
+                  checked: true,
+                },
+                {
+                  id: "messages",
+                  title: "Message Notifications",
+                  desc: "Receive notifications for new customer messages",
+                  checked: true,
+                },
+                {
+                  id: "reviews",
+                  title: "Review Notifications",
+                  desc: "Receive notifications when you get a new review",
+                  checked: true,
+                },
+                {
+                  id: "marketing",
+                  title: "Marketing Updates",
+                  desc: "Receive updates about CraftConnect features",
+                  checked: false,
+                },
+              ].map((notif) => (
+                <div
+                  key={notif.id}
+                  className="flex items-center justify-between"
+                >
+                  <div>
+                    <p className="font-medium">{notif.title}</p>
+                    <p className="text-sm text-gray-500">{notif.desc}</p>
+                  </div>
+                  <Switch id={notif.id} defaultChecked={notif.checked} />
                 </div>
-                <Switch id="new-order" defaultChecked />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Message Notifications</p>
-                  <p className="text-sm text-gray-500">
-                    Receive notifications for new customer messages
-                  </p>
-                </div>
-                <Switch id="messages" defaultChecked />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Review Notifications</p>
-                  <p className="text-sm text-gray-500">
-                    Receive notifications when you get a new review
-                  </p>
-                </div>
-                <Switch id="reviews" defaultChecked />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Marketing Updates</p>
-                  <p className="text-sm text-gray-500">
-                    Receive updates about CraftConnect features
-                  </p>
-                </div>
-                <Switch id="marketing" />
-              </div>
+              ))}
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* Billing */}
         <TabsContent value="billing" className="space-y-4 pt-4">
           <Card>
             <CardHeader>

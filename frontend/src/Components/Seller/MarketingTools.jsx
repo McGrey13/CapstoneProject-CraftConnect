@@ -10,12 +10,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Megaphone, Mail, Gift, Tag, TrendingUp } from "lucide-react";
-
+import {
+  Megaphone,
+  Mail,
+  Gift,
+  Tag,
+  TrendingUp,
+} from "lucide-react";
 
 const MarketingTools = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white p-6 rounded-lg">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Marketing Tools</h1>
         <Button>Create New Campaign</Button>
