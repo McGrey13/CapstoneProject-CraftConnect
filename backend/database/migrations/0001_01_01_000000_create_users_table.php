@@ -55,14 +55,12 @@ return new class extends Migration
             $table->date('userBirthday')->nullable();
             $table->string('userContactNumber')->nullable();
             $table->string('userAddress')->nullable();
+            $table->enum('role', ['administrator', 'seller', 'customer'])->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('users');

@@ -10,16 +10,16 @@ use Illuminate\Support\Facades\Auth;
 class CustomerMiddleware
 {
     /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
-    public function handle(Request $request, Closure $next): Response
-    {
-        if (!Auth::check() || Auth::user()->userType !== 'customer') {
-            return redirect('/')->with('error', 'You do not have customer access.');
-        }
+    //  * Handle an incoming request.
+    //  *
+    //  * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+    //  */
+    // public function handle(Request $request, Closure $next): Response
+    // {
+    //     if (!Auth::check() || Auth::user()->userType !== 'customer') {
+    //         return redirect('/')->with('error', 'You do not have customer access.');
+    //     }
 
-        return $next($request);
-    }
+    //     return $next($request);
+    // }
 }

@@ -1,13 +1,13 @@
 <?php 
 
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Auth;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 
-class SellerController extends Controller
+class SellerController extends AuthController
 {
     /**
      * Display the seller dashboard.

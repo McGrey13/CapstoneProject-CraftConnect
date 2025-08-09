@@ -8,7 +8,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [userType, setUserType] = useState("customer");
+  const [role, setRole] = useState("customer");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -22,11 +22,11 @@ const Login = () => {
       api.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
       // Redirect based on user type
       if (res.data.user_type === "admin") {
-        navigate("/admin-dashboard");
+        navigate("/admin/dashboard");
       } else if (res.data.user_type === "seller") {
-        navigate("/seller-dashboard");
+        navigate("/seller");
       } else {
-        navigate("/");
+        navigate("/home");
       }
     } catch (err) {
       setError(
@@ -49,15 +49,15 @@ const Login = () => {
         <div className="login-tabs">
           <button
             type="button"
-            className={`login-tab${userType === "customer" ? " active" : ""}`}
-            onClick={() => setUserType("customer")}
+            className={`login-tab${role === "customer" ? " active" : ""}`}
+            onClick={() => setRole("customer")}
           >
             <ShoppingBag className="h-4 w-4" /> Customer
           </button>
           <button
             type="button"
-            className={`login-tab${userType === "seller" ? " active" : ""}`}
-            onClick={() => setUserType("seller")}
+            className={`login-tab${role === "seller" ? " active" : ""}`}
+            onClick={() => setRole("seller")}
           >
             <Store className="h-4 w-4" /> Seller
           </button>
@@ -103,7 +103,7 @@ const Login = () => {
           </div>
           {error && <div style={{ color: "red", marginBottom: 8 }}>{error}</div>}
           <button type="submit" className="submit-btn">
-            {userType === "customer" ? "Sign in as Customer" : "Sign in as Seller"}
+            {role === "customer" ? "Sign in as Customer" : "Sign in as Seller"}
             <ArrowRight className="h-4 w-4" />
           </button>
           <div className="login-or">

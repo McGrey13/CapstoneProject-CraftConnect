@@ -83,7 +83,7 @@
 //         }
 
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -116,6 +116,8 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
+        
+        
         $request->validate([
             'userName' => ['required', 'string', 'max:255'],
             'userEmail' => ['required', 'string', 'email', 'max:255', 'unique:users,userEmail'],
@@ -124,7 +126,7 @@ class AuthController extends Controller
             'userBirthday' => ['nullable', 'date'],
             'userContactNumber' => ['nullable', 'string', 'max:255'],
             'userAddress' => ['nullable', 'string', 'max:255'],
-            'role' => ['required', 'in:administrator,seller,customer'], // User selects their role
+            'role' => ['required', 'in:admin,administrator,seller,customer'], // User selects their role
         ]);
 
         // Create the main User record
@@ -136,10 +138,12 @@ class AuthController extends Controller
             'userBirthday' => $request->userBirthday,
             'userContactNumber' => $request->userContactNumber,
             'userAddress' => $request->userAddress,
+            'role' => $request->role,
         ]);
 
         // Create the specific role record based on selection
         switch ($request->role) {
+            case 'admin':
             case 'administrator':
                 $user->administrator()->create([]); // Create an empty administrator profile
                 break;
@@ -151,9 +155,16 @@ class AuthController extends Controller
                 break;
         }
 
+        $token = $user->createToken('auth_token')->plainTextToken;// Create an authentication token
+
         Auth::login($user); // Log the user in after registration
 
-        return redirect('/dashboard'); // Redirect to a dashboard or home page
+        $response = [
+            'user' => $user,
+            'token' => $token,
+        ];
+
+        return response($response, 201);
     }
 
     /**
@@ -170,7 +181,7 @@ class AuthController extends Controller
      * Handle user login.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\JsonResponse
      * @throws \Illuminate\Validation\ValidationException
      */
     public function login(Request $request)
@@ -180,44 +191,57 @@ class AuthController extends Controller
             'userPassword' => ['required'],
         ]);
 
-        // Attempt to authenticate the user
-        if (Auth::attempt(['userEmail' => $credentials['userEmail'], 'password' => $credentials['userPassword']])) {
-            $request->session()->regenerate();
-
-            // Redirect based on user role
-            $user = Auth::user();
-            if ($user->administrator) {
-                return redirect()->intended('/admin/dashboard');
-            } elseif ($user->seller) {
-                return redirect()->intended('/seller/dashboard');
-            } elseif ($user->customer) {
-                return redirect()->intended('/customer/dashboard');
-            } else {
-                // Default redirect if no specific role is found (shouldn't happen with our setup)
-                return redirect()->intended('/dashboard');
-            }
+        // Check if user exists and password is correct
+        $user = User::where('userEmail', $credentials['userEmail'])->first();
+        
+        if (!$user || !Hash::check($credentials['userPassword'], $user->userPassword)) {
+            return response()->json([
+                'message' => 'Invalid credentials'
+            ], 401);
         }
 
-        // If authentication fails
-        throw ValidationException::withMessages([
-            'userEmail' => [trans('auth.failed')],
-        ]);
+        // Create token
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Determine user type for frontend routing
+        $userType = 'customer'; // default
+        if ($user->administrator) {
+            $userType = 'admin';
+        } elseif ($user->seller) {
+            $userType = 'seller';
+        }
+
+        return response()->json([
+            'user' => $user,
+            'token' => $token,
+            'user_type' => $userType
+        ], 200);
+    }
+
+    /**
+     * Get the authenticated user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function user(Request $request)
+    {
+        return response()->json($request->user());
     }
 
     /**
      * Log the user out of the application.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\JsonResponse
      */
     public function logout(Request $request)
     {
-        Auth::logout();
+        $request->user()->tokens()->delete();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect('/');
+        return response()->json([
+            'message' => 'Logged out successfully'
+        ]);
     }
 }
 

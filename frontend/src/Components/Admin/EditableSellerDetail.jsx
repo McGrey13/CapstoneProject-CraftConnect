@@ -52,6 +52,7 @@ import {
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
 
+// eslint-disable-next-line no-unused-vars
 const EditableSellerDetail = ({ id = "SEL-1001", onBack = () => {} }) => {
   const [seller, setSeller] = useState({
     id: "SEL-1001",

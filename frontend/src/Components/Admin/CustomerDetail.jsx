@@ -50,6 +50,7 @@ import {
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
 
+// eslint-disable-next-line no-unused-vars
 const CustomerDetail = ({ id = "CUST-1001", onBack = () => {} }) => {
   const [customer, setCustomer] = useState({
     id: "CUST-1001",
@@ -163,6 +164,7 @@ const CustomerDetail = ({ id = "CUST-1001", onBack = () => {} }) => {
                 icon: Clock,
                 label: "Joined",
                 value: new Date(customer.joinDate).toLocaleDateString(),
+              // eslint-disable-next-line no-unused-vars
               }].map(({ icon: Icon, label, value }) => (
                 <div key={label} className="flex items-start">
                   <Icon className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />

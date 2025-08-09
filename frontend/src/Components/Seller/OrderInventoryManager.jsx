@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import {
   Card,
@@ -18,7 +18,13 @@ import {
 } from "../ui/table";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
-import { Search, Filter, Plus, Download, RefreshCw } from "lucide-react";
+import {
+  Search,
+  Filter,
+  Plus,
+  Download,
+  RefreshCw,
+} from "lucide-react";
 
 const OrdersTab = () => {
   const orders = [
@@ -196,6 +202,7 @@ const OrderInventoryManager = () => {
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
         </TabsList>
+
         <TabsContent value="orders" className="mt-6">
           <OrdersTab />
         </TabsContent>

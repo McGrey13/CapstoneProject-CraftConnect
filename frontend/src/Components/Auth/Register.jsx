@@ -8,15 +8,16 @@ const Register = () => {
   const [form, setForm] = useState({
     // These keys MUST match your User.php $fillable array exactly
     userName: "",
+    userEmail: "",
     userPassword: "",
-    password_confirmation: "", // This is for frontend and backend validation, not saved directly to DB
+    userPassword_confirmation: "", // This is for frontend and backend validation, not saved directly to DB
     userAge: "",
     userBirthDay: "",
-    userEmail: "",
     userContactNumber: "",
     userAddress: "",
-    userType: "customer",
+    role: "customer",
   });
+
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -24,8 +25,8 @@ const Register = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleUserType = (type) => {
-    setForm({ ...form, userType: type });
+  const handleRole = (type) => {
+    setForm({ ...form, role: type });
   };
 
   const handleSubmit = async (e) => {
@@ -36,24 +37,24 @@ const Register = () => {
         userName: form.userName,
         userEmail: form.userEmail,
         userPassword: form.userPassword,
-        password_confirmation: form.password_confirmation,
+        userPassword_confirmation: form.userPassword_confirmation,
         userAge: form.userAge,
-        userBirthDay: form.userBirthDay,
+        userBirthday: form.userBirthDay,
         userContactNumber: form.userContactNumber,
         userAddress: form.userAddress,
-        userType: form.userType,
+        role: form.role,
       });
       // Store the token
       localStorage.setItem("token", res.data.token);
       // Set the token in the API headers for future requests
       api.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
       // Redirect based on user type
-      if (res.data.user.userType === "admin") {
-        navigate("/admin-dashboard");
-      } else if (res.data.user.userType === "seller") {
-        navigate("/seller-dashboard");
+      if (res.data.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (res.data.user.role === "seller") {
+        navigate("/seller");
       } else {
-        navigate("/");
+        navigate("/home");
       }
     } catch (err) {
       setError(
@@ -77,22 +78,22 @@ const Register = () => {
         <div className="register-tabs">
           <button
             type="button"
-            className={`register-tab${form.userType === "customer" ? " active" : ""}`}
-            onClick={() => handleUserType("customer")}
+            className={`register-tab${form.role === "customer" ? " active" : ""}`}
+            onClick={() => handleRole("customer")}
           >
             Customer
           </button>
           <button
             type="button"
-            className={`register-tab${form.userType === "seller" ? " active" : ""}`}
-            onClick={() => handleUserType("seller")}
+            className={`register-tab${form.role === "seller" ? " active" : ""}`}
+            onClick={() => handleRole("seller")}
           >
             Seller
           </button>
           <button
             type="button"
-            className={`register-tab${form.userType === "admin" ? " active" : ""}`}
-            onClick={() => handleUserType("admin")}
+            className={`register-tab${form.role === "administrator" ? " active" : ""}`}
+            onClick={() => handleRole("administrator")}
           >
             Admin
           </button>
@@ -131,13 +132,13 @@ const Register = () => {
             onChange={handleChange}
             required
           />
-          <label htmlFor="password_confirmation">Confirm Password</label>
+          <label htmlFor="userPassword_confirmation">Confirm Password</label>
           <input
-            id="password_confirmation"
-            name="password_confirmation" // This name is standard for Laravel's 'confirmed' rule
+            id="userPassword_confirmation"
+            name="userPassword_confirmation" // This name is standard for Laravel's 'confirmed' rule
             placeholder="Confirm Password"
             type="password"
-            value={form.password_confirmation}
+            value={form.userPassword_confirmation}
             onChange={handleChange}
             required
           />
