@@ -9,7 +9,6 @@ import Artisan from './Components/Artisans/Artisan.jsx';
 import Contact from './Components/Contact/Contact.jsx';
 import Login from './Components/Auth/Login.jsx';
 import Register from './Components/Auth/Register.jsx';
-import Home from './Components/home.jsx';
 import ProductsPage from './Components/Product/ProductsPage.jsx';
 
 import SellerLayout from './Components/Seller/SellerLayout.jsx';
