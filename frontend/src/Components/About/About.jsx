@@ -28,7 +28,7 @@ const AboutPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center overflow-auto px-4 py-8">
+    <div className="min-h-screen bg-white flex items-center justify-center overflow-auto px-4 py-8">
       <div className="w-full max-w-7xl">
         {/* Breadcrumb */}
         <div className="flex items-center mb-6 text-sm">

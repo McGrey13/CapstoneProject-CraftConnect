@@ -39,7 +39,7 @@ const ContactPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-white">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center mb-6 text-sm">
           <Link to="/" className="text-gray-500 hover:text-primary">Home</Link>
