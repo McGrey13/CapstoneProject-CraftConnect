@@ -9,7 +9,7 @@ import { Badge } from "../ui/badge";
 const mockArtisans = [
   {
     id: "art-1",
-    name: "Sarah Johnson",
+    name: "Sheweliz M. Antinero",
     location: "Calamba, Laguna",
     specialty: "Ceramics",
     bio: "Creating handcrafted pottery inspired by nature and traditional Filipino designs.",
@@ -17,10 +17,13 @@ const mockArtisans = [
     rating: 4.8,
     productCount: 24,
     featured: true,
+    story:
+      "Sheweliz's passion for ceramics started in her childhood surrounded by nature. Her work blends traditional Filipino techniques with modern styles to create unique pottery that tells a story.",
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: "art-2",
-    name: "Miguel Santos",
+    name: "Gio Mc Grey O. Calugas",
     location: "San Pedro, Laguna",
     specialty: "Jewelry",
     bio: "Crafting unique jewelry pieces using locally sourced materials and traditional techniques.",
@@ -28,10 +31,13 @@ const mockArtisans = [
     rating: 4.5,
     productCount: 18,
     featured: true,
+    story:
+      "Gio sources local materials and uses time-honored jewelry techniques to craft unique pieces inspired by Philippine heritage.",
+    videoUrl: "https://www.youtube.com/embed/3JZ_D3ELwOQ",
   },
   {
     id: "art-3",
-    name: "Elena Cruz",
+    name: "Denisse Kaith D. Malabana",
     location: "Victoria, Laguna",
     specialty: "Textiles",
     bio: "Weaving beautiful textiles that blend traditional patterns with contemporary designs.",
@@ -39,73 +45,11 @@ const mockArtisans = [
     rating: 4.9,
     productCount: 31,
     featured: true,
+    story:
+      "Denisse's textiles merge traditional patterns with modern aesthetics, preserving cultural heritage while embracing innovation.",
+    videoUrl: "https://www.youtube.com/embed/tgbNymZ7vqY",
   },
-  {
-    id: "art-4",
-    name: "Antonio Reyes",
-    location: "Paete, Laguna",
-    specialty: "Woodworking",
-    bio: "Continuing the legacy of Paete's woodcarving tradition with contemporary artistic vision.",
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&q=80",
-    rating: 4.7,
-    productCount: 15,
-    featured: false,
-  },
-  {
-    id: "art-5",
-    name: "Maria Lim",
-    location: "Pakil, Laguna",
-    specialty: "Paper Crafts",
-    bio: "Creating intricate paper art inspired by local folklore and natural surroundings.",
-    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&q=80",
-    rating: 4.6,
-    productCount: 12,
-    featured: false,
-  },
-  {
-    id: "art-6",
-    name: "Jose Garcia",
-    location: "Liliw, Laguna",
-    specialty: "Glass Works",
-    bio: "Transforming glass into beautiful art pieces using traditional and modern techniques.",
-    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500&q=80",
-    rating: 4.4,
-    productCount: 9,
-    featured: false,
-  },
-  {
-    id: "art-7",
-    name: "Sophia Mendoza",
-    location: "Los Baños, Laguna",
-    specialty: "Bath & Body",
-    bio: "Crafting natural soaps and skincare products using locally sourced botanical ingredients.",
-    image: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=500&q=80",
-    rating: 4.7,
-    productCount: 22,
-    featured: true,
-  },
-  {
-    id: "art-8",
-    name: "Rafael Dizon",
-    location: "Nagcarlan, Laguna",
-    specialty: "Metal Works",
-    bio: "Creating functional and decorative metal art inspired by Philippine heritage.",
-    image: "https://images.unsplash.com/photo-1504257432389-52343af06ae3?w=500&q=80",
-    rating: 4.5,
-    productCount: 14,
-    featured: false,
-  },
-  {
-    id: "art-9",
-    name: "Isabella Ramos",
-    location: "Pila, Laguna",
-    specialty: "Leather Goods",
-    bio: "Handcrafting premium leather products combining traditional techniques with modern aesthetics.",
-    image: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=500&q=80",
-    rating: 4.8,
-    productCount: 19,
-    featured: true,
-  },
+  // add more artisans as needed
 ];
 
 const Artisan = () => {
@@ -199,7 +143,7 @@ const Artisan = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {artisans.map((artisan) => (
               <Link to={`/artisans/${artisan.id}`} key={artisan.id}>
-                <Card className="h-full overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                <Card className="h-full overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer">
                   <div className="relative h-64 overflow-hidden bg-gray-100">
                     <img
                       src={artisan.image}
@@ -251,9 +195,7 @@ const Artisan = () => {
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-gray-500 mb-4">
-              No artisans found matching your search
-            </p>
+            <p className="text-gray-500 mb-4">No artisans found matching your search</p>
             <Button
               onClick={() => {
                 setSearchQuery("");

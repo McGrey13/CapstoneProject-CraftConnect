@@ -16,7 +16,8 @@ import { Link } from "react-router-dom";
 const mockProducts = [
   {
     id: "1",
-    image: "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=500&q=80",
+    image:
+      "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=500&q=80",
     title: "Handcrafted Ceramic Mug",
     price: 24.99,
     artisanName: "Sarah ",
@@ -27,7 +28,8 @@ const mockProducts = [
   },
   {
     id: "2",
-    image: "https://images.unsplash.com/photo-1603031612556-9f3e239d5a76?w=500&q=80",
+    image:
+      "https://images.unsplash.com/photo-1603031612556-9f3e239d5a76?w=500&q=80",
     title: "Woven Basket Set",
     price: 49.99,
     artisanName: "Weaving Wonders",
@@ -38,7 +40,8 @@ const mockProducts = [
   },
   {
     id: "3",
-    image: "https://images.unsplash.com/photo-1601924921557-45e6dea0a157?w=500&q=80",
+    image:
+      "https://images.unsplash.com/photo-1601924921557-45e6dea0a157?w=500&q=80",
     title: "Handmade Leather Journal",
     price: 35.5,
     artisanName: "Leather Craft Co.",
@@ -49,7 +52,8 @@ const mockProducts = [
   },
   {
     id: "4",
-    image: "https://images.unsplash.com/photo-1631125915902-d9eca5c900e4?w=500&q=80",
+    image:
+      "https://images.unsplash.com/photo-1631125915902-d9eca5c900e4?w=500&q=80",
     title: "Macrame Wall Hanging",
     price: 89.99,
     artisanName: "Knot & Fiber",
@@ -60,7 +64,8 @@ const mockProducts = [
   },
   {
     id: "5",
-    image: "https://images.unsplash.com/photo-1621517936102-3fbd997689e6?w=500&q=80",
+    image:
+      "https://images.unsplash.com/photo-1621517936102-3fbd997689e6?w=500&q=80",
     title: "Hand-Poured Soy Candle",
     price: 18.99,
     artisanName: "Glow Artisan",
@@ -71,7 +76,8 @@ const mockProducts = [
   },
   {
     id: "6",
-    image: "https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=500&q=80",
+    image:
+      "https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=500&q=80",
     title: "Beaded Statement Necklace",
     price: 65.0,
     artisanName: "Bead & Gem Studio",
@@ -82,7 +88,8 @@ const mockProducts = [
   },
   {
     id: "7",
-    image: "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=500&q=80",
+    image:
+      "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=500&q=80",
     title: "Hand-Carved Wooden Bowl",
     price: 42.5,
     artisanName: "Forest Crafts",
@@ -93,7 +100,8 @@ const mockProducts = [
   },
   {
     id: "8",
-    image: "https://images.unsplash.com/photo-1594749794743-2c3ec3e47005?w=500&q=80",
+    image:
+      "https://images.unsplash.com/photo-1594749794743-2c3ec3e47005?w=500&q=80",
     title: "Embroidered Linen Pillow",
     price: 55.0,
     artisanName: "Stitch & Thread",
@@ -104,7 +112,8 @@ const mockProducts = [
   },
   {
     id: "9",
-    image: "https://images.unsplash.com/photo-1584589167171-541ce45f1eea?w=500&q=80",
+    image:
+      "https://images.unsplash.com/photo-1584589167171-541ce45f1eea?w=500&q=80",
     title: "Handwoven Wool Scarf",
     price: 38.99,
     artisanName: "Mountain Weavers",
@@ -115,7 +124,8 @@ const mockProducts = [
   },
   {
     id: "10",
-    image: "https://images.unsplash.com/photo-1617142584114-e7c58dc970ea?w=500&q=80",
+    image:
+      "https://images.unsplash.com/photo-1617142584114-e7c58dc970ea?w=500&q=80",
     title: "Artisan Soap Collection",
     price: 28.5,
     artisanName: "Natural Essentials",
@@ -126,7 +136,8 @@ const mockProducts = [
   },
   {
     id: "11",
-    image: "https://images.unsplash.com/photo-1603006905003-be475563bc59?w=500&q=80",
+    image:
+      "https://images.unsplash.com/photo-1603006905003-be475563bc59?w=500&q=80",
     title: "Handmade Ceramic Planter",
     price: 32.99,
     artisanName: "Sarah ",
@@ -137,7 +148,8 @@ const mockProducts = [
   },
   {
     id: "12",
-    image: "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=500&q=80",
+    image:
+      "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=500&q=80",
     title: "Wooden Cutting Board",
     price: 45.0,
     artisanName: "Forest Crafts",
@@ -211,7 +223,7 @@ const ProductsPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-white">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center mb-6 text-sm">
           <Link to="/" className="text-gray-500 hover:text-primary">
