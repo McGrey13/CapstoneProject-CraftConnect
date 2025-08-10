@@ -1,8 +1,17 @@
 import React, { useState } from "react";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Badge } from "../ui/badge";
+import { Card, CardContent } from "../ui/card";
+
+// Define your color palette here
+const PALETTE = {
+  sand: "#e5ded7",
+  warmText: "#7a5c52",
+  brown: "#a36b4f",
+  gold: "#e6b17e",
+};
+
+const FONT_FAMILY = '"Inter", sans-serif'; // Use your preferred font
 
 const ShoppingCart = () => {
   const [cartItems, setCartItems] = useState([
@@ -60,14 +69,14 @@ const ShoppingCart = () => {
   const total = subtotal + shipping + tax;
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <div className="container mx-auto px-4 py-8 flex-grow">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 flex items-center">
+          <h1 className="text-3xl font-bold mb-2 flex items-center text-[#4b3832]">
             <ShoppingBag className="mr-3 h-8 w-8" />
             Shopping Cart
           </h1>
-          <p className="text-gray-600">
+          <p className="text-[#7a5c52]">
             {cartItems.length} {cartItems.length === 1 ? "item" : "items"} in
             your cart
           </p>
@@ -89,20 +98,25 @@ const ShoppingCart = () => {
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               {cartItems.map((item) => (
-                <Card key={item.id} className="bg-white">
+                <Card
+                  key={item.id}
+                  className="bg-white rounded-xl shadow-sm border border-[#e5ded7]"
+                >
                   <CardContent className="p-6">
                     <div className="flex items-center space-x-4">
                       <img
                         src={item.image}
                         alt={item.title}
-                        className="w-20 h-20 object-cover rounded-lg"
+                        className="w-20 h-20 object-cover rounded-lg border border-[#e5ded7]"
                       />
                       <div className="flex-grow">
-                        <h3 className="font-semibold text-lg">{item.title}</h3>
-                        <p className="text-gray-600 text-sm">
+                        <h3 className="font-semibold text-lg text-[#4b3832]">
+                          {item.title}
+                        </h3>
+                        <p className="text-[#7a5c52] text-sm">
                           by {item.artisanName}
                         </p>
-                        <p className="font-bold text-lg mt-1">
+                        <p className="font-bold text-lg mt-1 text-[#a36b4f]">
                           ${item.price.toFixed(2)}
                         </p>
                       </div>
@@ -113,11 +127,11 @@ const ShoppingCart = () => {
                           onClick={() =>
                             updateQuantity(item.id, item.quantity - 1)
                           }
-                          className="h-8 w-8"
+                          className="h-8 w-8 rounded-full border-[#d8b48f]"
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="w-8 text-center font-semibold">
+                        <span className="w-8 text-center font-semibold text-[#4b3832]">
                           {item.quantity}
                         </span>
                         <Button
@@ -126,7 +140,7 @@ const ShoppingCart = () => {
                           onClick={() =>
                             updateQuantity(item.id, item.quantity + 1)
                           }
-                          className="h-8 w-8"
+                          className="h-8 w-8 rounded-full border-[#d8b48f]"
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -147,37 +161,92 @@ const ShoppingCart = () => {
 
             {/* Order Summary */}
             <div className="lg:col-span-1">
-              <Card className="bg-white sticky top-4">
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              <div
+                className="bg-white rounded-2xl p-6 shadow-sm sticky top-6"
+                style={{ border: `1px solid ${PALETTE.sand}` }}
+              >
+                <h4
+                  className="text-lg mb-4 font-semibold"
+                  style={{
+                    color: PALETTE.warmText,
+                  }}
+                >
+                  Order summary
+                </h4>
+
+                <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span className="text-gray-600">Subtotal</span>
+                    <span style={{ color: PALETTE.warmText }}>
+                      ${subtotal.toFixed(2)}
+                    </span>
                   </div>
+
                   <div className="flex justify-between">
-                    <span>Shipping</span>
-                    <span>${shipping.toFixed(2)}</span>
+                    <span className="text-gray-600">Shipping</span>
+                    <span style={{ color: PALETTE.warmText }}>
+                      ${shipping.toFixed(2)}
+                    </span>
                   </div>
+
                   <div className="flex justify-between">
-                    <span>Tax</span>
-                    <span>${tax.toFixed(2)}</span>
+                    <span className="text-gray-600">Estimated tax</span>
+                    <span style={{ color: PALETTE.warmText }}>
+                      ${tax.toFixed(2)}
+                    </span>
                   </div>
-                  <div className="border-t pt-4">
-                    <div className="flex justify-between font-bold text-lg">
-                      <span>Total</span>
-                      <span>${total.toFixed(2)}</span>
+
+                  <div
+                    className="border-t pt-4"
+                    style={{ borderColor: PALETTE.sand }}
+                  >
+                    <div className="flex justify-between items-baseline">
+                      <span
+                        className="text-base font-semibold"
+                        style={{ color: PALETTE.warmText }}
+                      >
+                        Total
+                      </span>
+                      <span
+                        className="text-2xl font-bold"
+                        style={{ color: PALETTE.gold }}
+                      >
+                        ${total.toFixed(2)}
+                      </span>
                     </div>
                   </div>
-                  <Button className="w-full" size="lg">
-                    Proceed to Checkout
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  <Button
+                    className="w-full py-3 rounded-full"
+                    style={{
+                      background: `linear-gradient(90deg, ${PALETTE.brown}, ${PALETTE.gold})`,
+                      color: "white",
+                      fontWeight: 700,
+                    }}
+                    onClick={() => alert("Proceed to checkout (placeholder)")}
+                  >
+                    Proceed to checkout
                   </Button>
-                  <Button variant="outline" className="w-full">
-                    Continue Shopping
+
+                  <Button
+                    className="w-full py-2 rounded-full"
+                    variant="outline"
+                    style={{
+                      borderColor: PALETTE.sand,
+                      color: PALETTE.warmText,
+                      background: "white",
+                    }}
+                  >
+                    Continue shopping
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+
+                <p className="mt-4 text-xs text-gray-500">
+                  Secure checkout · Free returns within 14 days
+                </p>
+              </div>
             </div>
           </div>
         )}

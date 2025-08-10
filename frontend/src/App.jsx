@@ -47,6 +47,24 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/products" element={<ProductsPage />} />
+
+          {/* Seller routes */}
+          <Route path="/seller" element={<SellerLayout />}>
+            <Route path="workshops-events" element={<WorkshopsEvents />} />
+            <Route path="storefront-customizer" element={<StorefrontCustomizer />} />
+            <Route path="payment-settings" element={<PaymentSettings />} />
+            <Route path="order-inventory" element={<OrderInventoryManager />} />
+            <Route path="marketing-tools" element={<MarketingTools />} />
+            <Route path="shipping-settings" element={<ShippingSettings />} />
+            <Route path="social-media" element={<SocialMedia />} />
+            <Route path="settings" element={<SellerSettings />} />
+          </Route>
+
+          {/* Admin routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<Dashboard />} />
+            {/* Add more admin routes here if needed */}
+          </Route>
         </Routes>
       </div>
       <Footer />
