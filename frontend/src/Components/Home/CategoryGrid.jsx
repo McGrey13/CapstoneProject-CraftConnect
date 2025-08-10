@@ -2,64 +2,60 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
 
-const CategoryGrid = ({
-  categories = [
-    {
-      id: "1",
-      name: "Calamba",
-      icon: "https://i0.wp.com/www.mycitymysm.com/wp-content/uploads/2021/08/my-city-my-sm-my-craft-calamba-laguna-14.jpg?fit=1280%2C978&ssl=1",
-      description: "Handcrafted ceramic pieces for your home",
-      productCount: 125,
-    },
-    {
-      id: "2",
-      name: "Pila",
-      icon: "https://www.wheninmanila.com/wp-content/uploads/2017/10/when-in-manila-teds-sta-cruz-laguna-products-food-sa-pantalan-3019-e1508108617844.jpg",
-      description: "Unique handmade jewelry pieces",
-      productCount: 89,
-    },
-    {
-      id: "3",
-      name: "Victoria",
-      icon: "",
-      description: "Woven, knitted, and embroidered goods",
-      productCount: 76,
-    },
-    {
-      id: "4",
-      name: "Paete",
-      icon: "",
-      description: "Handcrafted wooden items and furniture",
-      productCount: 62,
-    },
-    {
-      id: "5",
-      name: "Pakil",
-      icon: "",
-      description: "Handmade paper goods and stationery",
-      productCount: 45,
-    },
-    {
-      id: "6",
-      name: "Liliw",
-      icon: "https://images.squarespace-cdn.com/content/v1/5958da62d2b857c0a9d740fb/1563817484363-SU8P76Y1IP9CMKQP3AGX/DSC03247.jpg",
-      description: "Blown glass and stained glass creations",
-      productCount: 38,
-    },
-  ],
-  title = "Browse by Category",
-  subtitle = "Discover unique handcrafted items across Laguna",
-}) => {
+const categories = [
+  {
+    id: "1",
+    name: "Calamba",
+    icon: "https://i0.wp.com/www.mycitymysm.com/wp-content/uploads/2021/08/my-city-my-sm-my-craft-calamba-laguna-14.jpg?fit=1280%2C978&ssl=1",
+    description: "Handcrafted ceramic pieces for your home",
+    productCount: 125,
+  },
+  {
+    id: "2",
+    name: "Pila",
+    icon: "https://www.wheninmanila.com/wp-content/uploads/2017/10/when-in-manila-teds-sta-cruz-laguna-products-food-sa-pantalan-3019-e1508108617844.jpg",
+    description: "Unique handmade jewelry pieces",
+    productCount: 89,
+  },
+  {
+    id: "3",
+    name: "Victoria",
+    icon: "",
+    description: "Woven, knitted, and embroidered goods",
+    productCount: 76,
+  },
+  {
+    id: "4",
+    name: "Paete",
+    icon: "",
+    description: "Handcrafted wooden items and furniture",
+    productCount: 62,
+  },
+  {
+    id: "5",
+    name: "Pakil",
+    icon: "",
+    description: "Handmade paper goods and stationery",
+    productCount: 45,
+  },
+  {
+    id: "6",
+    name: "Liliw",
+    icon: "https://images.squarespace-cdn.com/content/v1/5958da62d2b857c0a9d740fb/1563817484363-SU8P76Y1IP9CMKQP3AGX/DSC03247.jpg",
+    description: "Blown glass and stained glass creations",
+    productCount: 38,
+  },
+];
+
+const CategoryGrid = () => {
   return (
     <div className="w-full bg-[#fefefe] py-12">
       <div className="max-w-7xl mx-auto px-4 text-center">
-        {/* Section Header */}
-        <div className="mb-10">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">{title}</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">{subtitle}</p>
-        </div>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Browse by Category</h2>
+        <p className="text-gray-600 max-w-2xl mx-auto mb-10">
+          Discover unique handcrafted items across Laguna
+        </p>
 
-        {/* Grid - centered cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 justify-items-center">
           {categories.map((category) => (
             <Link
@@ -68,18 +64,22 @@ const CategoryGrid = ({
               className="block transition-transform hover:scale-105 w-full max-w-sm"
             >
               <Card className="overflow-hidden h-full border-none shadow-md hover:shadow-lg">
-                <div className="relative h-40 overflow-hidden">
-                  <img
-                    src={category.icon}
-                    alt={category.name}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="relative h-40 overflow-hidden bg-gray-100">
+                  {category.icon ? (
+                    <img
+                      src={category.icon}
+                      alt={category.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400 italic">
+                      No image available
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
                     <div className="p-4 text-white">
                       <h3 className="font-bold text-xl">{category.name}</h3>
-                      <p className="text-sm text-white/80">
-                        {category.productCount} products
-                      </p>
+                      <p className="text-sm text-white/80">{category.productCount} products</p>
                     </div>
                   </div>
                 </div>

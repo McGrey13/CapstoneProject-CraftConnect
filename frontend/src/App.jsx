@@ -26,6 +26,7 @@ import AdminLayout from './Components/Admin/AdminLayout';
 import ShoppingCart from './Components/Cart/ShoppingCart';
 import SearchResults from './Components/SearchResult/SearchResults';
 import ArtisanDetail from './Components/Artisans/ArtisanDetail';
+import CategoryProducts from './Components/Categories/CategoryProducts';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/categories" element={<Categories />} />
+          <Route path="/category/:id" element={<CategoryProducts />} />
           <Route path="/artisan" element={<Artisan />} />
           <Route path="/artisans/:id" element={<ArtisanDetail />} />
           <Route path="/register" element={<Register />} />
