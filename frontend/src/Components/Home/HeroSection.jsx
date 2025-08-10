@@ -75,7 +75,7 @@ const HeroSection = ({
       </div>
 
       {/* Hero Content Overlay */}
-      <div className="relative z-10 flex flex-col items-center justify-center h-full w-full px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
+      <div className="relative z-10 flex flex-col items-center justify-center h-full w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
         <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg shadow-lg">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             {title}

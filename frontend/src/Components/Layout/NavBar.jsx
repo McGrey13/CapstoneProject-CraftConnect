@@ -5,6 +5,7 @@ import { FaShoppingCart, FaUser } from 'react-icons/fa';
 
 const Navbar = ({ user, onLogout }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
   const toggleDropdown = () => {
@@ -15,6 +16,12 @@ const Navbar = ({ user, onLogout }) => {
     onLogout && onLogout();
     setIsDropdownOpen(false);
     navigate('/login');
+  };
+
+  const handleSearch = () => {
+    if (searchQuery.trim() !== "") {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }
   };
 
   return (
@@ -33,8 +40,11 @@ const Navbar = ({ user, onLogout }) => {
           type="text"
           placeholder="Search products..."
           className="search-input"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
         />
-        <button className="search-button">Search</button>
+        <button className="search-button" onClick={handleSearch}>Search</button>
       </div>
 
       <div className="navbar-cart">

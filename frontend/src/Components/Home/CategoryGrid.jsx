@@ -51,40 +51,45 @@ const CategoryGrid = ({
   subtitle = "Discover unique handcrafted items across Laguna",
 }) => {
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-12 bg-[#fefefe]">
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">{title}</h2>
-        <p className="text-gray-600 max-w-2xl mx-auto">{subtitle}</p>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
-        {categories.map((category) => (
-          <Link
-            to={`/category/${category.id}`}
-            key={category.id}
-            className="block transition-transform hover:scale-105"
-          >
-            <Card className="overflow-hidden h-full border-none shadow-md hover:shadow-lg">
-              <div className="relative h-40 overflow-hidden">
-                <img
-                  src={category.icon}
-                  alt={category.name}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-                  <div className="p-4 text-white">
-                    <h3 className="font-bold text-xl">{category.name}</h3>
-                    <p className="text-sm text-white/80">
-                      {category.productCount} products
-                    </p>
+    <div className="w-full bg-[#fefefe] py-12">
+      <div className="max-w-7xl mx-auto px-4 text-center">
+        {/* Section Header */}
+        <div className="mb-10">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">{title}</h2>
+          <p className="text-gray-600 max-w-2xl mx-auto">{subtitle}</p>
+        </div>
+
+        {/* Grid - centered cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 justify-items-center">
+          {categories.map((category) => (
+            <Link
+              to={`/category/${category.id}`}
+              key={category.id}
+              className="block transition-transform hover:scale-105 w-full max-w-sm"
+            >
+              <Card className="overflow-hidden h-full border-none shadow-md hover:shadow-lg">
+                <div className="relative h-40 overflow-hidden">
+                  <img
+                    src={category.icon}
+                    alt={category.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+                    <div className="p-4 text-white">
+                      <h3 className="font-bold text-xl">{category.name}</h3>
+                      <p className="text-sm text-white/80">
+                        {category.productCount} products
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <CardContent className="p-4">
-                <p className="text-gray-600 text-sm">{category.description}</p>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+                <CardContent className="p-4">
+                  <p className="text-gray-600 text-sm">{category.description}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

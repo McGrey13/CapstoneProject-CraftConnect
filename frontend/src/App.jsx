@@ -23,6 +23,8 @@ import SocialMedia from './Components/Seller/SocialMedia.jsx';
 import SellerSettings from './Components/Seller/SellerSettings.jsx';
 import Dashboard from './Components/Admin/Dashboard';
 import AdminLayout from './Components/Admin/AdminLayout';
+import ShoppingCart from './Components/Cart/ShoppingCart';
+import SearchResults from './Components/SearchResult/SearchResults';
 
 function App() {
   return (
@@ -31,7 +33,9 @@ function App() {
       <div className="container">
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<AdminLayout />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/cart" element={<ShoppingCart />} />
+          <Route path="/search" element={<SearchResults />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/categories" element={<Categories />} />
@@ -39,8 +43,6 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/products" element={<ProductsPage />} />
-
-          
         </Routes>
       </div>
       <Footer />
