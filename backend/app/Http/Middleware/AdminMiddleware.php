@@ -9,17 +9,17 @@ use Illuminate\Support\Facades\Auth;
 
 class AdminMiddleware
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
-    public function handle(Request $request, Closure $next): Response
-    {
-        if (!Auth::check() || Auth::user()->userType !== 'admin') {
-            return redirect('/')->with('error', 'You do not have admin access.');
-        }
+    // /**
+    //  * Handle an incoming request.
+    //  *
+    //  * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+    //  */
+    // public function handle(Request $request, Closure $next): Response
+    // {
+    //     if (!Auth::check() || Auth::user()->userType !== 'admin') {
+    //         return redirect('/')->with('error', 'You do not have admin access.');
+    //     }
 
-        return $next($request);
-    }
+    //     return $next($request);
+    // }
 }

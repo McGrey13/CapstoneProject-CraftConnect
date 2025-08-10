@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Auth;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,7 +10,7 @@ use App\Models\Customer;
 use App\Models\Administrator;
 use Illuminate\Support\Facades\Hash;
 
-class AdminController extends Controller
+class AdminController extends AuthController
 {
     /**
      * Display the administrator dashboard.
@@ -24,7 +24,6 @@ class AdminController extends Controller
         $totalSellers = Seller::count();
         $totalCustomers = Customer::count();
 
-        return view('admin.dashboard', compact('totalUsers', 'totalSellers', 'totalCustomers'));
     }
 
     /**

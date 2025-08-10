@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Auth\Middleware;
+namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +25,7 @@ class RoleMiddleware
 
         // Check the user's role
         switch ($role) {
-            case 'admin':
+            case 'administrator':
                 if (!$user->administrator) {
                     abort(403, 'Unauthorized: You do not have administrator access.');
                 }

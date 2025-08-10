@@ -36,6 +36,7 @@ import {
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
 
+// eslint-disable-next-line no-unused-vars
 const AdminDetail = ({ id = "ADM-1001", onBack = () => {} }) => {
   const [admin, setAdmin] = useState({
     id: "ADM-1001",

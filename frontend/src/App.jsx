@@ -33,7 +33,7 @@ function App() {
       <div className="container">
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<AdminLayout />} />
           <Route path="/cart" element={<ShoppingCart />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="/about" element={<About />} />

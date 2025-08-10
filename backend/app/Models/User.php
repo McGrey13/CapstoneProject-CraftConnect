@@ -62,6 +62,7 @@ class User extends Authenticatable
         'userBirthday',
         'userContactNumber',
         'userAddress',
+        'role',
     ];
 
     /**
@@ -84,6 +85,26 @@ class User extends Authenticatable
         'userPassword' => 'hashed',
         'userBirthday' => 'date', // Cast birthday to a date object
     ];
+
+    /**
+     * Get the password for the user.
+     *
+     * @return string
+     */
+    public function getAuthPassword()
+    {
+        return $this->userPassword;
+    }
+
+    /**
+     * Get the name of the unique identifier for the user.
+     *
+     * @return string
+     */
+    public function getAuthIdentifierName()
+    {
+        return 'userEmail';
+    }
 
     /**
      * Get the administrator profile associated with the user.

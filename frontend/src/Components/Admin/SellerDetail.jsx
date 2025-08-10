@@ -19,6 +19,7 @@ import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 
+// eslint-disable-next-line no-unused-vars
 const SellerDetail = ({ id = "SEL-1001", onBack = () => {} }) => {
   // Mock seller data
   const seller = {
