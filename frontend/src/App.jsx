@@ -11,6 +11,10 @@ import Login from './Components/Auth/Login.jsx';
 import Register from './Components/Auth/Register.jsx';
 import Home from './Components/home.jsx';
 import ProductsPage from './Components/Product/ProductsPage.jsx';
+import ShoppingCart from './Components/Cart/ShoppingCart';
+import SearchResults from './Components/SearchResult/SearchResults';
+import CategoryProducts from './Components/Categories/CategoryProducts';
+import ArtisanDetail from './Components/Artisans/ArtisanDetail';
 
 import SellerLayout from './Components/Seller/SellerLayout.jsx';
 import WorkshopsEvents from './Components/Seller/WorkshopsEvents.jsx';
@@ -51,14 +55,19 @@ function App() {
       <div className="container">
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<Home />} /> 
+          <Route path="/" element={<Home />} />
+          <Route path="/cart" element={<ShoppingCart />} />
+          <Route path="/search" element={<SearchResults />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/categories" element={<Categories />} />
+          <Route path="/category/:id" element={<CategoryProducts />} />
           <Route path="/artisan" element={<Artisan />} />
+          <Route path="/artisans/:id" element={<ArtisanDetail />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/products" element={<ProductsPage />} />
+
           {/* Seller routes */}
           <Route path="/seller" element={<SellerLayout />}>
             <Route path="/seller/marketing-tools" element={<MarketingTools />} />

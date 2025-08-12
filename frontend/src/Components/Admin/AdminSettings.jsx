@@ -21,7 +21,7 @@ const AdminSettings = () => {
   // Get token once
   const token = localStorage.getItem("token");
 
-  // Fetch seller/admin profile
+  // Fetch admin profile
   const fetchAdminData = async () => {
     if (!token) {
       setError("Authentication token not found. Please log in again.");
@@ -94,9 +94,9 @@ const AdminSettings = () => {
     }
   };
 
-  if (isLoading) return <div>Loading seller settings...</div>;
+  if (isLoading) return <div>Loading Admin settings...</div>;
   if (error) return <div className="text-red-500">Error: {error}</div>;
-  if (!admin) return <div>No seller data available.</div>;
+  if (!admin) return <div>No Admin data available.</div>;
 
   return (
     <div className="space-y-6 bg-white p-6 rounded-lg">
