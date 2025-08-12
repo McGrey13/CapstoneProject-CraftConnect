@@ -18,19 +18,25 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-grow bg-white">
-        {/* Hero Section */}
-        <HeroSection onCtaClick={handleExploreProducts} />
+    <div className="min-h-screen flex flex-col w-full">
+      <main className="flex-grow bg-white w-full">
+        {/* Hero Section - full width */}
+        <div className="w-full">
+          <HeroSection onCtaClick={handleExploreProducts} />
+        </div>
 
-        {/* Category Grid */}
-        <CategoryGrid />
+        {/* Category Grid - full width */}
+        <div className="w-full">
+          <CategoryGrid />
+        </div>
 
-        {/* Featured Products */}
-        <FeaturedProducts
-          onAddToCart={handleAddToCart}
-          onFavorite={handleFavorite}
-        />
+        {/* Featured Products - full width */}
+        <div className="w-full">
+          <FeaturedProducts
+            onAddToCart={handleAddToCart}
+            onFavorite={handleFavorite}
+          />
+        </div>
       </main>
     </div>
   );

@@ -1,10 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Button } from "../ui/button";
@@ -14,19 +10,102 @@ import { Textarea } from "../ui/textarea";
 import { Switch } from "../ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
-  User,
-  Mail,
-  Phone,
-  Shield,
-  Bell,
-  CreditCard,
+  User, Mail, Phone, Shield, Bell, CreditCard,
 } from "lucide-react";
 
-const SellerSettings = () => {
+const AdminSettings = () => {
+  const [admin, setAdmin] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch admin data
+  const fetchAdminData = async () => {
+    setIsLoading(true);
+    const token = localStorage.getItem("auth_token");
+
+    if (!token) {
+      setError("Authentication token not found. Please log in again.");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:8000/api/profile", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch seller data: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      setAdmin(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdminData();
+  }, []);
+
+  if (isLoading) {
+    return <div>Loading admin settings...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">Error: {error}</div>;
+  }
+
+  if (!admin) {
+    return <div>No Seller data available.</div>;
+  }
+
+  const handleDeactivate = () => {
+    if (!window.confirm("Are you sure you want to deactivate your account?")) return;
+
+    fetch("http://localhost:8000/api/user/deactivate", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to deactivate account");
+        alert("Account deactivated successfully!");
+      })
+      .catch((err) => console.error(err));
+  };
+
+  const handleDelete = () => {
+    if (!window.confirm("⚠ This will permanently delete your account. Continue?")) return;
+
+    fetch("http://localhost:8000/api/user", {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to delete account");
+        alert("Account deleted successfully!");
+        window.location.href = "/login";
+      })
+      .catch((err) => console.error(err));
+  };
+
   return (
     <div className="space-y-6 bg-white p-6 rounded-lg">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Seller Settings</h1>
         <Button>Save Changes</Button>
       </div>
 
@@ -44,15 +123,17 @@ const SellerSettings = () => {
             <CardHeader>
               <CardTitle>Profile Information</CardTitle>
               <CardDescription>
-                Update your seller profile information
+                Update your admin profile information
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex flex-col items-center space-y-2">
                   <Avatar className="h-24 w-24">
-                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=artisan" />
-                    <AvatarFallback>AS</AvatarFallback>
+                    <AvatarImage
+                      src={admin.profileImage || "https://api.dicebear.com/7.x/avataaars/svg?seed=admin"}
+                    />
+                    <AvatarFallback>{admin.userName?.slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <Button variant="outline" size="sm">
                     Change Photo
@@ -63,14 +144,11 @@ const SellerSettings = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="display-name">Display Name</Label>
-                      <Input id="display-name" defaultValue="Artisan Seller" />
+                      <Input id="display-name" defaultValue={admin.userName || ""} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="business-name">Business Name</Label>
-                      <Input
-                        id="business-name"
-                        defaultValue="Handcrafted Treasures"
-                      />
+                      <Label htmlFor="role">Role</Label>
+                      <Input id="role" defaultValue={admin.role || "Admin"} readOnly />
                     </div>
                   </div>
 
@@ -78,7 +156,7 @@ const SellerSettings = () => {
                     <Label htmlFor="bio">Bio</Label>
                     <Textarea
                       id="bio"
-                      defaultValue="I create handcrafted pottery inspired by nature. Each piece is unique and made with love in my small studio."
+                      defaultValue={admin.bio || ""}
                       rows={4}
                     />
                   </div>
@@ -86,14 +164,11 @@ const SellerSettings = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="location">Location</Label>
-                      <Input id="location" defaultValue="Portland, OR" />
+                      <Input id="location" defaultValue={admin.userAddress || ""} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="website">Website</Label>
-                      <Input
-                        id="website"
-                        defaultValue="https://myartisanshop.com"
-                      />
+                      <Input id="website" defaultValue={admin.website || ""} />
                     </div>
                   </div>
                 </div>
@@ -119,7 +194,7 @@ const SellerSettings = () => {
                 <Label htmlFor="email">Email Address</Label>
                 <div className="flex items-center">
                   <Mail className="h-4 w-4 mr-2 text-gray-500" />
-                  <Input id="email" defaultValue="seller@craftconnect.com" />
+                  <Input id="email" defaultValue={admin.userEmail || ""} />
                 </div>
               </div>
 
@@ -127,7 +202,7 @@ const SellerSettings = () => {
                 <Label htmlFor="phone">Phone Number</Label>
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                  <Input id="phone" defaultValue="(555) 123-4567" />
+                  <Input id="phone" defaultValue={admin.userContactNumber || ""} />
                 </div>
               </div>
 
@@ -145,8 +220,13 @@ const SellerSettings = () => {
               <CardTitle>Danger Zone</CardTitle>
               <CardDescription>Irreversible account actions</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button variant="destructive">Deactivate Account</Button>
+            <CardContent className="flex gap-4">
+              <Button variant="destructive" onClick={handleDeactivate}>
+                Deactivate Account
+              </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                Delete Account
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -164,43 +244,27 @@ const SellerSettings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {[
-                {
-                  id: "new-order",
-                  title: "New Order Notifications",
-                  desc: "Receive notifications when you get a new order",
-                  checked: true,
-                },
-                {
-                  id: "messages",
-                  title: "Message Notifications",
-                  desc: "Receive notifications for new customer messages",
-                  checked: true,
-                },
-                {
-                  id: "reviews",
-                  title: "Review Notifications",
-                  desc: "Receive notifications when you get a new review",
-                  checked: true,
-                },
-                {
-                  id: "marketing",
-                  title: "Marketing Updates",
-                  desc: "Receive updates about CraftConnect features",
-                  checked: false,
-                },
-              ].map((notif) => (
-                <div
-                  key={notif.id}
-                  className="flex items-center justify-between"
-                >
-                  <div>
-                    <p className="font-medium">{notif.title}</p>
-                    <p className="text-sm text-gray-500">{notif.desc}</p>
-                  </div>
-                  <Switch id={notif.id} defaultChecked={notif.checked} />
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Email Notifications</Label>
+                  <p className="text-sm text-gray-500">Receive updates via email</p>
                 </div>
-              ))}
+                <Switch defaultChecked />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>SMS Notifications</Label>
+                  <p className="text-sm text-gray-500">Get alerts via text message</p>
+                </div>
+                <Switch />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Push Notifications</Label>
+                  <p className="text-sm text-gray-500">Receive push notifications</p>
+                </div>
+                <Switch defaultChecked />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -211,43 +275,19 @@ const SellerSettings = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <CreditCard className="h-5 w-5 mr-2 text-primary" />
-                Billing Information
+                Payment Methods
               </CardTitle>
-              <CardDescription>
-                Manage your subscription and payment methods
-              </CardDescription>
+              <CardDescription>Manage your saved payment details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="font-medium">Current Plan</p>
-                <div className="flex items-center justify-between mt-2">
-                  <div>
-                    <p className="text-lg font-bold">Professional Seller</p>
-                    <p className="text-sm text-gray-500">$29.99/month</p>
-                  </div>
-                  <Button variant="outline">Change Plan</Button>
+              <div className="border p-4 rounded-md flex justify-between items-center">
+                <div>
+                  <p className="font-medium">Visa ending in 1234</p>
+                  <p className="text-sm text-gray-500">Expires 08/27</p>
                 </div>
+                <Button variant="outline" size="sm">Edit</Button>
               </div>
-
-              <div>
-                <p className="font-medium mb-2">Payment Methods</p>
-                <div className="border rounded-lg p-3 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="bg-gray-100 p-2 rounded mr-3">
-                      <CreditCard className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium">•••• •••• •••• 4242</p>
-                      <p className="text-sm text-gray-500">Expires 12/2025</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    Edit
-                  </Button>
-                </div>
-              </div>
-
-              <Button className="w-full">Add Payment Method</Button>
+              <Button>Add Payment Method</Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -256,4 +296,4 @@ const SellerSettings = () => {
   );
 };
 
-export default SellerSettings;
+export default AdminSettings;

@@ -11,11 +11,35 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Badge } from "../ui/badge";
+import AdminProfilePage from "./AdminSettings";
 
 const AdminNavbar = ({
-  userName = "Admin User",
-  notificationCount = 5,
+  // This component receives the userName and notificationCount as props.
+  userName = "Admin", 
+  notificationCount = 0,
 }) => {
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      await fetch('http://localhost:8000/api/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      localStorage.removeItem('auth_token');
+      // Redirect to the login page after logout
+      window.location.href = '/login'; 
+    }
+  };
+
+
   return (
     <nav className="w-full h-16 bg-white border-b border-gray-200 px-4">
       <div className="h-full flex items-center justify-between">
@@ -67,7 +91,7 @@ const AdminNavbar = ({
             </Button>
           </Link>
 
-          {/* User Account */}
+          {/* User Account Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -75,24 +99,23 @@ const AdminNavbar = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              {/* The fetched userName is displayed here */}
               <DropdownMenuLabel>Hi, {userName}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Link to="/admin/profile" className="w-full">
+              <DropdownMenuItem asChild>
+                <Link to="/admin/profile" className="w-full cursor-pointer">
                   Profile
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Link to="/admin/settings" className="w-full">
+              <DropdownMenuItem asChild>
+                <Link to="/admin/settings" className="w-full cursor-pointer">
                   Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Link to="/logout" className="w-full flex items-center">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Link>
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                <LogOut className="h-4 w-4 mr-2" />
+                <span>Logout</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

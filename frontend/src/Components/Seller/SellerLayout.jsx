@@ -12,6 +12,7 @@ import {
   User,
   Bell,
   LogOut,
+  UserCircle, // <-- New icon for Profile
 } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -25,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 
-import Dashboard from "../Admin/Dashboard";
+import Dashboard from "../Seller/SellerDashboard";
 import StorefrontCustomizer from "../Seller/StorefrontCustomizer";
 import PaymentSettings from "./PaymentSettings";
 import OrderInventoryManager from "./OrderInventoryManager";
@@ -34,9 +35,12 @@ import ShippingSettings from "./ShippingSettings";
 import SocialMedia from "./SocialMedia";
 import WorkshopsEvents from "./WorkshopsEvents";
 import SellerSettings from "./SellerSettings";
+import ProfilePage from "./ProfilePage"; // <-- Import the new ProfilePage component
 
+// Add 'profile' to your sidebar items
 const sidebarItems = [
   { key: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
+  { key: "profile", label: "My Profile", icon: <UserCircle className="h-5 w-5" /> }, // <-- New item
   { key: "storefront", label: "Storefront Customizer", icon: <Palette className="h-5 w-5" /> },
   { key: "payments", label: "Payment Settings", icon: <CreditCard className="h-5 w-5" /> },
   { key: "orders", label: "Orders & Inventory", icon: <ShoppingBag className="h-5 w-5" /> },
@@ -52,36 +56,56 @@ const SellerLayout = () => {
   const userName = "Seller User";
   const notificationCount = 3;
 
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      await fetch('http://localhost:8000/api/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      localStorage.removeItem('token');
+      window.location.href = '/login'; 
+    }
+  };
+
   const renderContent = () => {
-  console.log("Active Tab:", activeTab); // Add this for debug
-  switch (activeTab) {
-    case "dashboard":
-      return <Dashboard />;
-    case "storefront":
-      return <div><StorefrontCustomizer /></div>; // Wrap in div to isolate
-    case "payments":
-      return <div><PaymentSettings /></div>;
-    case "orders":
-      return <div><OrderInventoryManager /></div>;
-    case "marketing":
-      return <div><MarketingTools /></div>;
-    case "shipping":
-      return <div><ShippingSettings /></div>;
-    case "workshops":
-      return <div><WorkshopsEvents /></div>;
-    case "social":
-      return <div><SocialMedia /></div>;
-    case "settings":
-      return <div><SellerSettings /></div>;
-    default:
-      return <div>No matching component for: {activeTab}</div>;
-  }
-};
+    console.log("Active Tab:", activeTab);
+    switch (activeTab) {
+      case "dashboard":
+        return <Dashboard />;
+      case "profile": // <-- New case for the profile page
+        return <ProfilePage />;
+      case "storefront":
+        return <div><StorefrontCustomizer /></div>;
+      case "payments":
+        return <div><PaymentSettings /></div>;
+      case "orders":
+        return <div><OrderInventoryManager /></div>;
+      case "marketing":
+        return <div><MarketingTools /></div>;
+      case "shipping":
+        return <div><ShippingSettings /></div>;
+      case "workshops":
+        return <div><WorkshopsEvents /></div>;
+      case "social":
+        return <div><SocialMedia /></div>;
+      case "settings":
+        return <div><SellerSettings /></div>;
+      default:
+        return <div>No matching component for: {activeTab}</div>;
+    }
+  };
 
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Navbar */}
       <nav className="w-full h-16 bg-white border-b border-gray-200 px-4">
         <div className="h-full flex items-center justify-between">
           <div className="font-bold text-xl text-primary flex items-center">
@@ -118,10 +142,12 @@ const SellerLayout = () => {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>Hi, {userName}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTab('profile')}> {/* <-- This is the modified line */}
+                  Profile
+                </DropdownMenuItem>
                 <DropdownMenuItem>Settings</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
                 </DropdownMenuItem>
@@ -131,7 +157,6 @@ const SellerLayout = () => {
         </div>
       </nav>
 
-      {/* Sidebar and Main Content */}
       <div className="flex">
         <div className="w-64 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 py-4 px-2">
           {sidebarItems.map((item) => (
