@@ -22,7 +22,7 @@ const Login = () => {
       api.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
       // Redirect based on user type
       if (res.data.user_type === "admin") {
-        navigate("/admin/dashboard");
+        navigate("/admin");
       } else if (res.data.user_type === "seller") {
         navigate("/seller");
       } else {

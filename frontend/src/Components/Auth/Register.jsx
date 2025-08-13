@@ -49,9 +49,9 @@ const Register = () => {
       // Set the token in the API headers for future requests
       api.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
       // Redirect based on user type
-      if (res.data.user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else if (res.data.user.role === "seller") {
+      if (res.data.user_type === "admin") {
+        navigate("/admin");
+      } else if (res.data.user_type === "seller") {
         navigate("/seller");
       } else {
         navigate("/home");

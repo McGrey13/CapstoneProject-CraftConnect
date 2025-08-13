@@ -18,11 +18,11 @@ const AdminSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch admin data
-  const fetchAdminData = async () => {
-    setIsLoading(true);
-    const token = localStorage.getItem("auth_token");
+  // Get token once
+  const token = localStorage.getItem("token");
 
+  // Fetch seller/admin profile
+  const fetchAdminData = async () => {
     if (!token) {
       setError("Authentication token not found. Please log in again.");
       setIsLoading(false);
@@ -34,19 +34,19 @@ const AdminSettings = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!res.ok) {
-        throw new Error(`Failed to fetch seller data: ${res.statusText}`);
+        throw new Error(`Failed to fetch profile: ${res.statusText}`);
       }
 
       const data = await res.json();
       setAdmin(data);
       setError(null);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to fetch profile");
     } finally {
       setIsLoading(false);
     }
@@ -56,56 +56,52 @@ const AdminSettings = () => {
     fetchAdminData();
   }, []);
 
-  if (isLoading) {
-    return <div>Loading admin settings...</div>;
-  }
-
-  if (error) {
-    return <div className="text-red-500">Error: {error}</div>;
-  }
-
-  if (!admin) {
-    return <div>No Seller data available.</div>;
-  }
-
-  const handleDeactivate = () => {
+  const handleDeactivate = async () => {
     if (!window.confirm("Are you sure you want to deactivate your account?")) return;
 
-    fetch("http://localhost:8000/api/user/deactivate", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to deactivate account");
-        alert("Account deactivated successfully!");
-      })
-      .catch((err) => console.error(err));
+    try {
+      const res = await fetch("http://localhost:8000/api/user/deactivate", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to deactivate account");
+      alert("Account deactivated successfully!");
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!window.confirm("⚠ This will permanently delete your account. Continue?")) return;
 
-    fetch("http://localhost:8000/api/user", {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to delete account");
-        alert("Account deleted successfully!");
-        window.location.href = "/login";
-      })
-      .catch((err) => console.error(err));
+    try {
+      const res = await fetch("http://localhost:8000/api/user", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to delete account");
+      alert("Account deleted successfully!");
+      window.location.href = "/login";
+    } catch (err) {
+      alert(err.message);
+    }
   };
+
+  if (isLoading) return <div>Loading seller settings...</div>;
+  if (error) return <div className="text-red-500">Error: {error}</div>;
+  if (!admin) return <div>No seller data available.</div>;
 
   return (
     <div className="space-y-6 bg-white p-6 rounded-lg">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Seller Settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Admin Settings</h1>
         <Button>Save Changes</Button>
       </div>
 
@@ -117,13 +113,13 @@ const AdminSettings = () => {
           <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
-        {/* Profile */}
+        {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-4 pt-4">
           <Card>
             <CardHeader>
               <CardTitle>Profile Information</CardTitle>
               <CardDescription>
-                Update your admin profile information
+                Update your profile information
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -132,19 +128,23 @@ const AdminSettings = () => {
                   <Avatar className="h-24 w-24">
                     <AvatarImage
                       src={admin.profileImage || "https://api.dicebear.com/7.x/avataaars/svg?seed=admin"}
+                      alt="Profile Image"
                     />
-                    <AvatarFallback>{admin.userName?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>
+                      {admin.userName ? admin.userName.slice(0, 2).toUpperCase() : "NA"}
+                    </AvatarFallback>
                   </Avatar>
-                  <Button variant="outline" size="sm">
-                    Change Photo
-                  </Button>
+                  <Button variant="outline" size="sm">Change Photo</Button>
                 </div>
 
                 <div className="flex-1 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="display-name">Display Name</Label>
-                      <Input id="display-name" defaultValue={admin.userName || ""} />
+                      <Input
+                        id="display-name"
+                        defaultValue={admin.userName || ""}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="role">Role</Label>
@@ -177,7 +177,7 @@ const AdminSettings = () => {
           </Card>
         </TabsContent>
 
-        {/* Account */}
+        {/* Account Tab */}
         <TabsContent value="account" className="space-y-4 pt-4">
           <Card>
             <CardHeader>
@@ -231,7 +231,7 @@ const AdminSettings = () => {
           </Card>
         </TabsContent>
 
-        {/* Notifications */}
+        {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-4 pt-4">
           <Card>
             <CardHeader>
@@ -269,7 +269,7 @@ const AdminSettings = () => {
           </Card>
         </TabsContent>
 
-        {/* Billing */}
+        {/* Billing Tab */}
         <TabsContent value="billing" className="space-y-4 pt-4">
           <Card>
             <CardHeader>

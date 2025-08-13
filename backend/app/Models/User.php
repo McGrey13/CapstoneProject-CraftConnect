@@ -57,12 +57,15 @@ class User extends Authenticatable
     protected $fillable = [
         'userName',
         'userEmail',
+        // 'email_verified_at',
         'userPassword',
         'userAge',
         'userBirthday',
         'userContactNumber',
         'userAddress',
         'role',
+        // 'otp',
+        // 'otp_expires_at',
     ];
 
     /**
@@ -130,6 +133,10 @@ class User extends Authenticatable
         return $this->hasOne(Customer::class, 'user_id', 'userID');
     }
 
+    public function isSeller()
+    {
+        return $this->seller()->exists();
+    }
     // protected $hidden = [
     //     'userPassword',
     //     'remember_token',

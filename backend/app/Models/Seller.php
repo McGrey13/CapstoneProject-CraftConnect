@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+
 class Seller extends Model
 {
     use HasFactory;
+
+    
 
     /**
      * The primary key for the model.
@@ -25,6 +28,10 @@ class Seller extends Model
      */
     protected $fillable = [
         'user_id',
+        'businessName',
+        'bio',
+        'story',
+        'website'
         // If you had specific seller-only fields not in User, they would go here.
     ];
 

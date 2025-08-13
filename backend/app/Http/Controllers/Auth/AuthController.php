@@ -93,7 +93,13 @@ use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+ 
+
+use function Pest\Laravel\withHeaders;
 
 class AuthController extends Controller
 {
@@ -106,6 +112,44 @@ class AuthController extends Controller
     {
         return view('auth.register'); // You'll need to create this Blade view
     }
+
+    public function getCustomers()
+    {
+        return response()->json(User::where('role', 'customer')->get());
+    }
+
+    public function getSellers()
+    {
+        return response()->json(User::where('role', 'seller')->get());
+    }
+
+    public function getAdmins()
+    {
+        return response()->json(User::where('role', 'admin')->get());
+    }
+
+    public function show(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        // Return only the basic user data to avoid potential relationship errors
+        // You can add more columns here if needed.
+        $profileData = [
+            'id' => $user->id,
+            'userName' => $user->userName,
+            'userEmail' => $user->userEmail,
+            'role' => $user->role,
+            'userBirthday' => $user->userBirthday,
+            'userContactNumber' => $user->userContactNumber,
+            'userAddress' => $user->userAddress,
+        ];
+        
+        return response()->json($profileData);
+    }
+
 
     /**
      * Handle user registration.
@@ -139,7 +183,12 @@ class AuthController extends Controller
             'userContactNumber' => $request->userContactNumber,
             'userAddress' => $request->userAddress,
             'role' => $request->role,
+            // 'otp'=> rand(100000, 999999),
+            // 'otp_expires_at' => Carbon::now()->addMinutes(10)
         ]);
+
+        //
+        //
 
         // Create the specific role record based on selection
         switch ($request->role) {
@@ -242,6 +291,44 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Logged out successfully'
         ]);
+    }
+
+    public function deactivate(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $user->status = 'inactive';
+        $user->save();
+
+        $user->tokens()->delete();
+
+        Log::info('User deactivated account.', ['user_id' => $user->id]);
+
+        return response()->json(['message' => 'Account deactivated successfully.']);
+    }
+
+    /**
+     * Permanently delete the authenticated user's account.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function destroy(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+        
+        $user->tokens()->delete();
+        $user->delete();
+
+        Log::info('User deleted account.', ['user_id' => $user->id]);
+
+        return response()->json(['message' => 'Account deleted successfully.']);
     }
 }
 

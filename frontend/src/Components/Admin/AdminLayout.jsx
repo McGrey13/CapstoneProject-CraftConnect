@@ -23,13 +23,13 @@ import {
 } from "../ui/collapsible";
 
 // Import Admin Pages
-import Dashboard from "./Dashboard";
+import Dashboard from "./AdminDashboard";
 import OrdersOverview from "./OrdersOverview";
 import ProductsTable from "./ProductsTable";
 import AdminTable from "./AdminTable";
 import CustomerTable from "./CustomerTable";
 import ArtisanTable from "./ArtisanTable";
-import SellerSettings from "../Seller/SellerSettings";
+import AdminSettings from "./AdminSettings";
 
 const SidebarItem = ({ icon, label, tabKey, activeTab, setActiveTab, badge }) => (
   <button
@@ -110,7 +110,7 @@ const AdminLayout = () => {
       case "analytics":
         return <div>Analytics Page</div>;
       case "settings":
-        return <SellerSettings />;
+        return <AdminSettings />;
       default:
         return <div>No matching tab</div>;
     }
@@ -161,7 +161,7 @@ const AdminLayout = () => {
               />
               <SidebarItem
                 icon={<ShoppingBag className="h-4 w-4" />}
-                label="Add New Product"
+                label="Accept Pending Product"
                 tabKey="addProduct"
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
