@@ -180,7 +180,7 @@ const ArtisanDetail = () => {
                   />
                   <CardContent className="p-5">
                     <h3 className="font-semibold text-lg mb-2 text-gray-900">{product.title}</h3>
-                    <p className="text-[#a4785a] font-bold text-xl">${product.price.toFixed(2)}</p>
+                    <p className="text-[#a4785a] font-bold text-xl">₱{product.price.toFixed(2)}</p>
                   </CardContent>
                 </Card>
               ))}

@@ -89,7 +89,7 @@ const ProductCard = ({
       </CardContent>
 
       <CardFooter className="p-3 pt-0 flex justify-between items-center">
-        <div className="font-semibold">${price.toFixed(2)}</div>
+        <div className="font-semibold">₱{price.toFixed(2)}</div>
         <Button
           size="sm"
           className="rounded-full"

@@ -117,7 +117,7 @@ const ShoppingCart = () => {
                           by {item.artisanName}
                         </p>
                         <p className="font-bold text-lg mt-1 text-[#a36b4f]">
-                          ${item.price.toFixed(2)}
+                          ₱{item.price.toFixed(2)}
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -178,21 +178,21 @@ const ShoppingCart = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Subtotal</span>
                     <span style={{ color: PALETTE.warmText }}>
-                      ${subtotal.toFixed(2)}
+                      ₱{subtotal.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span className="text-gray-600">Shipping</span>
                     <span style={{ color: PALETTE.warmText }}>
-                      ${shipping.toFixed(2)}
+                      ₱{shipping.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span className="text-gray-600">Estimated tax</span>
                     <span style={{ color: PALETTE.warmText }}>
-                      ${tax.toFixed(2)}
+                      ₱{tax.toFixed(2)}
                     </span>
                   </div>
 
@@ -211,7 +211,7 @@ const ShoppingCart = () => {
                         className="text-2xl font-bold"
                         style={{ color: PALETTE.gold }}
                       >
-                        ${total.toFixed(2)}
+                        ₱{total.toFixed(2)}
                       </span>
                     </div>
                   </div>

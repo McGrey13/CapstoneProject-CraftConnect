@@ -127,7 +127,7 @@ const CategoryProducts = () => {
                     <h2 className="text-xl font-semibold mb-2">{product.title}</h2>
                     <p className="text-gray-600 mb-1">Category: {productCategory?.name || "N/A"}</p>
                     <p className="text-gray-600 mb-3">Place: {category.name}</p>
-                    <p className="text-lg font-bold text-[#a4785a]">${product.price.toFixed(2)}</p>
+                    <p className="text-lg font-bold text-[#a4785a]">₱{product.price.toFixed(2)}</p>
                   </CardContent>
                 </Card>
               );
