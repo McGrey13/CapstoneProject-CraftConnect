@@ -98,7 +98,7 @@ const CategoriesPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4">
         {/* Breadcrumb */}
         <div className="flex items-center mb-6 text-sm">
           <Link to="/" className="text-black">
