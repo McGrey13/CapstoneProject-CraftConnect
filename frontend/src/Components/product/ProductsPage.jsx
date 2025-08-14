@@ -283,7 +283,7 @@ const ProductsPage = () => {
             <img src={product.images[0]} alt={product.title} className="w-full h-40 object-cover rounded" />
             <h2 className="mt-2 font-medium">{product.title}</h2>
             <p className="text-sm text-gray-500">{product.artisanName}</p>
-            <p className="font-bold mt-1">${product.price}</p>
+            <p className="font-bold mt-1">₱{product.price}</p>
           </div>
         ))}
       </div>

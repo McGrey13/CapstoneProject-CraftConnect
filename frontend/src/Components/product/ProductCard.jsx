@@ -5,6 +5,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { useNavigate } from "react-router-dom";
+import { useFavorites } from "../favorites/FavoritesContext"; // NEW
 
 const ProductCard = ({
   id = "1",
@@ -16,9 +17,10 @@ const ProductCard = ({
   isNew = false,
   isFeatured = false,
   onAddToCart = () => {},
-  onFavorite = () => {},
 }) => {
   const navigate = useNavigate();
+  const { favorites, toggleFavorite } = useFavorites(); // NEW
+  const isFavorited = favorites.some((item) => item.id === id); // NEW
 
   const handleCardClick = () => {
     navigate(`/products/${id}`);
@@ -54,14 +56,18 @@ const ProductCard = ({
                 className="absolute top-2 right-10 bg-white/80 hover:bg-white rounded-full p-1.5 h-8 w-8"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onFavorite(id);
+                  toggleFavorite({ id, image, title, price, artisanName, rating }); // NEW
                 }}
               >
-                <Heart className="h-4 w-4 text-gray-600 hover:text-red-500" />
+                <Heart
+                  className={`h-4 w-4 ${
+                    isFavorited ? "text-red-500 fill-red-500" : "text-gray-600"
+                  }`}
+                />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Add to favorites</p>
+              <p>{isFavorited ? "Remove from favorites" : "Add to favorites"}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

@@ -5,19 +5,39 @@ import { Heart, ShoppingCart, Star, Minus, Plus, ArrowLeft } from "lucide-react"
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
+import { useCart } from "../Cart/CartContext";
+import { useFavorites } from "../favorites/FavoritesContext";
 
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const { favorites, addFavorite, removeFavorite } = useFavorites();
+
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isFavorited, setIsFavorited] = useState(false);
 
   const product = mockProducts.find((p) => p.id === id);
   if (!product) return <p className="text-center py-12">Product not found</p>;
 
+  // check if product is favorited
+  const isFavorited = favorites.some((p) => p.id === product.id);
+
   const handleQuantityChange = (change) => {
     setQuantity(Math.max(1, quantity + change));
+  };
+
+  const handleAddToCart = () => {
+    addToCart(product, quantity);
+    navigate("/cart");
+  };
+
+  const handleFavoriteClick = () => {
+    if (isFavorited) {
+      removeFavorite(product.id);
+    } else {
+      addFavorite(product);
+    }
   };
 
   const renderStars = (rating) =>
@@ -30,7 +50,6 @@ const ProductDetails = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      {/* Back Button */}
       <div className="container mx-auto px-4 mb-6">
         <Button
           variant="ghost"
@@ -43,7 +62,7 @@ const ProductDetails = () => {
       </div>
 
       <div className="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {/* Left Column: Images */}
+        {/* Product Images */}
         <div className="space-y-4">
           <div className="aspect-square bg-white rounded-lg overflow-hidden shadow">
             <img
@@ -65,7 +84,7 @@ const ProductDetails = () => {
           </div>
         </div>
 
-        {/* Right Column: Info */}
+        {/* Product Info */}
         <div className="space-y-4 flex flex-col">
           <h1 className="text-3xl font-bold">{product.title}</h1>
           <p className="text-gray-600 text-sm">by {product.artisanName}</p>
@@ -75,7 +94,7 @@ const ProductDetails = () => {
             <span className="text-gray-500 text-sm">{product.rating}</span>
           </div>
 
-          <p className="text-2xl font-bold text-gray-800">${product.price}</p>
+          <p className="text-2xl font-bold text-gray-800">₱{product.price}</p>
 
           {/* Quantity Selector */}
           <div className="flex items-center gap-3 mt-2">
@@ -90,12 +109,12 @@ const ProductDetails = () => {
 
           {/* Action Buttons */}
           <div className="flex gap-3 mt-4">
-            <Button className="flex-1 flex items-center justify-center gap-2">
+            <Button onClick={handleAddToCart} className="flex-1 flex items-center justify-center gap-2">
               <ShoppingCart className="w-5 h-5" /> Add to Cart
             </Button>
             <Button
               variant="outline"
-              onClick={() => setIsFavorited(!isFavorited)}
+              onClick={handleFavoriteClick}
               className="p-2"
             >
               <Heart className={`w-5 h-5 ${isFavorited ? "text-red-500 fill-current" : ""}`} />

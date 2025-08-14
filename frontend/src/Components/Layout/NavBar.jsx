@@ -1,7 +1,7 @@
 import './NavBar.css';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaShoppingCart, FaUser } from 'react-icons/fa';
+import { FaShoppingCart, FaUser, FaHeart } from 'react-icons/fa';
 
 const Navbar = ({ user, onLogout }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -47,12 +47,17 @@ const Navbar = ({ user, onLogout }) => {
         <button className="search-button" onClick={handleSearch}>Search</button>
       </div>
 
+      {/* Heart beside Cart */}
       <div className="navbar-cart">
+        <Link to="/favorites" className="favorites-link" style={{ marginRight: "12px" }}>
+          <FaHeart size={22} color="white" />
+        </Link>
         <Link to="/cart" className="cart-link">
           <FaShoppingCart size={24} />
           <span className="cart-count">0</span>
         </Link>
       </div>
+
 
       {/* User Icon + Dropdown */}
       <div className="user-account">
@@ -68,7 +73,12 @@ const Navbar = ({ user, onLogout }) => {
               <>
                 <Link to="/profile" onClick={() => setIsDropdownOpen(false)}>Profile</Link>
                 <Link to="/settings" onClick={() => setIsDropdownOpen(false)}>Settings</Link>
-                <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}>Logout</button>
+                <button
+                  onClick={handleLogout}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
+                >
+                  Logout
+                </button>
               </>
             )}
           </div>
