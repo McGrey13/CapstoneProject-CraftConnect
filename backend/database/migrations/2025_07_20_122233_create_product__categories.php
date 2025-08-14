@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('productImage')->nullable();
             $table->string('productVideo')->nullable();
             $table->string('category')->nullable();
+            $table->string('approval_status')->default('pending');
             $table->timestamps();
         });
     }

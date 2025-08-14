@@ -5,8 +5,6 @@ import {
   Eye,
   MoreHorizontal,
   Filter,
-  Check,
-  X,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -28,12 +26,12 @@ import {
 } from "../ui/dropdown-menu";
 import { Badge } from "../ui/badge";
 
-function ProductsTable() {
+function AcceptPendingProduct() {
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState([]);
   const token = localStorage.getItem("token");
 
-  // ✅ Fetch products for admin
+  // Fetch products for admin
   const fetchProducts = () => {
     fetch("http://localhost:8000/api/products", {
       headers: {
@@ -46,7 +44,8 @@ function ProductsTable() {
         return res.json();
       })
       .then((data) => {
-        setProducts(data);
+        // Only keep approved products
+        setProducts(data.filter((p) => p.approval_status === "approved"));
       })
       .catch((err) => {
         console.error("Error fetching products:", err);
@@ -55,7 +54,7 @@ function ProductsTable() {
 
   useEffect(() => {
     fetchProducts();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const handleSearch = (e) => {
@@ -76,48 +75,10 @@ function ProductsTable() {
     }
   };
 
-  const handleApprove = (id) => {
-    fetch(`http://localhost:8000/api/products/${id}/approve`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(() => {
-        setProducts((prev) =>
-          prev.map((p) =>
-            p.id === id ? { ...p, approval_status: "approved" } : p
-          )
-        );
-      })
-      .catch((err) => console.error("Error approving product:", err));
-  };
-
-  const handleReject = (id) => {
-    fetch(`http://localhost:8000/api/products/${id}/reject`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(() => {
-        setProducts((prev) =>
-          prev.map((p) =>
-            p.id === id ? { ...p, approval_status: "rejected" } : p
-          )
-        );
-      })
-      .catch((err) => console.error("Error rejecting product:", err));
-  };
-
   const getStatusBadge = (status) => {
     switch (status) {
       case "approved":
         return <Badge className="bg-green-500">Approved</Badge>;
-      case "pending":
-        return <Badge variant="outline">Pending</Badge>;
-      case "rejected":
-        return <Badge variant="destructive">Rejected</Badge>;
       case "out of stock":
         return <Badge variant="destructive">Out of Stock</Badge>;
       default:
@@ -128,7 +89,7 @@ function ProductsTable() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Products</h1>
+        <h1 className="text-2xl font-bold">Approved Products</h1>
       </div>
 
       <div className="flex items-center justify-between">
@@ -201,18 +162,6 @@ function ProductsTable() {
                         <Edit className="h-4 w-4 mr-2" /> Edit
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => handleApprove(product.id)}
-                        className="text-green-600"
-                      >
-                        <Check className="h-4 w-4 mr-2" /> Approve
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleReject(product.id)}
-                        className="text-red-600"
-                      >
-                        <X className="h-4 w-4 mr-2" /> Reject
-                      </DropdownMenuItem>
                       <DropdownMenuItem className="text-red-600">
                         <Trash2 className="h-4 w-4 mr-2" /> Delete
                       </DropdownMenuItem>
@@ -227,7 +176,7 @@ function ProductsTable() {
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500">
-          Showing {products.length} of {products.length} products
+          Showing {products.length} of {products.length} approved products
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="sm" disabled>
@@ -242,4 +191,4 @@ function ProductsTable() {
   );
 }
 
-export default ProductsTable;
+export default AcceptPendingProduct;

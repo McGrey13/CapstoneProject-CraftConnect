@@ -19,8 +19,16 @@ class Product extends Model
         'productImage',
         'productVideo',
         'category',
-        'seller_id'
+        'seller_id',
+        'approval_status'
     ];
+
+    protected $appends = ['id'];
+
+    public function getIdAttribute()
+    {
+        return $this->attributes['product_id'];
+    }
 
     public function seller(): BelongsTo
     {
@@ -42,4 +50,7 @@ class Product extends Model
             }
         });
     }
+    
 }
+
+

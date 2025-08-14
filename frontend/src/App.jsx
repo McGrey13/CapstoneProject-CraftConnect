@@ -46,6 +46,7 @@ import { Sidebar } from 'lucide-react';
 import SimplifiedCustomerDetail from './Components/Admin/SimplifiedCustomerDetail';
 import SimplifiedCustomerTable from './Components/Admin/SimplifiedCustomerTable';
 import ProfilePage from './Components/Seller/ProfilePage';
+import ProductDetails from './Components/product/ProductDetails';
 
 
 function App() {
@@ -55,7 +56,7 @@ function App() {
       <div className="container">
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<ProductDetails />} />
           <Route path="/cart" element={<ShoppingCart />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="/about" element={<About />} />
@@ -67,6 +68,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/products/:id" element={<ProductDetails />} />
 
           {/* Seller routes */}
           <Route path="/seller" element={<SellerLayout />}>

@@ -12,6 +12,10 @@ class ProductController extends Controller
     /**
      * Check if the authenticated user is a seller
      */
+
+
+     
+
     private function checkSeller()
     {
         $user = Auth::user();
@@ -43,27 +47,39 @@ class ProductController extends Controller
         
         return true;
     }
-
     public function index()
-    {
-        try {
-            $seller = $this->checkSeller();
-            if ($seller instanceof \Illuminate\Http\JsonResponse) {
-                return $seller;
+{
+    try {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        if ($user->role === 'administrator') {
+            // Admin can view all products with seller info
+            Log::info('Admin fetching all products');
+            $products = Product::with('seller.user')->get(); 
+        } elseif ($user->role === 'seller') {
+            $seller = $user->seller;
+            if (!$seller) {
+                return response()->json(['message' => 'User is not a seller'], 403);
             }
 
-            $sellerId = $seller->sellerID;
-            Log::info('Fetching products for seller:', ['seller_id' => $sellerId]);
-            
-            $products = Product::where('seller_id', $sellerId)->get();
-            Log::info('Products found:', ['count' => $products->count()]);
-            
-            return response()->json($products);
-        } catch (\Exception $e) {
-            Log::error('Error fetching products:', ['error' => $e->getMessage()]);
-            return response()->json(['message' => 'Error fetching products: ' . $e->getMessage()], 500);
+            Log::info('Seller fetching products', ['seller_id' => $seller->sellerID]);
+            $products = Product::where('seller_id', $seller->sellerID)->get();
+        } else {
+            return response()->json(['message' => 'Unauthorized role'], 403);
         }
+
+        return response()->json($products);
+    } catch (\Exception $e) {
+        Log::error('Error fetching products:', ['error' => $e->getMessage()]);
+        return response()->json(['message' => 'Error fetching products: ' . $e->getMessage()], 500);
     }
+}
+
+    
 
     /**
      * Get product statistics for the authenticated seller
@@ -169,6 +185,7 @@ class ProductController extends Controller
             'status' => 'nullable|in:in stock,low stock,out of stock',
             'productImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'productVideo' => 'nullable|mimes:mp4,avi,mov|max:20480',
+            'approval_status' => $product->approval_status
         ]);
 
         if ($request->hasFile('productImage')) {
@@ -242,4 +259,73 @@ class ProductController extends Controller
         return response()->json(['message' => 'Error retrieving product: ' . $e->getMessage()], 500);
     }
     }
+
+    // Approve a product
+    public function approve($id)
+    {
+        $user = Auth::user();
+
+        if (!$user || $user->role !== 'administrator') {
+            return response()->json(['message' => 'Only admins can approve products'], 403);
+        }
+
+        // Find the product by its ID
+        $product = Product::find($id);
+
+        if (!$product) {
+            return response()->json(['message' => 'Product not found'], 404);
+        }
+
+        $product->approval_status = 'approved';
+        $product->save();
+
+        return response()->json(['message' => 'Product approved successfully']);
+    }
+
+    // Reject a product
+    public function reject($id)
+    {
+        $user = Auth::user();
+
+        if (!$user || $user->role !== 'administrator') {
+            return response()->json(['message' => 'Only admins can reject products'], 403);
+        }
+
+        // Find the product by its ID
+        $product = Product::find($id);
+
+        if (!$product) {
+            return response()->json(['message' => 'Product not found'], 404);
+        }
+
+        $product->approval_status = 'rejected';
+        $product->save();
+
+        return response()->json(['message' => 'Product rejected successfully']);
+    }
+
+    /**
+     * Get all approved products for a given seller
+     */
+    public function approvedProduct($seller_id)
+{
+    try {
+        $products = Product::where('seller_id', $seller_id)
+            ->where('approval_status', 'approved')
+            ->get();
+
+        return response()->json($products);
+    } catch (\Exception $e) {
+        Log::error('Error fetching approved products for seller:', [
+            'seller_id' => $seller_id,
+            'error' => $e->getMessage()
+        ]);
+        return response()->json([
+            'message' => 'Error fetching approved products: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+
+    
 }

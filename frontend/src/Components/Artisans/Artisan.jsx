@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Filter, Search } from "lucide-react";
 import { Button } from "../ui/button";
@@ -6,56 +6,45 @@ import { Input } from "../ui/input";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 
-const mockArtisans = [
-  {
-    id: "art-1",
-    name: "Sheweliz M. Antinero",
-    location: "Calamba, Laguna",
-    specialty: "Ceramics",
-    bio: "Creating handcrafted pottery inspired by nature and traditional Filipino designs.",
-    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&q=80",
-    rating: 4.8,
-    productCount: 24,
-    featured: true,
-    story:
-      "Sheweliz's passion for ceramics started in her childhood surrounded by nature. Her work blends traditional Filipino techniques with modern styles to create unique pottery that tells a story.",
-    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-  },
-  {
-    id: "art-2",
-    name: "Gio Mc Grey O. Calugas",
-    location: "San Pedro, Laguna",
-    specialty: "Jewelry",
-    bio: "Crafting unique jewelry pieces using locally sourced materials and traditional techniques.",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&q=80",
-    rating: 4.5,
-    productCount: 18,
-    featured: true,
-    story:
-      "Gio sources local materials and uses time-honored jewelry techniques to craft unique pieces inspired by Philippine heritage.",
-    videoUrl: "https://www.youtube.com/embed/3JZ_D3ELwOQ",
-  },
-  {
-    id: "art-3",
-    name: "Denisse Kaith D. Malabana",
-    location: "Victoria, Laguna",
-    specialty: "Textiles",
-    bio: "Weaving beautiful textiles that blend traditional patterns with contemporary designs.",
-    image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=500&q=80",
-    rating: 4.9,
-    productCount: 31,
-    featured: true,
-    story:
-      "Denisse's textiles merge traditional patterns with modern aesthetics, preserving cultural heritage while embracing innovation.",
-    videoUrl: "https://www.youtube.com/embed/tgbNymZ7vqY",
-  },
-  // add more artisans as needed
-];
-
 const Artisan = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [artisans, setArtisans] = useState(mockArtisans);
+  const [artisans, setArtisans] = useState([]);
   const [filterFeatured, setFilterFeatured] = useState(false);
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/sellers", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+        return res.json();
+      })
+      .then((data) => {
+        // Map backend sellers to artisan card format
+        const mapped = data.map((seller) => ({
+          id: seller.userID || seller.id,
+          name: seller.userName,
+          location: seller.userAddress || "Unknown",
+          specialty: seller.specialty || "Crafts",
+          bio: seller.bio || "",
+          image: seller.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&q=80",
+          rating: seller.rating || 0,
+          productCount: seller.productCount || 0,
+          featured: seller.featured || false,
+          story: seller.story || "",
+          videoUrl: seller.videoUrl || "",
+        }));
+        setArtisans(mapped);
+      })
+      .catch((err) => {
+        console.error("Error fetching sellers:", err);
+        setArtisans([]);
+      });
+  }, [token]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -63,22 +52,19 @@ const Artisan = () => {
   };
 
   const filterArtisans = (query, onlyFeatured) => {
-    let filtered = mockArtisans;
-
+    let filtered = artisans;
     if (query.trim() !== "") {
       filtered = filtered.filter(
         (artisan) =>
-          artisan.name.toLowerCase().includes(query.toLowerCase()) ||
-          artisan.specialty.toLowerCase().includes(query.toLowerCase()) ||
-          artisan.location.toLowerCase().includes(query.toLowerCase()) ||
-          artisan.bio.toLowerCase().includes(query.toLowerCase())
+          artisan.name?.toLowerCase().includes(query.toLowerCase()) ||
+          artisan.specialty?.toLowerCase().includes(query.toLowerCase()) ||
+          artisan.location?.toLowerCase().includes(query.toLowerCase()) ||
+          artisan.bio?.toLowerCase().includes(query.toLowerCase())
       );
     }
-
     if (onlyFeatured) {
       filtered = filtered.filter((artisan) => artisan.featured);
     }
-
     setArtisans(filtered);
   };
 
@@ -180,7 +166,7 @@ const Artisan = () => {
                           </svg>
                         ))}
                         <span className="ml-1 text-sm text-gray-600">
-                          {artisan.rating.toFixed(1)}
+                          {artisan.rating?.toFixed(1) ?? "0.0"}
                         </span>
                       </div>
                       <span className="ml-auto text-sm text-gray-500">
@@ -200,7 +186,30 @@ const Artisan = () => {
               onClick={() => {
                 setSearchQuery("");
                 setFilterFeatured(false);
-                setArtisans(mockArtisans);
+                // Re-fetch sellers from backend
+                fetch("http://localhost:8000/api/sellers", {
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                })
+                  .then((res) => res.json())
+                  .then((data) => {
+                    const mapped = data.map((seller) => ({
+                      id: seller.userID || seller.id,
+                      name: seller.userName,
+                      location: seller.userAddress || "Unknown",
+                      specialty: seller.specialty || "Crafts",
+                      bio: seller.bio || "",
+                      image: seller.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&q=80",
+                      rating: seller.rating || 0,
+                      productCount: seller.productCount || 0,
+                      featured: seller.featured || false,
+                      story: seller.story || "",
+                      videoUrl: seller.videoUrl || "",
+                    }));
+                    setArtisans(mapped);
+                  });
               }}
             >
               Clear Filters

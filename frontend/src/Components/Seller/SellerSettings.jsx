@@ -13,15 +13,15 @@ import {
   User, Mail, Phone, Shield, Bell, CreditCard,
 } from "lucide-react";
 
-const AdminSettings = () => {
-  const [admin, setAdmin] = useState(null);
+const SellerSettings = () => {
+  const [seller, setSeller] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Fetch admin data
-  const fetchAdminData = async () => {
+  const fetchSellerData = async () => {
     setIsLoading(true);
-    const token = localStorage.getItem("auth_token");
+    const token = localStorage.getItem("token");
 
     if (!token) {
       setError("Authentication token not found. Please log in again.");
@@ -34,7 +34,7 @@ const AdminSettings = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
 
@@ -43,7 +43,7 @@ const AdminSettings = () => {
       }
 
       const data = await res.json();
-      setAdmin(data);
+      setSeller(data);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -53,18 +53,18 @@ const AdminSettings = () => {
   };
 
   useEffect(() => {
-    fetchAdminData();
+    fetchSellerData();
   }, []);
 
   if (isLoading) {
-    return <div>Loading admin settings...</div>;
+    return <div>Loading Seller settings...</div>;
   }
 
   if (error) {
     return <div className="text-red-500">Error: {error}</div>;
   }
 
-  if (!admin) {
+  if (!seller) {
     return <div>No Seller data available.</div>;
   }
 
@@ -131,9 +131,9 @@ const AdminSettings = () => {
                 <div className="flex flex-col items-center space-y-2">
                   <Avatar className="h-24 w-24">
                     <AvatarImage
-                      src={admin.profileImage || "https://api.dicebear.com/7.x/avataaars/svg?seed=admin"}
+                      src={seller.profileImage || "https://api.dicebear.com/7.x/avataaars/svg?seed=admin"}
                     />
-                    <AvatarFallback>{admin.userName?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{seller.userName?.slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <Button variant="outline" size="sm">
                     Change Photo
@@ -144,11 +144,11 @@ const AdminSettings = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="display-name">Display Name</Label>
-                      <Input id="display-name" defaultValue={admin.userName || ""} />
+                      <Input id="display-name" defaultValue={seller.userName || ""} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="role">Role</Label>
-                      <Input id="role" defaultValue={admin.role || "Admin"} readOnly />
+                      <Input id="role" defaultValue={seller.role || "Admin"} readOnly />
                     </div>
                   </div>
 
@@ -156,7 +156,7 @@ const AdminSettings = () => {
                     <Label htmlFor="bio">Bio</Label>
                     <Textarea
                       id="bio"
-                      defaultValue={admin.bio || ""}
+                      defaultValue={seller.bio || ""}
                       rows={4}
                     />
                   </div>
@@ -164,11 +164,11 @@ const AdminSettings = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="location">Location</Label>
-                      <Input id="location" defaultValue={admin.userAddress || ""} />
+                      <Input id="location" defaultValue={seller.userAddress || ""} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="website">Website</Label>
-                      <Input id="website" defaultValue={admin.website || ""} />
+                      <Input id="website" defaultValue={seller.website || ""} />
                     </div>
                   </div>
                 </div>
@@ -194,7 +194,7 @@ const AdminSettings = () => {
                 <Label htmlFor="email">Email Address</Label>
                 <div className="flex items-center">
                   <Mail className="h-4 w-4 mr-2 text-gray-500" />
-                  <Input id="email" defaultValue={admin.userEmail || ""} />
+                  <Input id="email" defaultValue={seller.userEmail || ""} />
                 </div>
               </div>
 
@@ -202,7 +202,7 @@ const AdminSettings = () => {
                 <Label htmlFor="phone">Phone Number</Label>
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                  <Input id="phone" defaultValue={admin.userContactNumber || ""} />
+                  <Input id="phone" defaultValue={seller.userContactNumber || ""} />
                 </div>
               </div>
 
@@ -296,4 +296,4 @@ const AdminSettings = () => {
   );
 };
 
-export default AdminSettings;
+export default SellerSettings;

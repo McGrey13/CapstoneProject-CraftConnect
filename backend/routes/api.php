@@ -15,21 +15,29 @@ Route::get('/test', function () {
     return response()->json(['message' => 'API is working!']);
 });
 
-Route::get('/customers', [AuthController::class, 'getCustomers']);
-Route::get('/sellers', [AuthController::class, 'getSellers']);
-Route::get('/admins', [AuthController::class, 'getAdmins']);
+Route::get('/sellers/{seller_id}/approved-products', [ProductController::class, 'approvedProduct']);
+
+Route::middleware(['auth:sanctum'])->get('/admin/products', [ProductController::class, 'adminIndex']);
+
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
-    // Product routes (protected)
+    // Product routes 
     Route::get('products/search/{name}', [ProductController::class, 'search']);
-    Route::resource('products', ProductController::class);
+    Route::resource('/products', ProductController::class);
+
+    //Products Routes Admin Side
+    Route::post('/products/{id}/approve', [ProductController::class, 'approve']);
+    Route::post('/products/{id}/reject', [ProductController::class, 'reject']);
     
     // User routes
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
-
     Route::get('/profile', [AuthController::class, 'show']);
     Route::post('/profile/deactivate', [AuthController::class, 'deactivate']);
     Route::delete('/profile', [AuthController::class, 'destroy']);
+
+    Route::get('/customers', [AuthController::class, 'getCustomers']);
+    Route::get('/sellers', [AuthController::class, 'getSellers']);
+    Route::get('/admins', [AuthController::class, 'getAdmins']);
 });
