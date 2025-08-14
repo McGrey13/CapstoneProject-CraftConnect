@@ -11,37 +11,32 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Badge } from "../ui/badge";
-import AdminProfilePage from "./AdminSettings";
 
 const AdminNavbar = ({
-  // This component receives the userName and notificationCount as props.
-  userName = "Admin", 
+  userName = "Admin",
   notificationCount = 0,
 }) => {
-
   const handleLogout = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      await fetch('http://localhost:8000/api/logout', {
-        method: 'POST',
+      const token = localStorage.getItem("auth_token");
+      await fetch("http://localhost:8000/api/logout", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
         },
       });
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error("Error during logout:", error);
     } finally {
-      localStorage.removeItem('auth_token');
-      // Redirect to the login page after logout
-      window.location.href = '/login'; 
+      localStorage.removeItem("auth_token");
+      window.location.href = "/login";
     }
   };
 
-
   return (
-    <nav className="w-full h-16 bg-white border-b border-gray-200 px-4">
+    <nav className="w-full h-16 bg-white border-b border-gray-200 px-4 fixed top-0 left-0 z-[9999]">
       <div className="h-full flex items-center justify-between">
         {/* Logo */}
         <Link to="/admin" className="flex items-center">
@@ -67,8 +62,8 @@ const AdminNavbar = ({
           </div>
         </Link>
 
-        {/* Right Side Icons */}
-        <div className="flex items-center space-x-4">
+        {/* Right Side */}
+        <div className="flex items-center space-x-4 relative z-50">
           {/* Notifications */}
           <Link to="/admin/notifications" className="relative">
             <Button variant="ghost" size="icon">
@@ -91,15 +86,22 @@ const AdminNavbar = ({
             </Button>
           </Link>
 
-          {/* User Account Dropdown */}
+          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full relative"
+              >
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {/* The fetched userName is displayed here */}
+            <DropdownMenuContent
+              align="end"
+              sideOffset={8}
+              className="w-56"
+            >
               <DropdownMenuLabel>Hi, {userName}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
@@ -113,7 +115,10 @@ const AdminNavbar = ({
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="cursor-pointer"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 <span>Logout</span>
               </DropdownMenuItem>

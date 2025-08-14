@@ -18,13 +18,14 @@ import Login from "../Auth/Login.jsx";
 import ProductsPage from "../Product/ProductsPage.jsx";
 import ProductDetails from "../product/ProductDetails";
 import { Favorites } from "../pages/Favorites";
+import AdminLayout from "../Admin/AdminLayout";
 
 
 function PublicRoutes() {
   return (
     <Route path="/" element={<PublicLayout />}>
       {/* Home */}
-      <Route index element={<Home />} />
+      <Route index element={<AdminLayout />} />
 
       <Route path="/favorites" element={<Favorites />} />
 
