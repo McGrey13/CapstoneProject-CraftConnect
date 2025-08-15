@@ -1,16 +1,4 @@
 import React, { useState } from "react";
-import { ArrowLeft, Filter, Search } from "lucide-react";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import ProductCard from "./ProductCard";
 import { Link } from "react-router-dom";
 
 const mockProducts = [
@@ -163,20 +151,6 @@ const mockProducts = [
 const ProductsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
-  const [sortBy, setSortBy] = useState("featured");
-  const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 8;
-
-  const categories = [
-    "All",
-    "Ceramics",
-    "Textiles",
-    "Jewelry",
-    "Woodwork",
-    "Accessories",
-    "Home",
-    "Bath & Body",
-  ];
 
   const filteredProducts = mockProducts.filter((product) => {
     const matchesSearch =
