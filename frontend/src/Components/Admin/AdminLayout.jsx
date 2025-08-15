@@ -264,8 +264,10 @@ const AdminLayout = () => {
           </div>
         </div>
 
-        {/* Main Content */}
-        <main className="flex-1 p-6 overflow-y-auto">{renderContent()}</main>
+        {/* Main Content - Removed top gap */}
+        <main className="flex-1 pt-0 px-6 pb-6 overflow-y-auto">
+          {renderContent()}
+        </main>
       </div>
     </div>
   );

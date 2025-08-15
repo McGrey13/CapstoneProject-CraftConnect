@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
+import { useCart } from "../cart/CartContext";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
+import { useNavigate } from "react-router-dom";
 
-// Define your color palette here
 const PALETTE = {
   sand: "#e5ded7",
   warmText: "#7a5c52",
@@ -11,62 +12,44 @@ const PALETTE = {
   gold: "#e6b17e",
 };
 
-const FONT_FAMILY = '"Inter", sans-serif'; // Use your preferred font
-
 const ShoppingCart = () => {
-  const [cartItems, setCartItems] = useState([
-    {
-      id: "1",
-      image:
-        "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=300&q=80",
-      title: "Handcrafted Ceramic Mug",
-      price: 24.99,
-      artisanName: "Sarah Pottery",
-      quantity: 2,
-    },
-    {
-      id: "2",
-      image:
-        "https://images.unsplash.com/photo-1603031612556-9f3e239d5a76?w=300&q=80",
-      title: "Woven Basket Set",
-      price: 49.99,
-      artisanName: "Weaving Wonders",
-      quantity: 1,
-    },
-    {
-      id: "3",
-      image:
-        "https://images.unsplash.com/photo-1601924921557-45e6dea0a157?w=300&q=80",
-      title: "Handmade Leather Journal",
-      price: 35.5,
-      artisanName: "Leather Craft Co.",
-      quantity: 1,
-    },
-  ]);
+  const { cartItems, updateQuantity, removeItem } = useCart();
+  const navigate = useNavigate();
 
-  const updateQuantity = (id, newQuantity) => {
-    if (newQuantity === 0) {
-      setCartItems(cartItems.filter((item) => item.id !== id));
-    } else {
-      setCartItems(
-        cartItems.map((item) =>
-          item.id === id ? { ...item, quantity: newQuantity } : item
-        )
-      );
+  // Helper function to safely parse the price string into a number
+  const parsePrice = (priceString) => {
+    if (typeof priceString === 'string') {
+      // Remove the currency symbol and commas, then parse as a float
+      return parseFloat(priceString.replace("₱", "").replace(/,/g, "")) || 0;
     }
-  };
-
-  const removeItem = (id) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
+    return priceString || 0;
   };
 
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + parsePrice(item.price) * item.quantity,
     0
   );
-  const shipping = 9.99;
+  const shipping = cartItems.length > 0 ? 9.99 : 0;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
+
+  // Proceed to checkout with cart data
+  const handleProceedToCheckout = () => {
+    navigate("/checkout", {
+      state: {
+        cartItems,
+        subtotal,
+        shipping,
+        tax,
+        total,
+      },
+    });
+  };
+
+  // Go back to products page
+  const handleContinueShopping = () => {
+    navigate("/products"); // change to your route for product listing
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -77,8 +60,7 @@ const ShoppingCart = () => {
             Shopping Cart
           </h1>
           <p className="text-[#7a5c52]">
-            {cartItems.length} {cartItems.length === 1 ? "item" : "items"} in
-            your cart
+            {cartItems.length} {cartItems.length === 1 ? "item" : "items"} in your cart
           </p>
         </div>
 
@@ -91,7 +73,9 @@ const ShoppingCart = () => {
             <p className="text-gray-500 mb-6">
               Add some beautiful handcrafted items to get started!
             </p>
-            <Button size="lg">Continue Shopping</Button>
+            <Button size="lg" onClick={handleContinueShopping}>
+              Continue Shopping
+            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -117,7 +101,7 @@ const ShoppingCart = () => {
                           by {item.artisanName}
                         </p>
                         <p className="font-bold text-lg mt-1 text-[#a36b4f]">
-                          ${item.price.toFixed(2)}
+                          ₱{parsePrice(item.price).toFixed(2)}
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -167,9 +151,7 @@ const ShoppingCart = () => {
               >
                 <h4
                   className="text-lg mb-4 font-semibold"
-                  style={{
-                    color: PALETTE.warmText,
-                  }}
+                  style={{ color: PALETTE.warmText }}
                 >
                   Order summary
                 </h4>
@@ -178,21 +160,21 @@ const ShoppingCart = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Subtotal</span>
                     <span style={{ color: PALETTE.warmText }}>
-                      ${subtotal.toFixed(2)}
+                      ₱{subtotal.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span className="text-gray-600">Shipping</span>
                     <span style={{ color: PALETTE.warmText }}>
-                      ${shipping.toFixed(2)}
+                      ₱{shipping.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span className="text-gray-600">Estimated tax</span>
                     <span style={{ color: PALETTE.warmText }}>
-                      ${tax.toFixed(2)}
+                      ₱{tax.toFixed(2)}
                     </span>
                   </div>
 
@@ -211,7 +193,7 @@ const ShoppingCart = () => {
                         className="text-2xl font-bold"
                         style={{ color: PALETTE.gold }}
                       >
-                        ${total.toFixed(2)}
+                        ₱{total.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -225,7 +207,7 @@ const ShoppingCart = () => {
                       color: "white",
                       fontWeight: 700,
                     }}
-                    onClick={() => alert("Proceed to checkout (placeholder)")}
+                    onClick={handleProceedToCheckout}
                   >
                     Proceed to checkout
                   </Button>
@@ -238,6 +220,7 @@ const ShoppingCart = () => {
                       color: PALETTE.warmText,
                       background: "white",
                     }}
+                    onClick={handleContinueShopping}
                   >
                     Continue shopping
                   </Button>

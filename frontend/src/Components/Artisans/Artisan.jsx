@@ -7,49 +7,72 @@ import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 
 const mockArtisans = [
+
   {
-    id: "art-1",
-    name: "Sheweliz M. Antinero",
-    location: "Calamba, Laguna",
-    specialty: "Ceramics",
-    bio: "Creating handcrafted pottery inspired by nature and traditional Filipino designs.",
-    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&q=80",
-    rating: 4.8,
-    productCount: 24,
-    featured: true,
-    story:
-      "Sheweliz's passion for ceramics started in her childhood surrounded by nature. Her work blends traditional Filipino techniques with modern styles to create unique pottery that tells a story.",
-    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "id": "art-1",
+    "name": "Alex Manalo",
+    "location": "Calamba, Laguna",
+    "specialty": "Miniature & Souvenir Crafting",
+    "bio": "An artisan from Calamba specializing in miniature replicas of historical landmarks and traditional Filipino souvenirs.",
+    "image": "https://images.unsplash.com/photo-1542845242-421712a23075?q=80&w=500",
+    "rating": 4.9,
+    "productCount": 38,
+    "featured": true,
+    "story": "Growing up in Calamba, Alex was inspired by the rich history of his hometown, particularly the legacy of Dr. Jose Rizal. He started crafting miniature versions of Rizal’s house and other local landmarks, expanding his work to include a variety of handcrafted souvenirs that capture the spirit of Filipino heritage.",
+    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
-    id: "art-2",
-    name: "Gio Mc Grey O. Calugas",
-    location: "San Pedro, Laguna",
-    specialty: "Jewelry",
-    bio: "Crafting unique jewelry pieces using locally sourced materials and traditional techniques.",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&q=80",
-    rating: 4.5,
-    productCount: 18,
-    featured: true,
-    story:
-      "Gio sources local materials and uses time-honored jewelry techniques to craft unique pieces inspired by Philippine heritage.",
-    videoUrl: "https://www.youtube.com/embed/3JZ_D3ELwOQ",
+    "id": "art-2",
+    "name": "Tatay Cesar",
+    "location": "Biñan, Laguna",
+    "specialty": "Rubber Stamp Engraving",
+    "bio": "A master artisan from Biñan who creates intricate, hand-carved rubber stamps.",
+    "image": "https://images.unsplash.com/photo-1550993510-444a49c661b1?q=80&w=500",
+    "rating": 4.7,
+    "productCount": 52,
+    "featured": false,
+    "story": "From a young age, Tatay Cesar was fascinated by the detail in everyday objects. He honed his skills in carving, eventually finding his niche in personalized rubber stamps. Each stamp he creates is a small work of art, a testament to his patience and passion for transforming simple materials into something personal and meaningful.",
+    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
-    id: "art-3",
-    name: "Denisse Kaith D. Malabana",
-    location: "Victoria, Laguna",
-    specialty: "Textiles",
-    bio: "Weaving beautiful textiles that blend traditional patterns with contemporary designs.",
-    image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=500&q=80",
-    rating: 4.9,
-    productCount: 31,
-    featured: true,
-    story:
-      "Denisse's textiles merge traditional patterns with modern aesthetics, preserving cultural heritage while embracing innovation.",
-    videoUrl: "https://www.youtube.com/embed/tgbNymZ7vqY",
+    "id": "art-3",
+    "name": "Baby Mae",
+    "location": "Biñan, Laguna",
+    "specialty": "Traditional Garment & Accessory Making",
+    "bio": "An artisan from Biñan who makes traditional Filipino garments, headdresses, and beaded accessories.",
+    "image": "https://images.unsplash.com/photo-1596707323281-9b63a9f0298a?q=80&w=500",
+    "rating": 4.8,
+    "productCount": 41,
+    "featured": true,
+    "story": "Inspired by the vibrant culture and history of the Philippines, Baby Mae began crafting traditional accessories to preserve her heritage. Her work is a celebration of indigenous artistry, with each piece carefully designed to reflect the beauty and spirit of Filipino traditions, ensuring these skills and designs are passed down to future generations.",
+    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
-  // add more artisans as needed
+  {
+    "id": "art-4",
+    "name": "Tatay Tiko",
+    "location": "Santa Cruz, Laguna",
+    "specialty": "Statuary & Sculpture Painting",
+    "bio": "A skilled artisan from Santa Cruz who creates and paints religious and cultural sculptures.",
+    "image": "https://images.unsplash.com/photo-1629859595240-a379374092b7?q=80&w=500",
+    "rating": 4.9,
+    "productCount": 27,
+    "featured": false,
+    "story": "A painter at heart, Tatay Tiko discovered his calling in painting and sculpting religious figures and local folk characters. His workshop in Santa Cruz is a testament to his devotion, where he transforms simple figures into powerful, expressive works of art that are cherished by collectors and communities alike.",
+    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+  },
+  {
+    "id": "art-5",
+    "name": "Renel Batralo",
+    "location": "Pila, Laguna",
+    "specialty": "Weaving & Fiber Arts",
+    "bio": "A versatile artisan from Pila known for his intricate work in jewelry, beadwork, and traditional weaving.",
+    "image": "https://images.unsplash.com/photo-1549646631-5f21295b9a89?q=80&w=500",
+    "rating": 4.7,
+    "productCount": 63,
+    "featured": false,
+    "story": "Hailing from the historic town of Pila, Renel has mastered a variety of traditional crafts. His journey began with learning beadwork, then expanded into the age-old art of weaving. He draws inspiration from his local surroundings, creating pieces that blend practicality with art, from stylish accessories to functional and beautifully woven baskets.",
+    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+  }
 ];
 
 const Artisan = () => {

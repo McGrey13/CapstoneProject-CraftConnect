@@ -5,90 +5,146 @@ import { Button } from "../ui/button";
 import { ArrowLeft } from "lucide-react";
 
 const mockArtisans = [
+
   {
-    id: "art-1",
-    name: "Sheweliz M. Antinero",
-    location: "Calamba, Laguna",
-    specialty: "Ceramics",
-    story:
-      "Sheweliz's passion for ceramics started in her childhood surrounded by nature. Her work blends traditional Filipino techniques with modern styles to create unique pottery that tells a story.",
-    videoUrl: "https://www.youtube.com/embed/VXeaSKjpceI?si=bJLXoKlPDYnOHiHg",
-    image:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&q=80",
+    "id": "art-1",
+    "name": "Alex Manalo",
+    "location": "Calamba, Laguna",
+    "specialty": "Miniature & Souvenir Crafting",
+    "bio": "An artisan from Calamba specializing in miniature replicas of historical landmarks and traditional Filipino souvenirs.",
+    "image": "https://images.unsplash.com/photo-1542845242-421712a23075?q=80&w=500",
+    "rating": 4.9,
+    "productCount": 38,
+    "featured": true,
+    "story": "Growing up in Calamba, Alex was inspired by the rich history of his hometown, particularly the legacy of Dr. Jose Rizal. He started crafting miniature versions of Rizal’s house and other local landmarks, expanding his work to include a variety of handcrafted souvenirs that capture the spirit of Filipino heritage.",
+    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
-    id: "art-2",
-    name: "Gio Mc Grey O. Calugas",
-    location: "San Pedro, Laguna",
-    specialty: "Jewelry",
-    story:
-      "Gio sources local materials and uses time-honored jewelry techniques to craft unique pieces inspired by Philippine heritage.",
-    videoUrl: "https://www.youtube.com/embed/ZzFP2UCR_64?si=zp12_F1AImSJyRWq",
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=80",
+    "id": "art-2",
+    "name": "Tatay Cesar",
+    "location": "Biñan, Laguna",
+    "specialty": "Rubber Stamp Engraving",
+    "bio": "A master artisan from Biñan who creates intricate, hand-carved rubber stamps.",
+    "image": "https://images.unsplash.com/photo-1550993510-444a49c661b1?q=80&w=500",
+    "rating": 4.7,
+    "productCount": 52,
+    "featured": false,
+    "story": "From a young age, Tatay Cesar was fascinated by the detail in everyday objects. He honed his skills in carving, eventually finding his niche in personalized rubber stamps. Each stamp he creates is a small work of art, a testament to his patience and passion for transforming simple materials into something personal and meaningful.",
+    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
-    id: "art-3",
-    name: "Denisse Kaith D. Malabana",
-    location: "Victoria, Laguna",
-    specialty: "Textiles",
-    story:
-      "Denisse's textiles merge traditional patterns with modern aesthetics, preserving cultural heritage while embracing innovation.",
-    videoUrl: "https://www.youtube.com/embed/9apzhyHYdpI?si=wpZAt_O6kmDj3DCH",
-    image:
-      "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&q=80",
+    "id": "art-3",
+    "name": "Baby Mae",
+    "location": "Biñan, Laguna",
+    "specialty": "Traditional Garment & Accessory Making",
+    "bio": "An artisan from Biñan who makes traditional Filipino garments, headdresses, and beaded accessories.",
+    "image": "https://images.unsplash.com/photo-1596707323281-9b63a9f0298a?q=80&w=500",
+    "rating": 4.8,
+    "productCount": 41,
+    "featured": true,
+    "story": "Inspired by the vibrant culture and history of the Philippines, Baby Mae began crafting traditional accessories to preserve her heritage. Her work is a celebration of indigenous artistry, with each piece carefully designed to reflect the beauty and spirit of Filipino traditions, ensuring these skills and designs are passed down to future generations.",
+    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
+  {
+    "id": "art-4",
+    "name": "Tatay Tiko",
+    "location": "Santa Cruz, Laguna",
+    "specialty": "Statuary & Sculpture Painting",
+    "bio": "A skilled artisan from Santa Cruz who creates and paints religious and cultural sculptures.",
+    "image": "https://images.unsplash.com/photo-1629859595240-a379374092b7?q=80&w=500",
+    "rating": 4.9,
+    "productCount": 27,
+    "featured": false,
+    "story": "A painter at heart, Tatay Tiko discovered his calling in painting and sculpting religious figures and local folk characters. His workshop in Santa Cruz is a testament to his devotion, where he transforms simple figures into powerful, expressive works of art that are cherished by collectors and communities alike.",
+    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+  },
+  {
+    "id": "art-5",
+    "name": "Renel Batralo",
+    "location": "Pila, Laguna",
+    "specialty": "Weaving & Fiber Arts",
+    "bio": "A versatile artisan from Pila known for his intricate work in jewelry, beadwork, and traditional weaving.",
+    "image": "https://images.unsplash.com/photo-1549646631-5f21295b9a89?q=80&w=500",
+    "rating": 4.7,
+    "productCount": 63,
+    "featured": false,
+    "story": "Hailing from the historic town of Pila, Renel has mastered a variety of traditional crafts. His journey began with learning beadwork, then expanded into the age-old art of weaving. He draws inspiration from his local surroundings, creating pieces that blend practicality with art, from stylish accessories to functional and beautifully woven baskets.",
+    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+  }
 ];
 
 const mockProducts = [
+
   {
-    id: "prod-1",
-    artisanId: "art-1",
-    title: "Handcrafted Ceramic Mug",
-    price: 24.99,
-    image:
-      "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=400&q=80",
+    "id": "prod-1",
+    "artisanId": "art-1",
+    "title": "Handcrafted Miniature of Rizal's House",
+    "price": 250,
+    "image": "https://images.unsplash.com/photo-1621215096538-3163a34a3f3b?q=80&w=400"
   },
   {
-    id: "prod-2",
-    artisanId: "art-1",
-    title: "Ceramic Vase",
-    price: 49.99,
-    image:
-      "https://images.unsplash.com/photo-1549887530-3b8a945ec160?w=400&q=80",
+    "id": "prod-2",
+    "artisanId": "art-1",
+    "title": "Hand-painted Wooden Hand Fan",
+    "price": 100,
+    "image": "https://images.unsplash.com/photo-1627960309228-56a849206d44?q=80&w=400"
   },
   {
-    id: "prod-3",
-    artisanId: "art-2",
-    title: "Silver Necklace",
-    price: 65.0,
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
+    "id": "prod-3",
+    "artisanId": "art-2",
+    "title": "Personalized Hand-Carved Rubber Stamp",
+    "price": 500,
+    "image": "https://images.unsplash.com/photo-1629859595240-a379374092b7?q=80&w=400"
   },
   {
-    id: "prod-4",
-    artisanId: "art-2",
-    title: "Gold Earrings",
-    price: 80.5,
-    image:
-      "https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?w=400&q=80",
+    "id": "prod-4",
+    "artisanId": "art-2",
+    "title": "Set of Custom-Made Engraved Stamps",
+    "price": 1000,
+    "image": "https://images.unsplash.com/photo-1549646631-5f21295b9a89?q=80&w=400"
   },
   {
-    id: "prod-5",
-    artisanId: "art-3",
-    title: "Woven Textile Scarf",
-    price: 38.99,
-    image:
-      "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80",
+    "id": "prod-5",
+    "artisanId": "art-3",
+    "title": "Handmade Beaded Necklace",
+    "price": 90,
+    "image": "https://images.unsplash.com/photo-1596707323281-9b63a9f0298a?q=80&w=400"
   },
   {
-    id: "prod-6",
-    artisanId: "art-3",
-    title: "Handmade Textile Bag",
-    price: 45.0,
-    image:
-      "https://images.unsplash.com/photo-1601924921557-45e6dea0a157?w=400&q=80",
+    "id": "prod-6",
+    "artisanId": "art-3",
+    "title": "Woven Traditional Scarf",
+    "price": 299,
+    "image": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80"
   },
+  {
+    "id": "prod-7",
+    "artisanId": "art-4",
+    "title": "Hand-Painted Religious Statue",
+    "price": 999,
+    "image": "https://images.unsplash.com/photo-1621577785501-c8b82a7f53a4?q=80&w=400"
+  },
+  {
+    "id": "prod-8",
+    "artisanId": "art-4",
+    "title": "Intricately Carved Wooden Sculpture",
+    "price": 1200,
+    "image": "https://images.unsplash.com/photo-1579783900970-873b2255757d?q=80&w=400"
+  },
+  {
+    "id": "prod-9",
+    "artisanId": "art-5",
+    "title": "Hand-Woven Rattan Basket",
+    "price": 399,
+    "image": "https://images.unsplash.com/photo-1533153578335-e63d41f36402?q=80&w=400"
+  },
+  {
+    "id": "prod-10",
+    "artisanId": "art-5",
+    "title": "Tribal-Inspired Beaded Bracelet",
+    "price": 89,
+    "image": "https://images.unsplash.com/photo-1589335606497-8c3b9b478d38?q=80&w=400"
+  }
 ];
 
 const ArtisanDetail = () => {
@@ -180,7 +236,7 @@ const ArtisanDetail = () => {
                   />
                   <CardContent className="p-5">
                     <h3 className="font-semibold text-lg mb-2 text-gray-900">{product.title}</h3>
-                    <p className="text-[#a4785a] font-bold text-xl">${product.price.toFixed(2)}</p>
+                    <p className="text-[#a4785a] font-bold text-xl">₱{product.price.toFixed(2)}</p>
                   </CardContent>
                 </Card>
               ))}

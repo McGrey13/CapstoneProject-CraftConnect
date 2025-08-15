@@ -4,47 +4,152 @@ import { Card, CardContent } from "../ui/card";
 
 const categories = [
   {
-    id: "1",
-    name: "Calamba",
-    icon: "https://i0.wp.com/www.mycitymysm.com/wp-content/uploads/2021/08/my-city-my-sm-my-craft-calamba-laguna-14.jpg?fit=1280%2C978&ssl=1",
-    description: "Handcrafted ceramic pieces for your home",
-    productCount: 125,
+    "id": "1",
+    "name": "Alaminos",
+    "icon": "https://www.google.com/imgres?q=alaminos%20place%20laguna&imgurl=https%3A%2F%2Fi.ytimg.com%2Fvi%2F36r6IjMj0bw%2Fmaxresdefault.jpg&imgrefurl=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3D36r6IjMj0bw&docid=faypCmRs17tmcM&tbnid=Pr2_R8Le8jiwHM&vet=12ahUKEwiX946fs42PAxVAhq8BHRSNHpYQM3oECCgQAA..i&w=1280&h=720&hcb=2&ved=2ahUKEwiX946fs42PAxVAhq8BHRSNHpYQM3oECCgQAA",
+    "description": "Woven pandan bags and local handicrafts",
+    "productCount": 55
   },
   {
-    id: "2",
-    name: "Pila",
-    icon: "https://www.wheninmanila.com/wp-content/uploads/2017/10/when-in-manila-teds-sta-cruz-laguna-products-food-sa-pantalan-3019-e1508108617844.jpg",
-    description: "Unique handmade jewelry pieces",
-    productCount: 89,
+    "id": "2",
+    "name": "Bay",
+    "icon": "https://primer.com.ph/wp-content/uploads/2016/09/DSC_3070.jpg",
+    "description": "Traditional pottery and handcrafted clay items",
+    "productCount": 92
   },
   {
-    id: "3",
-    name: "Victoria",
-    icon: "",
-    description: "Woven, knitted, and embroidered goods",
-    productCount: 76,
+    "id": "3",
+    "name": "Biñan",
+    "icon": "https://3.bp.blogspot.com/-i_Y8w1o8VnU/V-kMvM434ZI/AAAAAAAAAFc/Q5G7gU95y9gt2rR9D-xH4xN8J8n-5t4sgCLcB/s1600/tsinelas.JPG",
+    "description": "Handmade slippers and footwear",
+    "productCount": 115
   },
   {
-    id: "4",
-    name: "Paete",
-    icon: "",
-    description: "Handcrafted wooden items and furniture",
-    productCount: 62,
+    "id": "4",
+    "name": "Calamba",
+    "icon": "https://i0.wp.com/www.mycitymysm.com/wp-content/uploads/2021/08/my-city-my-sm-my-craft-calamba-laguna-14.jpg?fit=1280%2C978&ssl=1",
+    "description": "Hand-painted ceramics and pottery",
+    "productCount": 120
   },
   {
-    id: "5",
-    name: "Pakil",
-    icon: "",
-    description: "Handmade paper goods and stationery",
-    productCount: 45,
+    "id": "5",
+    "name": "Calauan",
+    "icon": "https://primer.com.ph/travel/wp-content/uploads/sites/6/2019/07/pineapple-7.jpg",
+    "description": "Pineapple-themed souvenirs and local goods",
+    "productCount": 48
   },
   {
-    id: "6",
-    name: "Liliw",
-    icon: "https://images.squarespace-cdn.com/content/v1/5958da62d2b857c0a9d740fb/1563817484363-SU8P76Y1IP9CMKQP3AGX/DSC03247.jpg",
-    description: "Blown glass and stained glass creations",
-    productCount: 38,
+    "id": "6",
+    "name": "Cavinti",
+    "icon": "",
+    "description": "Bamboo crafts and wooden souvenirs",
+    "productCount": 35
   },
+  {
+    "id": "7",
+    "name": "Famy",
+    "icon": "",
+    "description": "Handmade local delicacies and food products",
+    "productCount": 28
+  },
+  {
+    "id": "8",
+    "name": "Los Baños",
+    "icon": "https://primer.com.ph/travel/wp-content/uploads/sites/6/2019/07/buko-pie-11.jpg",
+    "description": "Handmade fruit tarts and pastries",
+    "productCount": 78
+  },
+  {
+    "id": "9",
+    "name": "Luisiana",
+    "icon": "https://i0.wp.com/lakbaykalikasan.files.wordpress.com/2012/03/pandan-products-in-luisiana.jpg?w=640",
+    "description": "Intricately woven pandan bags and mats",
+    "productCount": 85
+  },
+  {
+    "id": "10",
+    "name": "Lumban",
+    "icon": "https://primer.com.ph/travel/wp-content/uploads/sites/6/2019/07/Lumban-Embroidery.jpg",
+    "description": "Delicate embroidered garments and linens",
+    "productCount": 130
+  },
+  {
+    "id": "11",
+    "name": "Magdalena",
+    "icon": "",
+    "description": "Handcrafted baskets and woven items",
+    "productCount": 40
+  },
+  {
+    "id": "12",
+    "name": "Majayjay",
+    "icon": "",
+    "description": "Baked goods and traditional rice cakes",
+    "productCount": 52
+  },
+  {
+    "id": "13",
+    "name": "Nagcarlan",
+    "icon": "",
+    "description": "Hand-carved wooden sculptures and items",
+    "productCount": 65
+  },
+  {
+    "id": "14",
+    "name": "Paete",
+    "icon": "https://primer.com.ph/travel/wp-content/uploads/sites/6/2019/07/paete-woodcarving-1024x682.jpg",
+    "description": "Handcrafted wooden items and furniture",
+    "productCount": 105
+  },
+  {
+    "id": "15",
+    "name": "Pagsanjan",
+    "icon": "https://static.wixstatic.com/media/132408_099cf109f3de4d668853b3dfa2f5f142~mv2.jpg/v1/fit/w_500,h_500,q_90/132408_099cf109f3de4d668853b3dfa2f5f142~mv2.jpg",
+    "description": "Souvenirs and miniature boat replicas",
+    "productCount": 98
+  },
+  {
+    "id": "16",
+    "name": "Pakil",
+    "icon": "https://i0.wp.com/thehappytraveler.net/wp-content/uploads/2019/11/IMG_0411.jpg?resize=800%2C600&ssl=1",
+    "description": "Handmade paper goods and stationery",
+    "productCount": 45
+  },
+  {
+    "id": "17",
+    "name": "Pangil",
+    "icon": "",
+    "description": "Handmade natural fiber baskets and wares",
+    "productCount": 32
+  },
+  {
+    "id": "18",
+    "name": "San Pablo",
+    "icon": "https://primer.com.ph/travel/wp-content/uploads/sites/6/2019/07/souvenirs-1.jpg",
+    "description": "Local products and crafts inspired by the seven lakes",
+    "productCount": 88
+  },
+  {
+    "id": "19",
+    "name": "Santa Cruz",
+    "icon": "https://primer.com.ph/travel/wp-content/uploads/sites/6/2019/07/kesong-puti.jpg",
+    "description": "Fresh, handcrafted local cheese (kesong puti)",
+    "productCount": 75
+  },
+  {
+    "id": "20",
+    "name": "Siniloan",
+    "icon": "",
+    "description": "Hand-woven baskets and home accessories",
+    "productCount": 58
+  },
+  {
+    "id": "21",
+    "name": "Victoria",
+    "icon": "https://laguna.gov.ph/wp-content/uploads/2022/07/victorias-salted-duck-egg-768x512.jpg",
+    "description": "Handmade salted duck eggs and other delicacies",
+    "productCount": 69
+  }
 ];
 
 const CategoryGrid = () => {

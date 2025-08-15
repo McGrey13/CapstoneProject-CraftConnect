@@ -14,104 +14,6 @@ import ProductCard from "./ProductCard";
 const FeaturedProducts = ({
   title = "Featured Products",
   subtitle = "Discover unique handcrafted items from talented artisans around Laguna",
-  products = [
-    {
-      id: "1",
-      image:
-        "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=500&q=80",
-      title: "Handcrafted Ceramic Mug",
-      price: 24.99,
-      artisanName: "Sarah Pottery",
-      rating: 4.5,
-      isNew: true,
-      isFeatured: true,
-      category: "Ceramics",
-    },
-    {
-      id: "2",
-      image:
-        "https://images.unsplash.com/photo-1603031612556-9f3e239d5a76?w=500&q=80",
-      title: "Woven Basket Set",
-      price: 49.99,
-      artisanName: "Weaving Wonders",
-      rating: 4.8,
-      isNew: false,
-      isFeatured: true,
-      category: "Home",
-    },
-    {
-      id: "3",
-      image:
-        "https://images.unsplash.com/photo-1601924921557-45e6dea0a157?w=500&q=80",
-      title: "Handmade Leather Journal",
-      price: 35.5,
-      artisanName: "Leather Craft Co.",
-      rating: 4.2,
-      isNew: false,
-      isFeatured: true,
-      category: "Accessories",
-    },
-    {
-      id: "4",
-      image:
-        "https://images.unsplash.com/photo-1631125915902-d9eca5c900e4?w=500&q=80",
-      title: "Macrame Wall Hanging",
-      price: 89.99,
-      artisanName: "Knot & Fiber",
-      rating: 4.7,
-      isNew: true,
-      isFeatured: true,
-      category: "Textiles",
-    },
-    {
-      id: "5",
-      image:
-        "https://images.unsplash.com/photo-1621517936102-3fbd997689e6?w=500&q=80",
-      title: "Hand-Poured Soy Candle",
-      price: 18.99,
-      artisanName: "Glow Artisan",
-      rating: 4.9,
-      isNew: false,
-      isFeatured: true,
-      category: "Home",
-    },
-    {
-      id: "6",
-      image:
-        "https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=500&q=80",
-      title: "Beaded Statement Necklace",
-      price: 65.0,
-      artisanName: "Bead & Gem Studio",
-      rating: 4.4,
-      isNew: true,
-      isFeatured: true,
-      category: "Jewelry",
-    },
-    {
-      id: "7",
-      image:
-        "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=500&q=80",
-      title: "Hand-Carved Wooden Bowl",
-      price: 42.5,
-      artisanName: "Forest Crafts",
-      rating: 4.6,
-      isNew: false,
-      isFeatured: true,
-      category: "Woodwork",
-    },
-    {
-      id: "8",
-      image:
-        "https://images.unsplash.com/photo-1594749794743-2c3ec3e47005?w=500&q=80",
-      title: "Embroidered Linen Pillow",
-      price: 55.0,
-      artisanName: "Stitch & Thread",
-      rating: 4.3,
-      isNew: true,
-      isFeatured: true,
-      category: "Home",
-    },
-  ],
   onAddToCart = () => {},
   onFavorite = () => {},
 }) => {
@@ -119,7 +21,118 @@ const FeaturedProducts = ({
   const [activeTab, setActiveTab] = useState("all");
   const [sortBy, setSortBy] = useState("featured");
 
-  const categories = ["All", "Ceramics", "Textiles", "Jewelry", "Woodwork"];
+  const products = [
+    {
+      "id": "1",
+      "image": "https://images.unsplash.com/photo-1621215096538-3163a34a3f3b?q=80&w=400",
+      "title": "Miniature Bahay Kubo",
+      "price": 35.50,
+      "artisanName": "Alex Manalo",
+      "artisanId": "art-1",
+      "rating": 4.9,
+      "isNew": false,
+      "isFeatured": true,
+      "category": "Miniatures & Souvenirs"
+    },
+    {
+      "id": "2",
+      "image": "https://images.unsplash.com/photo-1627960309228-56a849206d44?q=80&w=400",
+      "title": "Hand-painted Wooden Hand Fan",
+      "price": 18.00,
+      "artisanName": "Alex Manalo",
+      "artisanId": "art-1",
+      "rating": 4.8,
+      "isNew": true,
+      "isFeatured": true,
+      "category": "Miniatures & Souvenirs"
+    },
+    {
+      "id": "3",
+      "image": "https://images.unsplash.com/photo-1549646631-5f21295b9a89?q=80&w=400",
+      "title": "Personalized Hand-Carved Rubber Stamp",
+      "price": 25.00,
+      "artisanName": "Tatay Cesar",
+      "artisanId": "art-2",
+      "rating": 4.7,
+      "isNew": false,
+      "isFeatured": false,
+      "category": "Rubber Stamp Engraving"
+    },
+    {
+      "id": "4",
+      "image": "https://images.unsplash.com/photo-1596707323281-9b63a9f0298a?q=80&w=400",
+      "title": "Handmade Beaded Necklace",
+      "price": 32.50,
+      "artisanName": "Baby Mae",
+      "artisanId": "art-3",
+      "rating": 4.8,
+      "isNew": true,
+      "isFeatured": true,
+      "category": "Traditional Accessories"
+    },
+    {
+      "id": "5",
+      "image": "https://images.unsplash.com/photo-1621577785501-c8b82a7f53a4?q=80&w=400",
+      "title": "Hand-Painted Religious Statue",
+      "price": 95.00,
+      "artisanName": "Tatay Tiko",
+      "artisanId": "art-4",
+      "rating": 4.9,
+      "isNew": false,
+      "isFeatured": true,
+      "category": "Statuary & Sculpture"
+    },
+    {
+      "id": "6",
+      "image": "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=500&q=80",
+      "title": "Intricately Carved Wooden Sculpture",
+      "price": 120.00,
+      "artisanName": "Tatay Tiko",
+      "artisanId": "art-4",
+      "rating": 4.6,
+      "isNew": false,
+      "isFeatured": false,
+      "category": "Statuary & Sculpture"
+    },
+    {
+      "id": "7",
+      "image": "https://images.unsplash.com/photo-1533153578335-e63d41f36402?q=80&w=400",
+      "title": "Hand-Woven Rattan Basket",
+      "price": 55.00,
+      "artisanName": "Renel Batralo",
+      "artisanId": "art-5",
+      "rating": 4.7,
+      "isNew": true,
+      "isFeatured": true,
+      "category": "Basketry & Weaving"
+    },
+    {
+      "id": "8",
+      "image": "https://images.unsplash.com/photo-1594749794743-2c3ec3e47005?w=500&q=80",
+      "title": "Bamboo Wind Chime",
+      "price": 28.00,
+      "artisanName": "Renel Batralo",
+      "artisanId": "art-5",
+      "rating": 4.3,
+      "isNew": false,
+      "isFeatured": false,
+      "category": "Wood & Bamboo Crafts"
+    },
+    {
+      "id": "9",
+      "image": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80",
+      "title": "Traditional Filipino Weave Scarf",
+      "price": 45.00,
+      "artisanName": "Baby Mae",
+      "artisanId": "art-3",
+      "rating": 4.5,
+      "isNew": true,
+      "isFeatured": false,
+      "category": "Weaving & Textiles"
+    }
+  ];
+
+  const categories = ["All", "Miniatures & Souvenirs", "Rubber Stamp Engraving", "Traditional Accessories", "Statuary & Sculpture", "Basketry & Weaving"];
   const itemsPerPage = 4;
 
   const filteredProducts = products.filter((product) => {

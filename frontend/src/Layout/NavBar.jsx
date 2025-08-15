@@ -1,16 +1,15 @@
 import './NavBar.css';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaShoppingCart, FaUser } from 'react-icons/fa';
+import { FaShoppingCart, FaUser, FaBars, FaTimes } from 'react-icons/fa';
 
-const Navbar = ({ user, onLogout }) => {
+const Navbar = ({ user, onLogout, cartCount = 0 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen);
-  };
+  const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
+  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   const handleLogout = () => {
     onLogout && onLogout();
@@ -18,43 +17,33 @@ const Navbar = ({ user, onLogout }) => {
     navigate('/login');
   };
 
-  const handleSearch = () => {
-    if (searchQuery.trim() !== "") {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-    }
-  };
-
   return (
     <nav className="navbar">
       <Link to="/" className="navbar-brand">CraftConnect</Link>
 
-      <div className="navbar-links">
-        <Link to="/Categories">Categories</Link>
-        <Link to="/Artisan">Artisans</Link>
-        <Link to="/About">About</Link>
-        <Link to="/Contact">Contact</Link>
+      {/* Desktop & Mobile Links */}
+      <div className={`navbar-links ${isMobileMenuOpen ? 'active' : ''}`}>
+        <Link to="/categories" onClick={() => setIsMobileMenuOpen(false)}>Categories</Link>
+        <Link to="/artisan" onClick={() => setIsMobileMenuOpen(false)}>Artisans</Link>
+        <Link to="/about" onClick={() => setIsMobileMenuOpen(false)}>About</Link>
+        <Link to="/contact" onClick={() => setIsMobileMenuOpen(false)}>Contact</Link>
       </div>
 
+      {/* Search */}
       <div className="navbar-search">
-        <input
-          type="text"
-          placeholder="Search products..."
-          className="search-input"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-        />
-        <button className="search-button" onClick={handleSearch}>Search</button>
+        <input type="text" placeholder="Search products..." className="search-input" />
+        <button className="search-button">Search</button>
       </div>
 
+      {/* Cart */}
       <div className="navbar-cart">
         <Link to="/cart" className="cart-link">
           <FaShoppingCart size={24} />
-          <span className="cart-count">0</span>
+          <span className="cart-count">{cartCount}</span>
         </Link>
       </div>
 
-      {/* User Icon + Dropdown */}
+      {/* User Dropdown */}
       <div className="user-account">
         <FaUser size={20} className="user-icon" onClick={toggleDropdown} />
         {isDropdownOpen && (
@@ -68,28 +57,21 @@ const Navbar = ({ user, onLogout }) => {
               <>
                 <Link to="/profile" onClick={() => setIsDropdownOpen(false)}>Profile</Link>
                 <Link to="/settings" onClick={() => setIsDropdownOpen(false)}>Settings</Link>
-                <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}>Logout</button>
+                <button
+                  onClick={handleLogout}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
+                >
+                  Logout
+                </button>
               </>
             )}
           </div>
         )}
       </div>
 
-      <button className="navbar-toggle">
-        <svg
-          className="mobile-menu-icon"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 6h16M4 12h16M4 18h16"
-          />
-        </svg>
+      {/* Mobile Menu Toggle */}
+      <button className="navbar-toggle" onClick={toggleMobileMenu}>
+        {isMobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
       </button>
     </nav>
   );
