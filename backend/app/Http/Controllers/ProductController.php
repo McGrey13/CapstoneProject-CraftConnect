@@ -313,7 +313,7 @@ class ProductController extends Controller
         $products = Product::where('seller_id', $seller_id)
             ->where('approval_status', 'approved')
             ->get();
-
+ 
         return response()->json($products);
     } catch (\Exception $e) {
         Log::error('Error fetching approved products for seller:', [

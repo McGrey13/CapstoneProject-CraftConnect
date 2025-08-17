@@ -14,7 +14,8 @@ return new class extends Migration
             $table->id('orderID');
             $table->foreignId('customer_id')->constrained('customers', 'customerID')->onDelete('cascade'); // Foreign key to the customers table
             $table->decimal('totalAmount', 8, 2);
-            $table->string('status')->default('pending'); // e.g., 'pending', 'shipped', 'delivered'
+            $table->enum('status', ['pending', 'packing', 'shipped', 'delivered'])->default('pending');
+            $table->string('location');
             $table->timestamps();
         });
     }

@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Order;
 
 
 class Seller extends Model
@@ -42,4 +43,14 @@ class Seller extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'userID');
     }
+
+    public function products()
+{
+    return $this->hasMany(Product::class);
+}
+
+public function orders()
+{
+    return $this->hasMany(Order::class);
+}
 }

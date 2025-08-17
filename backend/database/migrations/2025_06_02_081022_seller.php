@@ -23,6 +23,9 @@ return new class extends Migration
             $table->string(column:'story')->nullable();
             $table->string(column:'bio')->nullable();
             $table->string(column:'businessName')->nullable();
+            $table->string('profile_picture_path')->nullable(); // Column to store the path to the profile picture
+            $table->string('background_picture_path')->nullable(); // Column to store the path to the background picture
+            $table->string('promotional_video_path')->nullable(); // Column to store the path to the promotional video
             $table->timestamps();
         });
     }
