@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use app\Models\User;
+use app\models\Seller;
 
 
 class SellerController extends AuthController
@@ -55,5 +57,25 @@ class SellerController extends AuthController
          ]);
 
         return redirect()->back()->with('success', 'Your seller information has been updated!');
+    }
+
+      public function getAllSellers()
+    {
+        // Eager load user relationship for all sellers
+        $sellers = Seller::with('user')->get();
+
+        return response()->json($sellers);
+    }
+
+     public function getSellerById($sellerID)
+    {
+        // Fetch seller with their related user info
+        $seller = Seller::with('user')->where('sellerID', $sellerID)->first();
+
+        if (!$seller) {
+            return response()->json(['message' => 'Seller not found'], 404);
+        }
+
+        return response()->json($seller);
     }
 }

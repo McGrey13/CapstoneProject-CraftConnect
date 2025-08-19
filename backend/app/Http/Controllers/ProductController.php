@@ -9,13 +9,7 @@ use App\Models\Product;
 
 class ProductController extends Controller
 {
-    /**
-     * Check if the authenticated user is a seller
-     */
-
-
-     
-
+    
     private function checkSeller()
     {
         $user = Auth::user();
@@ -310,14 +304,14 @@ class ProductController extends Controller
     public function approvedProduct($seller_id)
 {
     try {
-        $products = Product::where('seller_id', $seller_id)
+        $products = Product::where('selllerID', $seller_id)
             ->where('approval_status', 'approved')
             ->get();
  
         return response()->json($products);
     } catch (\Exception $e) {
         Log::error('Error fetching approved products for seller:', [
-            'seller_id' => $seller_id,
+            'selllerID' => $seller_id,
             'error' => $e->getMessage()
         ]);
         return response()->json([

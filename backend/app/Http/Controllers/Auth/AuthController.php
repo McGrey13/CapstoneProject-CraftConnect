@@ -30,39 +30,10 @@ class AuthController extends Controller
     {
         return response()->json(User::where('role', 'customer')->get());
     }
-public function getSellers()
-{
-    try {
-        $sellers = User::with('seller')
-            ->where('role', 'seller')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'userName' => $user->userName,
-                    'businessName' => $user->seller->businessName ?? '',
-                    'location' => $user->seller->location ?? '',
-                    'category' => $user->seller->category ?? '',
-                    'revenue' => $user->seller->revenue ?? 0,
-                    'productsCount' => $user->seller?->products()->count() ?? 0,
-                    'ordersCount' => $user->seller?->orders()->count() ?? 0,
-                    'joinDate' => $user->created_at,
-                    'status' => $user->status ?? 'active',
-                ];
-            });
-
-        return response()->json($sellers);
-
-    } catch (\Throwable $e) {
-        // Return the actual error message for debugging
-        return response()->json([
-            'error' => $e->getMessage(),
-            'file'  => $e->getFile(),
-            'line'  => $e->getLine(),
-            'trace' => $e->getTraceAsString(),
-        ], 500);
+    public function getSellers()
+    {
+        return response()->json(User::where('role', 'seller')->get());
     }
-}
 
     public function getAdmins()
     {

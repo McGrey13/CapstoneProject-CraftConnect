@@ -47,6 +47,7 @@ import SimplifiedCustomerDetail from './Components/Admin/SimplifiedCustomerDetai
 import SimplifiedCustomerTable from './Components/Admin/SimplifiedCustomerTable';
 import ProfilePage from './Components/Seller/ProfilePage';
 import ProductDetails from './Components/product/ProductDetails';
+import ChatWindow from "./Components/Chats/ChatWindow.jsx";
 
 
 function App() {
@@ -69,6 +70,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/:id" element={<ProductDetails />} />
+          <Route path="/chats" element={<ChatWindow />} />
 
           {/* Seller routes */}
           <Route path="/seller" element={<SellerLayout />}>

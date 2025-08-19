@@ -32,7 +32,11 @@ class Seller extends Model
         'businessName',
         'bio',
         'story',
-        'website'
+        'website',
+        'profile_picture_path',
+        'background_picture_path',
+        'promotional_video_path',
+        
         // If you had specific seller-only fields not in User, they would go here.
     ];
 

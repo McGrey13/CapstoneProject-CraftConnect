@@ -119,6 +119,11 @@ const OrdersTab = () => {
                       {order.status}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    <Badge className={getStatusColor(order.approval_status)} variant="outline">
+                      {order.approval_status}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm">View</Button>
                   </TableCell>
@@ -398,6 +403,19 @@ const InventoryTab = () => {
     }
   };
 
+  const getApprovalColor = (approval_status) => {
+    switch (approval_status) {
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -525,6 +543,7 @@ const InventoryTab = () => {
                 <TableHead>Price</TableHead>
                 <TableHead>Stock</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Approved Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -552,6 +571,11 @@ const InventoryTab = () => {
                     <TableCell>
                       <Badge className={getStockColor(product.status)} variant="outline">
                         {product.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getApprovalColor(product.approval_status)} variant="outline">
+                        {product.approval_status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
