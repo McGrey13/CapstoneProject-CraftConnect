@@ -21,22 +21,22 @@ const FeaturedProducts = ({
   const [activeTab, setActiveTab] = useState("all");
   const [sortBy, setSortBy] = useState("featured");
 
-  const products = [
+const products = [
     {
-      "id": "1",
-      "image": "https://images.unsplash.com/photo-1621215096538-3163a34a3f3b?q=80&w=400",
-      "title": "Miniature Bahay Kubo",
-      "price": 35.50,
-      "artisanName": "Alex Manalo",
-      "artisanId": "art-1",
-      "rating": 4.9,
-      "isNew": false,
-      "isFeatured": true,
-      "category": "Miniatures & Souvenirs"
+      id: "1",
+      image: "/images/featuredproducts/bahaykubo.jpg", 
+      title: "Miniature Bahay Kubo",
+      price: 35.50,
+      artisanName: "Alex Manalo",
+      artisanId: "art-1",
+      rating: 4.9,
+      isNew: false,
+      isFeatured: true,
+      category: "Miniatures & Souvenirs"
     },
-    {
+      {
       "id": "2",
-      "image": "https://images.unsplash.com/photo-1627960309228-56a849206d44?q=80&w=400",
+      "image": "/images/featuredproducts/Woodenhandfan.jpg",
       "title": "Hand-painted Wooden Hand Fan",
       "price": 18.00,
       "artisanName": "Alex Manalo",
@@ -48,7 +48,7 @@ const FeaturedProducts = ({
     },
     {
       "id": "3",
-      "image": "https://images.unsplash.com/photo-1549646631-5f21295b9a89?q=80&w=400",
+      "image": "/images/featuredproducts/rubberstamp.jpg",
       "title": "Personalized Hand-Carved Rubber Stamp",
       "price": 25.00,
       "artisanName": "Tatay Cesar",
@@ -60,7 +60,7 @@ const FeaturedProducts = ({
     },
     {
       "id": "4",
-      "image": "https://images.unsplash.com/photo-1596707323281-9b63a9f0298a?q=80&w=400",
+      "image": "/images/featuredproducts/beadednecklace.jpg",
       "title": "Handmade Beaded Necklace",
       "price": 32.50,
       "artisanName": "Baby Mae",
@@ -72,7 +72,7 @@ const FeaturedProducts = ({
     },
     {
       "id": "5",
-      "image": "https://images.unsplash.com/photo-1621577785501-c8b82a7f53a4?q=80&w=400",
+      "image": "/images/featuredproducts/statue.jpg",
       "title": "Hand-Painted Religious Statue",
       "price": 95.00,
       "artisanName": "Tatay Tiko",
@@ -84,7 +84,7 @@ const FeaturedProducts = ({
     },
     {
       "id": "6",
-      "image": "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=500&q=80",
+      "image": "/images/featuredproducts/woodensculpture.jpg",
       "title": "Intricately Carved Wooden Sculpture",
       "price": 120.00,
       "artisanName": "Tatay Tiko",
@@ -96,7 +96,7 @@ const FeaturedProducts = ({
     },
     {
       "id": "7",
-      "image": "https://images.unsplash.com/photo-1533153578335-e63d41f36402?q=80&w=400",
+      "image": "/images/featuredproducts/wovenbasket.jpg",
       "title": "Hand-Woven Rattan Basket",
       "price": 55.00,
       "artisanName": "Renel Batralo",
@@ -108,8 +108,8 @@ const FeaturedProducts = ({
     },
     {
       "id": "8",
-      "image": "https://images.unsplash.com/photo-1594749794743-2c3ec3e47005?w=500&q=80",
-      "title": "Bamboo Wind Chime",
+      "image": "/images/featuredproducts/bambooshell.jpg",
+      "title": "Bamboo and Shell Wind Chime",
       "price": 28.00,
       "artisanName": "Renel Batralo",
       "artisanId": "art-5",
@@ -120,7 +120,7 @@ const FeaturedProducts = ({
     },
     {
       "id": "9",
-      "image": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80",
+      "image": "/images/featuredproducts/scarf.jpg",
       "title": "Traditional Filipino Weave Scarf",
       "price": 45.00,
       "artisanName": "Baby Mae",
