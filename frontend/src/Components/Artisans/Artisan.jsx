@@ -13,7 +13,7 @@ const Artisan = () => {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/sellers", {
+    fetch("http://localhost:8000/api/get/sellers", {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -24,14 +24,15 @@ const Artisan = () => {
         return res.json();
       })
       .then((data) => {
-        // Map backend sellers to artisan card format
         const mapped = data.map((seller) => ({
-          id: seller.userID || seller.id,
-          name: seller.userName,
-          location: seller.userAddress || "Unknown",
-          specialty: seller.specialty || "Crafts",
-          bio: seller.bio || "",
-          image: seller.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&q=80",
+          // Access nested user object for user details
+          id: seller.sellerID, // Use userID from the user object
+          name: seller.user.userName, // Corrected to use seller.user.userName
+          location: seller.user.userAddress || "Unknown", // Corrected
+          bio: seller.story || "No bio provided.", // Bio is on the seller object
+          image: seller.user.profile_picture_path || "unknown", // Corrected to use profile_photo_url
+          // These properties should be on the seller object, not user
+          specialty: seller.specialty || "Crafts", 
           rating: seller.rating || 0,
           productCount: seller.productCount || 0,
           featured: seller.featured || false,
@@ -52,6 +53,7 @@ const Artisan = () => {
   };
 
   const filterArtisans = (query, onlyFeatured) => {
+    // The filter logic is fine, it will work on the 'mapped' data
     let filtered = artisans;
     if (query.trim() !== "") {
       filtered = filtered.filter(
@@ -132,7 +134,7 @@ const Artisan = () => {
                 <Card className="h-full overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer">
                   <div className="relative h-64 overflow-hidden bg-gray-100">
                     <img
-                      src={artisan.image}
+                      src={artisan.image} // This now correctly uses the image URL from the API response
                       alt={artisan.name}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     />
@@ -173,7 +175,7 @@ const Artisan = () => {
                         {artisan.productCount} products
                       </span>
                     </div>
-                    <p className="text-gray-600 line-clamp-2">{artisan.bio}</p>
+                    <p className="text-gray-600 line-clamp-2">{artisan.story}</p>
                   </CardContent>
                 </Card>
               </Link>
@@ -186,8 +188,9 @@ const Artisan = () => {
               onClick={() => {
                 setSearchQuery("");
                 setFilterFeatured(false);
-                // Re-fetch sellers from backend
-                fetch("http://localhost:8000/api/sellers", {
+                // The useEffect hook already handles re-fetching on mount, so just reset state
+                // Re-fetch logic can be simplified by calling the original fetch function
+                fetch("http://localhost:8000/api/get/sellers", {
                   headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
@@ -196,12 +199,12 @@ const Artisan = () => {
                   .then((res) => res.json())
                   .then((data) => {
                     const mapped = data.map((seller) => ({
-                      id: seller.userID || seller.id,
-                      name: seller.userName,
-                      location: seller.userAddress || "Unknown",
+                      id: seller.user.userID,
+                      name: seller.user.userName,
+                      location: seller.user.userAddress || "Unknown",
+                      bio: seller.bio || "No bio provided.",
+                      image: seller.user.profile_photo_url || "unknown",
                       specialty: seller.specialty || "Crafts",
-                      bio: seller.bio || "",
-                      image: seller.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&q=80",
                       rating: seller.rating || 0,
                       productCount: seller.productCount || 0,
                       featured: seller.featured || false,

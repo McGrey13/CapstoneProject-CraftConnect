@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "../ui/card";
@@ -14,11 +14,18 @@ import {
 } from "lucide-react";
 
 const SellerSettings = () => {
+  const [sellerID, setSellerID] = useState(null);
   const [seller, setSeller] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch admin data
+  // For updating profile image and story
+  const [profileImagePreview, setProfileImagePreview] = useState("");
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [story, setStory] = useState("");
+  const fileInputRef = useRef();
+
+  // Fetch seller data
   const fetchSellerData = async () => {
     setIsLoading(true);
     const token = localStorage.getItem("token");
@@ -30,11 +37,12 @@ const SellerSettings = () => {
     }
 
     try {
+      // Use the correct endpoint here
       const res = await fetch("http://localhost:8000/api/profile", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-           Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -44,29 +52,66 @@ const SellerSettings = () => {
 
       const data = await res.json();
       setSeller(data);
+      console.log("Seller Data:", data.sellerID);
+      setSellerID(data.id);
+      setProfileImagePreview(data.profileImage || "");
+      setStory(data.story || "");
       setError(null);
     } catch (err) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
-  };
+};
 
   useEffect(() => {
     fetchSellerData();
   }, []);
 
-  if (isLoading) {
-    return <div>Loading Seller settings...</div>;
+  // Handle image change
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProfileImagePreview(URL.createObjectURL(file));
+      setProfileImageFile(file);
+    }
+  };
+
+  // Handle Save
+const handleSave = async () => {
+  if (!sellerID) {
+    console.log("Seller data:", seller);
+    alert("Seller ID not found.");
+    return;
   }
 
-  if (error) {
-    return <div className="text-red-500">Error: {error}</div>;
+  const token = localStorage.getItem("token");
+  const formData = new FormData();
+  if (profileImageFile) {
+    formData.append("profileImage", profileImageFile);
   }
+  formData.append("story", story);
 
-  if (!seller) {
-    return <div>No Seller data available.</div>;
+  try {
+    // Use sellerID instead of the whole object
+    const res = await fetch(`http://localhost:8000/api/sellers/${sellerID}/profile`, {
+      method: "POST", // or "PUT" depending on your backend
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // Do NOT set Content-Type for FormData; the browser handles it
+      },
+      body: formData,
+    });
+
+    if (!res.ok) throw new Error("Failed to update profile");
+
+    alert("Profile updated!");
+    setProfileImageFile(null);
+    fetchSellerData();
+  } catch (err) {
+    alert("Error updating profile: " + err.message);
   }
+};
 
   const handleDeactivate = () => {
     if (!window.confirm("Are you sure you want to deactivate your account?")) return;
@@ -102,11 +147,23 @@ const SellerSettings = () => {
       .catch((err) => console.error(err));
   };
 
+  if (isLoading) {
+    return <div>Loading Seller settings...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">Error: {error}</div>;
+  }
+
+  if (!seller) {
+    return <div>No Seller data available.</div>;
+  }
+
   return (
     <div className="space-y-6 bg-white p-6 rounded-lg">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Seller Settings</h1>
-        <Button>Save Changes</Button>
+        <Button onClick={handleSave}>Save Changes</Button>
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
@@ -131,11 +188,22 @@ const SellerSettings = () => {
                 <div className="flex flex-col items-center space-y-2">
                   <Avatar className="h-24 w-24">
                     <AvatarImage
-                      src={seller.profileImage || "https://api.dicebear.com/7.x/avataaars/svg?seed=admin"}
+                      src={profileImagePreview || seller.profileImage || "https://api.dicebear.com/7.x/avataaars/svg?seed=admin"}
                     />
                     <AvatarFallback>{seller.userName?.slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <Button variant="outline" size="sm">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={handleImageChange}
+                    ref={fileInputRef}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current.click()}
+                  >
                     Change Photo
                   </Button>
                 </div>
@@ -144,7 +212,7 @@ const SellerSettings = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="display-name">Display Name</Label>
-                      <Input id="display-name" defaultValue={seller.userName || ""} />
+                      <Input id="display-name" defaultValue={seller.userName || ""} readOnly />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="role">Role</Label>
@@ -153,10 +221,11 @@ const SellerSettings = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="bio">Bio</Label>
+                    <Label htmlFor="story">Story</Label>
                     <Textarea
-                      id="bio"
-                      defaultValue={seller.bio || ""}
+                      id="story"
+                      value={story}
+                      onChange={(e) => setStory(e.target.value)}
                       rows={4}
                     />
                   </div>
@@ -164,11 +233,11 @@ const SellerSettings = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="location">Location</Label>
-                      <Input id="location" defaultValue={seller.userAddress || ""} />
+                      <Input id="location" defaultValue={seller.userAddress || ""} readOnly />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="website">Website</Label>
-                      <Input id="website" defaultValue={seller.website || ""} />
+                      <Input id="website" defaultValue={seller.website || ""} readOnly />
                     </div>
                   </div>
                 </div>
@@ -194,7 +263,7 @@ const SellerSettings = () => {
                 <Label htmlFor="email">Email Address</Label>
                 <div className="flex items-center">
                   <Mail className="h-4 w-4 mr-2 text-gray-500" />
-                  <Input id="email" defaultValue={seller.userEmail || ""} />
+                  <Input id="email" defaultValue={seller.userEmail || ""} readOnly />
                 </div>
               </div>
 
@@ -202,7 +271,7 @@ const SellerSettings = () => {
                 <Label htmlFor="phone">Phone Number</Label>
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                  <Input id="phone" defaultValue={seller.userContactNumber || ""} />
+                  <Input id="phone" defaultValue={seller.userContactNumber || ""} readOnly />
                 </div>
               </div>
 

@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use app\Models\Seller; 
 
 class ProductController extends Controller
 {
@@ -302,24 +303,51 @@ class ProductController extends Controller
      * Get all approved products for a given seller
      */
     public function approvedProduct($seller_id)
-{
-    try {
-        $products = Product::where('selllerID', $seller_id)
-            ->where('approval_status', 'approved')
-            ->get();
- 
-        return response()->json($products);
-    } catch (\Exception $e) {
-        Log::error('Error fetching approved products for seller:', [
-            'selllerID' => $seller_id,
-            'error' => $e->getMessage()
-        ]);
-        return response()->json([
-            'message' => 'Error fetching approved products: ' . $e->getMessage()
-        ], 500);
+    {
+        try {
+            // Find the seller by ID or linked user_id
+            $seller = Seller::where('id', $seller_id)
+                ->orWhere('user_id', $seller_id)
+                ->first();
+
+            if (!$seller) {
+                return response()->json([
+                    'message' => 'Seller not found'
+                ], 404);
+            }
+
+            // Fetch approved products for this seller
+            $products = Product::where('seller_id', $seller->id) // ✅ correct column
+                ->where('approval_status', 'approved')
+                ->get();
+
+            if ($products->isEmpty()) {
+                return response()->json([
+                    'message' => 'No approved products found for this seller'
+                ], 200);
+            }
+
+            return response()->json($products);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching approved products for seller:', [
+                'seller_id' => $seller_id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'message' => 'Error fetching approved products: ' . $e->getMessage()
+            ], 500);
+        }
     }
+
+    public function getApprovedProducts($sellerId)
+{
+    $products = Product::where('seller_id', $sellerId)   // 👈 make sure your column is seller_id
+                       ->where('approval_status', 'approved')
+                       ->get();
+
+    return response()->json($products);
 }
-
-
     
 }

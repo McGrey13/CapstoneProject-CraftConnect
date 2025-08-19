@@ -12,14 +12,10 @@ return new class extends Migration
     public function up(): void
     {
        Schema::create('conversations', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('customer_id');
-            $table->unsignedBigInteger('seller_id');
-            $table->unsignedBigInteger('order_id')->nullable();
-
-            $table->foreign('customer_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('seller_id')->references('id')->constrained('users')->onDelete('cascade');
-            $table->foreign('order_id')->references('id')->on('orders')->onDelete('set null');
+            $table->id('conversation_id');
+            $table->foreignId('customerID')->constrained('users', 'userID')->onDelete('cascade');
+            $table->foreignId('sellerID')->constrained('users', 'userID')->onDelete('cascade');
+            $table->foreignId('orderID')->nullable()->constrained('orders', 'orderID')->onDelete('set null');
             $table->timestamps();
 });
 

@@ -12,16 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('messages', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('conversation_id');
-            $table->unsignedBigInteger('sender_id'); // user_id (customer or seller)
-            $table->unsignedBigInteger('receiver_id');
+            $table->id('message_id');
+            $table->foreignId('conversation_id')->constrained('conversations', 'conversation_id')->onDelete('cascade');
+            $table->foreignId('sender_id')->constrained('users', 'userID')->onDelete('cascade');
+            $table->foreignId('receiver_id')->constrained('users', 'userID')->onDelete('cascade');
             $table->text('message');
             $table->timestamps();
-
-            $table->foreign('conversation_id')->references('id')->on('conversations')->onDelete('cascade');
-            $table->foreign('sender_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('receiver_id')->references('id')->on('users')->onDelete('cascade');
 });
 
     }

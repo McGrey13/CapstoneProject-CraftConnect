@@ -35,6 +35,41 @@ class AuthController extends Controller
         return response()->json(User::where('role', 'seller')->get());
     }
 
+    public function getSellerById($id)
+    {
+        try {
+            $seller = Seller::where('user_id', $id)
+                ->with('user') // eager load the user relationship
+                ->first();
+
+            if (!$seller) {
+                return response()->json(['message' => 'Seller not found'], 404);
+            }
+
+            return response()->json([
+                'id' => $seller->id,
+                'shop_name' => $seller->shop_name ?? null,
+                'shop_description' => $seller->shop_description ?? null,
+                'created_at' => $seller->created_at,
+                'updated_at' => $seller->updated_at,
+
+                // pull user fields
+                'user' => [
+                    'id' => $seller->user->id,
+                    'userName' => $seller->user->userName,
+                    'userEmail' => $seller->user->userEmail,
+                    'userAddress' => $seller->user->userAddress,
+                    'userContactNumber' => $seller->user->userContactNumber,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error fetching seller: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     public function getAdmins()
     {
         return response()->json(User::where('role', 'admin')->get());

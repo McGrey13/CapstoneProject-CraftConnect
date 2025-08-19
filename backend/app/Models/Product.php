@@ -30,11 +30,10 @@ class Product extends Model
         return $this->attributes['product_id'];
     }
 
-    public function seller(): BelongsTo
-    {
-        return $this->belongsTo(Seller::class, 'seller_id', 'sellerID');
-    }
-
+public function seller()
+{
+    return $this->belongsTo(Seller::class, 'seller_id', 'sellerID');
+}
     // Automatically set status when quantity changes
     public static function boot()
     {

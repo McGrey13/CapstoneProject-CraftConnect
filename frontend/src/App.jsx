@@ -58,32 +58,32 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<ProductDetails />} />
-          <Route path="/cart" element={<ShoppingCart />} />
-          <Route path="/search" element={<SearchResults />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route path="/category/:id" element={<CategoryProducts />} />
-          <Route path="/artisan" element={<Artisan />} />
-          <Route path="/artisans/:id" element={<ArtisanDetail />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/products" element={<ProductsPage />} />
-          <Route path="/products/:id" element={<ProductDetails />} />
-          <Route path="/chats" element={<ChatWindow />} />
+          <Route path="cart" element={<ShoppingCart />} />
+          <Route path="search" element={<SearchResults />} />
+          <Route path="about" element={<About />} />
+          <Route path="contact" element={<Contact />} />
+          <Route path="ategories" element={<Categories />} />
+          <Route path="category/:id" element={<CategoryProducts />} />
+          <Route path="artisan" element={<Artisan />} />
+          <Route path="artisans/:id" element={<ArtisanDetail />} />
+          <Route path="register" element={<Register />} />
+          <Route path="login" element={<Login />} />
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="products" element={<ProductDetails />} />
+          <Route path="chats" element={<ChatWindow />} />
 
           {/* Seller routes */}
           <Route path="/seller" element={<SellerLayout />}>
-            <Route path="/seller/marketing-tools" element={<MarketingTools />} />
-            <Route path="/seller/order-inventory-manager" element={<OrderInventoryManager />} />
-            <Route path="/seller/payment-settings" element={<PaymentSettings />} />
-            <Route path="/seller/seller-settings" element={<SellerSettings />} />
-            <Route path="/seller/shipping-settings" element={<ShippingSettings />} />
-            <Route path="/seller/social-media" element={<SocialMedia />} />
-            <Route path="/seller/storefront-customizer" element={<StorefrontCustomizer />} />
-            <Route path="/seller/workshops-events" element={<WorkshopsEvents />} />
-            <Route path="/seller/profile" elements={<ProfilePage />} />
-            <Route path="/seller/EditableSellerDetail" elements={<EditableSellerDetail />} />
+            <Route path="marketing-tools" element={<MarketingTools />} />
+            <Route path="order-inventory-manager" element={<OrderInventoryManager />} />
+            <Route path="payment-settings" element={<PaymentSettings />} />
+            <Route path="seller-settings" element={<SellerSettings />} />
+            <Route path="shipping-settings" element={<ShippingSettings />} />
+            <Route path="social-media" element={<SocialMedia />} />
+            <Route path="storefront-customizer" element={<StorefrontCustomizer />} />
+            <Route path="workshops-events" element={<WorkshopsEvents />} />
+            <Route path="profile" elements={<ProfilePage />} />
+            <Route path="EditableSellerDetail" elements={<EditableSellerDetail />} />
           </Route>
           {/* Admin routes */}
           <Route path="/admin" element={<AdminLayout />}>
