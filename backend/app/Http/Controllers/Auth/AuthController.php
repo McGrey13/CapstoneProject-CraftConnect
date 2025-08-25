@@ -1,88 +1,5 @@
 <?php 
 
-
-// use App\Http\Controllers\Controller;
-// use Illuminate\Http\Request;
-// use App\Models\User;
-// use Illuminate\http\Response;
-// use Illuminate\Support\Facades\Hash;
-
-
-// class AuthController extends Controller
-// {
-//     public function index()
-//     {
-//         // Add your methods here for admin authentication
-//     }
-
-//     public function register(Request $request)
-//     {
-//         $fields = $request->validate([
-//             'userFirstName' => 'required|string|',
-//             'userLastName' => 'required|string|',
-//             'userEmail' => 'required|string|email|max:255|unique:users,userEmail',
-//             'userPassword' => 'required|string|confirmed',
-//             'userBirthDay' => 'nullable|string',
-//             'userContactNumber' => 'nullable|string|max:15',
-//             'userAddress' => 'nullable|string|max:255',
-//         ]);
- 
-//         $user = User::create([
-
-//             'userFirstName' => $fields['userFirstName'],
-//             'userLastName' => $fields['userLastName'], 
-//             'userEmail' => $fields['userEmail'],
-//             'userPassword' => bcrypt($fields['userPassword']),
-//             'userBirthDay' => $fields['userBirthDay']?? null,
-//             'userContactNumber' => $fields['userContactNumber']?? null,
-//             'userAddress' => $fields['userAddress']?? null,
-//         ]);
-
-//         $token = $user->createToken('auth_token')->plainTextToken;
-
-//         $response  = [
-//             'user' => $user,
-//             'token' => $token,
-//         ];
-
-//         return response($response, 201);
-        
-//     }
-
-//     public function login(Request $request)
-//     {
-//         $fields = $request->validate([
-//             'userEmail' => 'required|string|email',
-//             'userPassword' => 'required|string',
-//         ]);
-
-//         // Check email
-//         $user = User::where('userEmail', $fields['userEmail'])->first();
-//         if (!$user || !Hash::check($fields['userPassword'], $user->userPassword)) {
-//             return response([
-//                 'message' => 'Invalid credentials'
-//             ], 401);
-//         }
-
-//         $token = $user->createToken('auth_token')->plainTextToken;
-
-//         $response = [
-//             'user' => $user,
-//             'token' => $token,
-//         ];
-
-//         return response($response, 200);
-//     }
-//      public function logout(Request $request)
-//         {
-//             $request->user()->tokens()->delete();
-
-//             return response([
-//                 'message' => 'Logged out successfully'
-//             ]);
-//         }
-
-
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
@@ -108,20 +25,50 @@ class AuthController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function showRegistrationForm()
-    {
-        return view('auth.register'); // You'll need to create this Blade view
-    }
 
     public function getCustomers()
     {
         return response()->json(User::where('role', 'customer')->get());
     }
-
     public function getSellers()
     {
         return response()->json(User::where('role', 'seller')->get());
     }
+
+    public function getSellerById($id)
+    {
+        try {
+            $seller = Seller::where('user_id', $id)
+                ->with('user') // eager load the user relationship
+                ->first();
+
+            if (!$seller) {
+                return response()->json(['message' => 'Seller not found'], 404);
+            }
+
+            return response()->json([
+                'id' => $seller->id,
+                'shop_name' => $seller->shop_name ?? null,
+                'shop_description' => $seller->shop_description ?? null,
+                'created_at' => $seller->created_at,
+                'updated_at' => $seller->updated_at,
+
+                // pull user fields
+                'user' => [
+                    'id' => $seller->user->id,
+                    'userName' => $seller->user->userName,
+                    'userEmail' => $seller->user->userEmail,
+                    'userAddress' => $seller->user->userAddress,
+                    'userContactNumber' => $seller->user->userContactNumber,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error fetching seller: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     public function getAdmins()
     {
@@ -217,16 +164,6 @@ class AuthController extends Controller
     }
 
     /**
-     * Show the login form.
-     *
-     * @return \Illuminate\View\View
-     */
-    public function showLoginForm()
-    {
-        return view('auth.login'); // You'll need to create this Blade view
-    }
-
-    /**
      * Handle user login.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -278,12 +215,8 @@ class AuthController extends Controller
         return response()->json($request->user());
     }
 
-    /**
-     * Log the user out of the application.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+     // Log the user out of the application.
+
     public function logout(Request $request)
     {
         $request->user()->tokens()->delete();
@@ -295,7 +228,8 @@ class AuthController extends Controller
 
     public function deactivate(Request $request)
     {
-        $user = Auth::user();
+        $userId = Auth::id();
+        $user = \App\Models\User::find($userId);
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
@@ -303,19 +237,18 @@ class AuthController extends Controller
         $user->status = 'inactive';
         $user->save();
 
-        $user->tokens()->delete();
+        if (method_exists($user, 'tokens')) {
+            $user->tokens()->delete();
+        }
 
         Log::info('User deactivated account.', ['user_id' => $user->id]);
 
         return response()->json(['message' => 'Account deactivated successfully.']);
     }
 
-    /**
-     * Permanently delete the authenticated user's account.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+
+     //Permanently delete the authenticated user's account.
+
     public function destroy(Request $request)
     {
         $user = Auth::user();
@@ -323,8 +256,14 @@ class AuthController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
         
-        $user->tokens()->delete();
-        $user->delete();
+        if ($user instanceof \App\Models\User) {
+            if (method_exists($user, 'tokens')) {
+                $user->tokens()->delete();
+            }
+            $user->delete();
+        } else {
+            return response()->json(['message' => 'User instance not found.'], 500);
+        }
 
         Log::info('User deleted account.', ['user_id' => $user->id]);
 

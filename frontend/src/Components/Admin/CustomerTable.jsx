@@ -30,7 +30,6 @@ const CustomerTable = ({ onViewCustomer = () => {} }) => {
     const fetchCustomers = async () => {
       try {
         const token = localStorage.getItem("token");
-
         const res = await fetch("http://localhost:8000/api/customers", {
           method: "GET",
           headers: {
@@ -148,7 +147,9 @@ const CustomerTable = ({ onViewCustomer = () => {} }) => {
                       ? new Date(customer.created_at).toLocaleDateString()
                       : ""}
                   </TableCell>
-                  <TableCell></TableCell>
+                  <TableCell>
+                    {getStatusBadge(customer.status)}
+                  </TableCell>
                   <TableCell></TableCell>
                   <TableCell></TableCell>
                   <TableCell></TableCell>

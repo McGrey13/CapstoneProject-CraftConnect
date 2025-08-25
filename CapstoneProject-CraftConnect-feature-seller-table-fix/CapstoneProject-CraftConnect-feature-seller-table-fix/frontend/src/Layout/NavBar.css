@@ -1,0 +1,187 @@
+.navbar {
+    background-color: #a4785a; /* Brown background color */
+    color: white;
+    padding: 1rem 1.5rem; /* Adjust vertical and horizontal padding */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    position: fixed;
+  }
+
+  .navbar-brand {
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-decoration: none;
+    color: white;
+    margin-left: 15rem;
+  }
+
+  .navbar-brand:hover {
+    color: #f0e6d2; /* Lighter color on hover */
+  }
+  
+  /* Navigation links (hidden by default on smaller screens) */
+  .navbar-links {
+    display: flex; /* Hide on small screens */
+    align-items: center;
+    gap: 1.5rem; /* Space between links */
+  }
+
+  .user-account{
+    margin-left: -5rem;
+  }
+  
+  @media (min-width: 768px) {
+    .navbar-links {
+      display: flex; /* Show on medium screens and up */
+    }
+  }
+  
+  .navbar-links a {
+    color: white;
+    text-decoration: none;
+    transition: color 0.3s ease-in-out;
+  }
+  
+  .navbar-links a:hover {
+    color: #f0e6d2; /* Lighter color on hover */
+  }
+  
+  /* Search bar (hidden by default on smaller screens) */
+  .navbar-search {
+    display: none; /* Hide on small screens */
+    align-items: center;
+    background-color: #a4785a;
+    color: #333;
+    border-radius: 0.25rem;
+  }
+  
+  @media (min-width: 768px) {
+    .navbar-search {
+      display: flex; /* Show on medium screens and up */
+    }
+  }
+  
+  .search-input {
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: 0.25rem 0 0 0.25rem;
+    outline: none;
+    font-size: 0.9rem;
+  }
+  
+  .search-button {
+    background-color: #ddd;
+    color: #333;
+    border: none;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0 0.25rem 0.25rem 0;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease-in-out;
+  }
+  
+  .search-button:hover {
+    background-color: #ccc;
+  }
+  
+  /* Cart icon */
+  .navbar-cart {
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+  
+  .cart-link {
+    color: white;
+    text-decoration: none;
+    transition: color 0.3s ease-in-out;
+  }
+  
+  .cart-link:hover {
+    color: #f0e6d2;
+  }
+  
+  .cart-count {
+    position: absolute;
+    top: -0.5rem;
+    right: -0.5rem;
+    background-color: red;
+    color: white;
+    border-radius: 50%;
+    width: 1rem;
+    height: 1rem;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Mobile menu button */
+  .navbar-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  
+  .navbar-toggle span {
+    display: block;
+    width: 100%;
+    height: 0.2rem;
+    background-color: white;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  }
+  
+  /* Styles for when the mobile menu is open (you'll need to toggle a class with JavaScript) */
+  .navbar-toggle.open span:nth-child(1) {
+    transform: rotate(45deg) translate(0.3rem, 0.4rem);
+  }
+  
+  .navbar-toggle.open span:nth-child(2) {
+    opacity: 0;
+  }
+  
+  .navbar-toggle.open span:nth-child(3) {
+    transform: rotate(-45deg) translate(0.3rem, -0.4rem);
+  }
+  
+  /* Mobile menu links (hidden by default) */
+  .mobile-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #a4785a;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    padding: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .mobile-menu.open {
+    display: flex;
+  }
+  
+  .mobile-menu-link,
+  .mobile-menu .navbar-search {
+    margin-bottom: 0.75rem;
+    width: 100%;
+  }
+  
+  .mobile-search-input {
+    width: calc(100% - 1.5rem);
+  }
+  
+  .mobile-search-button {
+    width: auto;
+  }
+  

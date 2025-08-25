@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -30,6 +29,7 @@ import AdminTable from "./AdminTable";
 import CustomerTable from "./CustomerTable";
 import ArtisanTable from "./ArtisanTable";
 import AdminSettings from "./AdminSettings";
+import AcceptPendingProduct from "./AcceptPendingProduct";
 
 const SidebarItem = ({ icon, label, tabKey, activeTab, setActiveTab, badge }) => (
   <button
@@ -92,7 +92,7 @@ const AdminLayout = () => {
       case "inventory":
         return <div>Inventory Page</div>;
       case "addProduct":
-        return <div>Add New Product</div>;
+        return <div><AcceptPendingProduct /></div>;
       case "editProduct":
         return <div>Edit Products</div>;
       case "customers":

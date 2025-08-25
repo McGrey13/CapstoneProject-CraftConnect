@@ -115,6 +115,7 @@ class User extends Authenticatable
     public function administrator(): HasOne
     {
         return $this->hasOne(Administrator::class, 'user_id', 'userID');
+    
     }
 
     /**
@@ -137,54 +138,5 @@ class User extends Authenticatable
     {
         return $this->seller()->exists();
     }
-    // protected $hidden = [
-    //     'userPassword',
-    //     'remember_token',
-    //     'email_verification_code',
-    //     'sms_verification_code',
-    //     'sms_code_expires_at',
-    // ];
 
-    // protected $casts = [
-    //     'userBirthDay' => 'date',
-    //     'email_verified_at' => 'datetime',
-    //     'user_contact_number_verified_at' => 'datetime',
-    //     'sms_code_expires_at' => 'datetime',
-    // ];
-
-    // public function hasVerifiedBoth()
-    // {
-    //     return $this->hasVerifiedEmail() && $this->hasVerifiedPhone();
-    // }
-
-    // public function hasVerifiedEmail()
-    // {
-    //     return !is_null($this->email_verified_at);
-    // }
-
-    // public function hasVerifiedPhone()
-    // {
-    //     return !is_null($this->user_contact_number_verified_at);
-    // }
-
-    // public function getAuthPassword()
-    // {
-    //     return $this->userPassword;
-    // }
-
-    // // Relationships
-    // public function admin()
-    // {
-    //     return $this->hasOne(Administrator::class, 'user_id');
-    // }
-
-    // public function seller()
-    // {
-    //     return $this->hasOne(Seller::class, 'user_id');
-    // }
-
-    // public function customer()
-    // {
-    //     return $this->hasOne(Customer::class, 'user_id');
-    // }
 }

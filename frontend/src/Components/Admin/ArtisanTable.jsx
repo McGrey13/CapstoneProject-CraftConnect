@@ -24,20 +24,28 @@ const ArtisanTable = ({ onViewSeller = () => {} }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sellers, setSellers] = useState([]);
   const [allSellers, setAllSellers] = useState([]);
+useEffect(() => {
+  const fetchSellers = async () => {
+    try {
+      const token = localStorage.getItem("token"); // or however you store it
+      const res = await fetch("http://localhost:8000/api/sellers", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
 
-  useEffect(() => {
-    const fetchSellers = async () => {
-      try {
-        const res = await fetch("http://localhost:8000/api/sellers");
-        const data = await res.json();
-        setSellers(data);
-        setAllSellers(data);
-      } catch (error) {
-        console.error("Error fetching sellers:", error);
-      }
-    };
-    fetchSellers();
-  }, []);
+      if (!res.ok) throw new Error("Failed to fetch sellers");
+
+      const data = await res.json();
+      setSellers(data);
+      setAllSellers(data);
+    } catch (error) {
+      console.error("Error fetching sellers:", error);
+    }
+  };
+  fetchSellers();
+}, []);
 
   const handleSearch = (e) => {
     const query = e.target.value.toLowerCase();

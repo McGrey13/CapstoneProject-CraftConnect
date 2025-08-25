@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Filter, Search } from "lucide-react";
 import { Button } from "../ui/button";
@@ -6,79 +6,46 @@ import { Input } from "../ui/input";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 
-const mockArtisans = [
-
-  {
-    "id": "art-1",
-    "name": "Alex Manalo",
-    "location": "Calamba, Laguna",
-    "specialty": "Miniature & Souvenir Crafting",
-    "bio": "An artisan from Calamba specializing in miniature replicas of historical landmarks and traditional Filipino souvenirs.",
-    "image": "https://images.unsplash.com/photo-1542845242-421712a23075?q=80&w=500",
-    "rating": 4.9,
-    "productCount": 38,
-    "featured": true,
-    "story": "Growing up in Calamba, Alex was inspired by the rich history of his hometown, particularly the legacy of Dr. Jose Rizal. He started crafting miniature versions of Rizal’s house and other local landmarks, expanding his work to include a variety of handcrafted souvenirs that capture the spirit of Filipino heritage.",
-    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
-  },
-  {
-    "id": "art-2",
-    "name": "Tatay Cesar",
-    "location": "Biñan, Laguna",
-    "specialty": "Rubber Stamp Engraving",
-    "bio": "A master artisan from Biñan who creates intricate, hand-carved rubber stamps.",
-    "image": "https://images.unsplash.com/photo-1550993510-444a49c661b1?q=80&w=500",
-    "rating": 4.7,
-    "productCount": 52,
-    "featured": false,
-    "story": "From a young age, Tatay Cesar was fascinated by the detail in everyday objects. He honed his skills in carving, eventually finding his niche in personalized rubber stamps. Each stamp he creates is a small work of art, a testament to his patience and passion for transforming simple materials into something personal and meaningful.",
-    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
-  },
-  {
-    "id": "art-3",
-    "name": "Baby Mae",
-    "location": "Biñan, Laguna",
-    "specialty": "Traditional Garment & Accessory Making",
-    "bio": "An artisan from Biñan who makes traditional Filipino garments, headdresses, and beaded accessories.",
-    "image": "https://images.unsplash.com/photo-1596707323281-9b63a9f0298a?q=80&w=500",
-    "rating": 4.8,
-    "productCount": 41,
-    "featured": true,
-    "story": "Inspired by the vibrant culture and history of the Philippines, Baby Mae began crafting traditional accessories to preserve her heritage. Her work is a celebration of indigenous artistry, with each piece carefully designed to reflect the beauty and spirit of Filipino traditions, ensuring these skills and designs are passed down to future generations.",
-    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
-  },
-  {
-    "id": "art-4",
-    "name": "Tatay Tiko",
-    "location": "Santa Cruz, Laguna",
-    "specialty": "Statuary & Sculpture Painting",
-    "bio": "A skilled artisan from Santa Cruz who creates and paints religious and cultural sculptures.",
-    "image": "https://images.unsplash.com/photo-1629859595240-a379374092b7?q=80&w=500",
-    "rating": 4.9,
-    "productCount": 27,
-    "featured": false,
-    "story": "A painter at heart, Tatay Tiko discovered his calling in painting and sculpting religious figures and local folk characters. His workshop in Santa Cruz is a testament to his devotion, where he transforms simple figures into powerful, expressive works of art that are cherished by collectors and communities alike.",
-    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
-  },
-  {
-    "id": "art-5",
-    "name": "Renel Batralo",
-    "location": "Pila, Laguna",
-    "specialty": "Weaving & Fiber Arts",
-    "bio": "A versatile artisan from Pila known for his intricate work in jewelry, beadwork, and traditional weaving.",
-    "image": "https://images.unsplash.com/photo-1549646631-5f21295b9a89?q=80&w=500",
-    "rating": 4.7,
-    "productCount": 63,
-    "featured": false,
-    "story": "Hailing from the historic town of Pila, Renel has mastered a variety of traditional crafts. His journey began with learning beadwork, then expanded into the age-old art of weaving. He draws inspiration from his local surroundings, creating pieces that blend practicality with art, from stylish accessories to functional and beautifully woven baskets.",
-    "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
-  }
-];
-
 const Artisan = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [artisans, setArtisans] = useState(mockArtisans);
+  const [artisans, setArtisans] = useState([]);
   const [filterFeatured, setFilterFeatured] = useState(false);
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/get/sellers", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+        return res.json();
+      })
+      .then((data) => {
+        const mapped = data.map((seller) => ({
+          // Access nested user object for user details
+          id: seller.sellerID, // Use userID from the user object
+          name: seller.user.userName, // Corrected to use seller.user.userName
+          location: seller.user.userAddress || "Unknown", // Corrected
+          bio: seller.story || "No bio provided.", // Bio is on the seller object
+          image: seller.user.profile_picture_path || "unknown", // Corrected to use profile_photo_url
+          // These properties should be on the seller object, not user
+          specialty: seller.specialty || "Crafts", 
+          rating: seller.rating || 0,
+          productCount: seller.productCount || 0,
+          featured: seller.featured || false,
+          story: seller.story || "",
+          videoUrl: seller.videoUrl || "",
+        }));
+        setArtisans(mapped);
+      })
+      .catch((err) => {
+        console.error("Error fetching sellers:", err);
+        setArtisans([]);
+      });
+  }, [token]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -86,22 +53,20 @@ const Artisan = () => {
   };
 
   const filterArtisans = (query, onlyFeatured) => {
-    let filtered = mockArtisans;
-
+    // The filter logic is fine, it will work on the 'mapped' data
+    let filtered = artisans;
     if (query.trim() !== "") {
       filtered = filtered.filter(
         (artisan) =>
-          artisan.name.toLowerCase().includes(query.toLowerCase()) ||
-          artisan.specialty.toLowerCase().includes(query.toLowerCase()) ||
-          artisan.location.toLowerCase().includes(query.toLowerCase()) ||
-          artisan.bio.toLowerCase().includes(query.toLowerCase())
+          artisan.name?.toLowerCase().includes(query.toLowerCase()) ||
+          artisan.specialty?.toLowerCase().includes(query.toLowerCase()) ||
+          artisan.location?.toLowerCase().includes(query.toLowerCase()) ||
+          artisan.bio?.toLowerCase().includes(query.toLowerCase())
       );
     }
-
     if (onlyFeatured) {
       filtered = filtered.filter((artisan) => artisan.featured);
     }
-
     setArtisans(filtered);
   };
 
@@ -169,7 +134,7 @@ const Artisan = () => {
                 <Card className="h-full overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer">
                   <div className="relative h-64 overflow-hidden bg-gray-100">
                     <img
-                      src={artisan.image}
+                      src={artisan.image} // This now correctly uses the image URL from the API response
                       alt={artisan.name}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     />
@@ -203,14 +168,14 @@ const Artisan = () => {
                           </svg>
                         ))}
                         <span className="ml-1 text-sm text-gray-600">
-                          {artisan.rating.toFixed(1)}
+                          {artisan.rating?.toFixed(1) ?? "0.0"}
                         </span>
                       </div>
                       <span className="ml-auto text-sm text-gray-500">
                         {artisan.productCount} products
                       </span>
                     </div>
-                    <p className="text-gray-600 line-clamp-2">{artisan.bio}</p>
+                    <p className="text-gray-600 line-clamp-2">{artisan.story}</p>
                   </CardContent>
                 </Card>
               </Link>
@@ -223,7 +188,31 @@ const Artisan = () => {
               onClick={() => {
                 setSearchQuery("");
                 setFilterFeatured(false);
-                setArtisans(mockArtisans);
+                // The useEffect hook already handles re-fetching on mount, so just reset state
+                // Re-fetch logic can be simplified by calling the original fetch function
+                fetch("http://localhost:8000/api/get/sellers", {
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                })
+                  .then((res) => res.json())
+                  .then((data) => {
+                    const mapped = data.map((seller) => ({
+                      id: seller.user.userID,
+                      name: seller.user.userName,
+                      location: seller.user.userAddress || "Unknown",
+                      bio: seller.bio || "No bio provided.",
+                      image: seller.user.profile_photo_url || "unknown",
+                      specialty: seller.specialty || "Crafts",
+                      rating: seller.rating || 0,
+                      productCount: seller.productCount || 0,
+                      featured: seller.featured || false,
+                      story: seller.story || "",
+                      videoUrl: seller.videoUrl || "",
+                    }));
+                    setArtisans(mapped);
+                  });
               }}
             >
               Clear Filters

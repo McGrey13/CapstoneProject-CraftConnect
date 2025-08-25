@@ -19,14 +19,21 @@ class Product extends Model
         'productImage',
         'productVideo',
         'category',
-        'seller_id'
+        'seller_id',
+        'approval_status'
     ];
 
-    public function seller(): BelongsTo
+    protected $appends = ['id'];
+
+    public function getIdAttribute()
     {
-        return $this->belongsTo(Seller::class, 'seller_id', 'sellerID');
+        return $this->attributes['product_id'];
     }
 
+public function seller()
+{
+    return $this->belongsTo(Seller::class, 'seller_id', 'sellerID');
+}
     // Automatically set status when quantity changes
     public static function boot()
     {
@@ -42,4 +49,7 @@ class Product extends Model
             }
         });
     }
+    
 }
+
+
