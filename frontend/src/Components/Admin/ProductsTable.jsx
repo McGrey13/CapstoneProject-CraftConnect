@@ -27,14 +27,25 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Badge } from "../ui/badge";
+import ProductDetail from "./ProductDetail";
+import ProductEdit from "./ProductEdit";
 
 function ProductsTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const token = localStorage.getItem("token");
+  
+  // State for view and edit dialogs
+  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // ✅ Fetch products for admin
   const fetchProducts = () => {
+    setLoading(true);
     fetch("http://localhost:8000/api/products", {
       headers: {
         "Content-Type": "application/json",
@@ -46,10 +57,15 @@ function ProductsTable() {
         return res.json();
       })
       .then((data) => {
+        console.log("Products data:", data);
         setProducts(data);
       })
       .catch((err) => {
         console.error("Error fetching products:", err);
+        setError(err.message);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
@@ -74,6 +90,24 @@ function ProductsTable() {
         )
       );
     }
+  };
+
+  const handleViewProduct = (productId) => {
+    setSelectedProductId(productId);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleEditProduct = (product) => {
+    setSelectedProduct(product);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveProduct = (updatedProduct) => {
+    setProducts(prev => 
+      prev.map(product => 
+        product.id === updatedProduct.id ? updatedProduct : product
+      )
+    );
   };
 
   const handleApprove = (id) => {
@@ -124,6 +158,9 @@ function ProductsTable() {
         return null;
     }
   };
+
+  if (loading) return <div className="p-6">Loading products...</div>;
+  if (error) return <div className="p-6 text-red-600">Failed to load products: {error}</div>;
 
   return (
     <div className="p-6 space-y-4">
@@ -194,10 +231,10 @@ function ProductsTable() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleViewProduct(product.id)}>
                         <Eye className="h-4 w-4 mr-2" /> View
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditProduct(product)}>
                         <Edit className="h-4 w-4 mr-2" /> Edit
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
@@ -238,6 +275,28 @@ function ProductsTable() {
           </Button>
         </div>
       </div>
+
+      {/* Product Detail Dialog */}
+      <ProductDetail
+        productId={selectedProductId}
+        isOpen={isViewDialogOpen}
+        onClose={() => {
+          setIsViewDialogOpen(false);
+          setSelectedProductId(null);
+        }}
+        onEdit={handleEditProduct}
+      />
+
+      {/* Product Edit Dialog */}
+      <ProductEdit
+        product={selectedProduct}
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setSelectedProduct(null);
+        }}
+        onSave={handleSaveProduct}
+      />
     </div>
   );
 }

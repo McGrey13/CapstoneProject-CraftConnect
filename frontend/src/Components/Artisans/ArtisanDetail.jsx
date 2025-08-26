@@ -14,7 +14,9 @@ const ArtisanDetail = () => {
   useEffect(() => {
     const fetchArtisan = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/sellers/${id}/details`);
+        const res = await fetch(`http://localhost:8000/api/sellers/${id}/details`, {
+          headers: { Accept: "application/json" },
+        });
         if (!res.ok) throw new Error("Not found");
         const data = await res.json();
         if (!data || !data.user) {
@@ -29,21 +31,28 @@ const ArtisanDetail = () => {
           specialty: data.specialty || "Crafts",
           story: data.story || "",
           videoUrl: data.video_url || "",
-          image:
-            data.user.profile_photo_url && data.user.profile_photo_url.trim() !== ""
-              ? data.user.profile_photo_url
-              : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&q=80",
+          image: (() => {
+            // Prioritize profile_picture_path from seller data
+            if (data.profile_picture_path) {
+              const imageUrl = `http://localhost:8000/storage/${data.profile_picture_path}`;
+              console.log("Using seller profile_picture_path:", imageUrl);
+              return imageUrl;
+            }
+            // Fallback to user profile_photo_url
+            if (data.user.profile_photo_url && data.user.profile_photo_url.trim() !== "") {
+              console.log("Using user profile_photo_url:", data.user.profile_photo_url);
+              return data.user.profile_photo_url;
+            }
+            // Default fallback
+            console.log("Using default avatar");
+            return "https://api.dicebear.com/7.x/avataaars/svg?seed=artisan";
+          })(),
         });
         const mappedProducts = (data.products || []).map((p) => ({
           id: p.id,
           title: p.productName,
           price: p.productPrice,
-          image:
-            p.productImage && p.productImage.trim() !== ""
-              ? p.productImage.startsWith("http")
-                ? p.productImage
-                : `http://localhost:8000/storage/${p.productImage}`
-              : "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=400&q=80",
+          image: p.productImage || "",
         }));
         setArtisanProducts(mappedProducts);
       } catch {
@@ -136,21 +145,20 @@ const ArtisanDetail = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
               {artisanProducts.map((product) => (
-                <Card
-                  key={product.id}
-                  className="overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer border border-gray-200"
-                >
-                  <img
-                    src={product.image}
-                    alt={product.title}
-                    className="w-full h-48 object-cover rounded-t-lg"
-                    loading="lazy"
-                  />
-                  <CardContent className="p-5">
-                    <h3 className="font-semibold text-lg mb-2 text-gray-900">{product.title}</h3>
-                    <p className="text-[#a4785a] font-bold text-xl">₱{Number(product.price).toFixed(2)}</p>
-                  </CardContent>
-                </Card>
+                <Link to={`/product/${product.id}`} key={product.id}>
+                  <Card className="overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer border border-gray-200">
+                    <img
+                      src={product.image}
+                      alt={product.title}
+                      className="w-full h-48 object-cover rounded-t-lg"
+                      loading="lazy"
+                    />
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold text-lg mb-2 text-gray-900">{product.title}</h3>
+                      <p className="text-[#a4785a] font-bold text-xl">₱{Number(product.price).toFixed(2)}</p>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           )}

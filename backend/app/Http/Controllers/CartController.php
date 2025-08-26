@@ -19,6 +19,18 @@ class CartController extends Controller
     }
 
     // Add product to cart
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $cartItem = Cart::where('user_id', Auth::id())->findOrFail($id);
+        $cartItem->update(['quantity' => $validated['quantity']]);
+
+        return response()->json($cartItem);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -49,6 +61,12 @@ class CartController extends Controller
     }
 
     // Checkout: convert cart items into Order + OrderProducts
+    public function clear()
+    {
+        Cart::where('user_id', Auth::id())->delete();
+        return response()->json(['message' => 'Cart cleared']);
+    }
+
     public function checkout()
     {
         $cartItems = Cart::with('product')->where('user_id', Auth::id())->get();

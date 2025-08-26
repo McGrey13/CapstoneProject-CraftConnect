@@ -43,36 +43,77 @@ class ProductController extends Controller
         return true;
     }
     public function index()
-{
-    try {
-        $user = Auth::user();
+    {
+        try {
+            $user = Auth::user();
 
-        if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
-        }
-
-        if ($user->role === 'administrator') {
-            // Admin can view all products with seller info
-            Log::info('Admin fetching all products');
-            $products = Product::with('seller.user')->get(); 
-        } elseif ($user->role === 'seller') {
-            $seller = $user->seller;
-            if (!$seller) {
-                return response()->json(['message' => 'User is not a seller'], 403);
+            if (!$user) {
+                return response()->json(['message' => 'Unauthenticated'], 401);
             }
 
-            Log::info('Seller fetching products', ['seller_id' => $seller->sellerID]);
-            $products = Product::where('seller_id', $seller->sellerID)->get();
-        } else {
-            return response()->json(['message' => 'Unauthorized role'], 403);
-        }
+            if ($user->role === 'administrator') {
+                // Admin can view all products with seller info
+                Log::info('Admin fetching all products');
+                $products = Product::with('seller.user')->get(); 
+            } elseif ($user->role === 'seller') {
+                $seller = $user->seller;
+                if (!$seller) {
+                    return response()->json(['message' => 'User is not a seller'], 403);
+                }
 
-        return response()->json($products);
-    } catch (\Exception $e) {
-        Log::error('Error fetching products:', ['error' => $e->getMessage()]);
-        return response()->json(['message' => 'Error fetching products: ' . $e->getMessage()], 500);
+                Log::info('Seller fetching products', ['seller_id' => $seller->sellerID]);
+                $products = Product::where('seller_id', $seller->sellerID)->get();
+            } else {
+                return response()->json(['message' => 'Unauthorized role'], 403);
+            }
+
+            // Transform products to include full image URLs
+            $productsWithImages = $products->map(function ($product) {
+                $productImageUrl = $product->productImage
+                    ? url('storage/' . ltrim($product->productImage, '/'))
+                    : '';
+                    
+                $productData = [
+                    'id' => $product->product_id,
+                    'productName' => $product->productName,
+                    'productDescription' => $product->productDescription,
+                    'productPrice' => $product->productPrice,
+                    'productQuantity' => $product->productQuantity,
+                    'status' => $product->status,
+                    'productImage' => $productImageUrl,
+                    'productVideo' => $product->productVideo,
+                    'category' => $product->category,
+                    'seller_id' => $product->seller_id,
+                    'approval_status' => $product->approval_status,
+                    'created_at' => $product->created_at,
+                    'updated_at' => $product->updated_at,
+                ];
+
+                // Include seller information if available
+                if ($product->seller) {
+                    $productData['seller'] = [
+                        'sellerID' => $product->seller->sellerID,
+                        'user' => $product->seller->user ? [
+                            'userName' => $product->seller->user->userName,
+                            'userEmail' => $product->seller->user->userEmail,
+                            'userAddress' => $product->seller->user->userAddress,
+                        ] : null,
+                        'profile_picture_path' => $product->seller->profile_picture_path,
+                        'profile_image_url' => $product->seller->profile_picture_path
+                            ? url('storage/' . ltrim($product->seller->profile_picture_path, '/'))
+                            : '',
+                    ];
+                }
+
+                return $productData;
+            });
+
+            return response()->json($productsWithImages);
+        } catch (\Exception $e) {
+            Log::error('Error fetching products:', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Error fetching products: ' . $e->getMessage()], 500);
+        }
     }
-}
 
     
 
@@ -155,7 +196,29 @@ class ProductController extends Controller
         try {
             $product = Product::create($data);
             Log::info('Product created successfully:', ['product_id' => $product->product_id]);
-            return response()->json(['message' => 'Product created successfully!', 'product' => $product]);
+            
+            // Transform product to include full image URL
+            $productImageUrl = $product->productImage
+                ? url('storage/' . ltrim($product->productImage, '/'))
+                : '';
+                
+            $productData = [
+                'id' => $product->product_id,
+                'productName' => $product->productName,
+                'productDescription' => $product->productDescription,
+                'productPrice' => $product->productPrice,
+                'productQuantity' => $product->productQuantity,
+                'status' => $product->status,
+                'productImage' => $productImageUrl,
+                'productVideo' => $product->productVideo,
+                'category' => $product->category,
+                'seller_id' => $product->seller_id,
+                'approval_status' => $product->approval_status,
+                'created_at' => $product->created_at,
+                'updated_at' => $product->updated_at,
+            ];
+            
+            return response()->json(['message' => 'Product created successfully!', 'product' => $productData]);
         } catch (\Exception $e) {
             Log::error('Error creating product:', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Error creating product: ' . $e->getMessage()], 500);
@@ -194,7 +257,29 @@ class ProductController extends Controller
         try {
             $product->update($data);
             Log::info('Product updated successfully:', ['product_id' => $product->product_id]);
-            return response()->json(['message' => 'Product updated successfully!']);
+            
+            // Transform product to include full image URL
+            $productImageUrl = $product->productImage
+                ? url('storage/' . ltrim($product->productImage, '/'))
+                : '';
+                
+            $productData = [
+                'id' => $product->product_id,
+                'productName' => $product->productName,
+                'productDescription' => $product->productDescription,
+                'productPrice' => $product->productPrice,
+                'productQuantity' => $product->productQuantity,
+                'status' => $product->status,
+                'productImage' => $productImageUrl,
+                'productVideo' => $product->productVideo,
+                'category' => $product->category,
+                'seller_id' => $product->seller_id,
+                'approval_status' => $product->approval_status,
+                'created_at' => $product->created_at,
+                'updated_at' => $product->updated_at,
+            ];
+            
+            return response()->json(['message' => 'Product updated successfully!', 'product' => $productData]);
         } catch (\Exception $e) {
             Log::error('Error updating product:', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Error updating product: ' . $e->getMessage()], 500);
@@ -231,28 +316,141 @@ class ProductController extends Controller
                              ->where('productName', 'like', '%' . $name . '%')
                              ->get();
             Log::info('Products search completed:', ['search_term' => $name, 'count' => $products->count()]);
-            return response()->json($products);
+            
+            // Transform products to include full image URLs
+            $productsWithImages = $products->map(function ($product) {
+                $productImageUrl = $product->productImage
+                    ? url('storage/' . ltrim($product->productImage, '/'))
+                    : '';
+                    
+                return [
+                    'id' => $product->product_id,
+                    'productName' => $product->productName,
+                    'productDescription' => $product->productDescription,
+                    'productPrice' => $product->productPrice,
+                    'productQuantity' => $product->productQuantity,
+                    'status' => $product->status,
+                    'productImage' => $productImageUrl,
+                    'productVideo' => $product->productVideo,
+                    'category' => $product->category,
+                    'seller_id' => $product->seller_id,
+                    'approval_status' => $product->approval_status,
+                    'created_at' => $product->created_at,
+                    'updated_at' => $product->updated_at,
+                ];
+            });
+            
+            return response()->json($productsWithImages);
         } catch (\Exception $e) {
             Log::error('Error searching products:', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Error searching products: ' . $e->getMessage()], 500);
         }
     }
 
+    public function getProductDetails($id)
+    {
+        try {
+            $product = Product::with('seller.user')->findOrFail($id);
+
+            $productImageUrl = $product->productImage
+                ? url('storage/' . ltrim($product->productImage, '/'))
+                : '';
+
+            $productVideoUrl = $product->productVideo
+                ? url('storage/' . ltrim($product->productVideo, '/'))
+                : null;
+
+            $productData = [
+                'id' => $product->product_id,
+                'productName' => $product->productName,
+                'productDescription' => $product->productDescription,
+                'productPrice' => $product->productPrice,
+                'productQuantity' => $product->productQuantity,
+                'status' => $product->status,
+                'productImage' => $productImageUrl,
+                'productVideo' => $productVideoUrl,
+                'category' => $product->category,
+                'seller_id' => $product->seller_id,
+                'approval_status' => $product->approval_status,
+                'created_at' => $product->created_at,
+                'updated_at' => $product->updated_at,
+            ];
+
+            if ($product->seller) {
+                $productData['seller'] = [
+                    'sellerID' => $product->seller->sellerID,
+                    'user' => $product->seller->user ? [
+                        'userName' => $product->seller->user->userName,
+                        'userEmail' => $product->seller->user->userEmail,
+                        'userAddress' => $product->seller->user->userAddress,
+                    ] : null,
+                    'profile_picture_path' => $product->seller->profile_picture_path,
+                    'profile_image_url' => $product->seller->profile_picture_path
+                        ? url('storage/' . ltrim($product->seller->profile_picture_path, '/'))
+                        : '',
+                ];
+            }
+
+            return response()->json($productData);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Product not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('Error fetching product details:', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Error fetching product details: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function show(Product $product)
     {
-        
-    try {
-        $ownershipCheck = $this->checkProductOwnership($product);
-        if ($ownershipCheck instanceof \Illuminate\Http\JsonResponse) {
-            return $ownershipCheck;
+        try {
+            $ownershipCheck = $this->checkProductOwnership($product);
+            if ($ownershipCheck instanceof \Illuminate\Http\JsonResponse) {
+                return $ownershipCheck;
+            }
+            
+            // Transform product to include full image URL
+            $productImageUrl = $product->productImage
+                ? url('storage/' . ltrim($product->productImage, '/'))
+                : '';
+                
+            $productData = [
+                'id' => $product->product_id,
+                'productName' => $product->productName,
+                'productDescription' => $product->productDescription,
+                'productPrice' => $product->productPrice,
+                'productQuantity' => $product->productQuantity,
+                'status' => $product->status,
+                'productImage' => $productImageUrl,
+                'productVideo' => $product->productVideo,
+                'category' => $product->category,
+                'seller_id' => $product->seller_id,
+                'approval_status' => $product->approval_status,
+                'created_at' => $product->created_at,
+                'updated_at' => $product->updated_at,
+            ];
+
+            // Include seller information if available
+            if ($product->seller) {
+                $productData['seller'] = [
+                    'sellerID' => $product->seller->sellerID,
+                    'user' => $product->seller->user ? [
+                        'userName' => $product->seller->user->userName,
+                        'userEmail' => $product->seller->user->userEmail,
+                        'userAddress' => $product->seller->user->userAddress,
+                    ] : null,
+                    'profile_picture_path' => $product->seller->profile_picture_path,
+                    'profile_image_url' => $product->seller->profile_picture_path
+                        ? url('storage/' . ltrim($product->seller->profile_picture_path, '/'))
+                        : '',
+                ];
+            }
+            
+            Log::info('Product retrieved successfully:', ['product_id' => $product->product_id]);
+            return response()->json($productData);
+        } catch (\Exception $e) {
+            Log::error('Error retrieving product:', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Error retrieving product: ' . $e->getMessage()], 500);
         }
-        
-        Log::info('Product retrieved successfully:', ['product_id' => $product->product_id]);
-        return $product;
-    } catch (\Exception $e) {
-        Log::error('Error retrieving product:', ['error' => $e->getMessage()]);
-        return response()->json(['message' => 'Error retrieving product: ' . $e->getMessage()], 500);
-    }
     }
 
     // Approve a product
@@ -327,7 +525,30 @@ class ProductController extends Controller
                 ], 200);
             }
 
-            return response()->json($products);
+            // Transform products to include full image URLs
+            $productsWithImages = $products->map(function ($product) {
+                $productImageUrl = $product->productImage
+                    ? url('storage/' . ltrim($product->productImage, '/'))
+                    : '';
+                    
+                return [
+                    'id' => $product->product_id,
+                    'productName' => $product->productName,
+                    'productDescription' => $product->productDescription,
+                    'productPrice' => $product->productPrice,
+                    'productQuantity' => $product->productQuantity,
+                    'status' => $product->status,
+                    'productImage' => $productImageUrl,
+                    'productVideo' => $product->productVideo,
+                    'category' => $product->category,
+                    'seller_id' => $product->seller_id,
+                    'approval_status' => $product->approval_status,
+                    'created_at' => $product->created_at,
+                    'updated_at' => $product->updated_at,
+                ];
+            });
+
+            return response()->json($productsWithImages);
 
         } catch (\Exception $e) {
             Log::error('Error fetching approved products for seller:', [
@@ -342,12 +563,93 @@ class ProductController extends Controller
     }
 
     public function getApprovedProducts($sellerId)
-{
-    $products = Product::where('seller_id', $sellerId)   // 👈 make sure your column is seller_id
-                       ->where('approval_status', 'approved')
-                       ->get();
+    {
+        $products = Product::where('seller_id', $sellerId)   // 👈 make sure your column is seller_id
+                           ->where('approval_status', 'approved')
+                           ->get();
 
-    return response()->json($products);
-}
+        // Transform products to include full image URLs
+        $productsWithImages = $products->map(function ($product) {
+            $productImageUrl = $product->productImage
+                ? url('storage/' . ltrim($product->productImage, '/'))
+                : '';
+                
+            return [
+                'id' => $product->product_id,
+                'productName' => $product->productName,
+                'productDescription' => $product->productDescription,
+                'productPrice' => $product->productPrice,
+                'productQuantity' => $product->productQuantity,
+                'status' => $product->status,
+                'productImage' => $productImageUrl,
+                'productVideo' => $product->productVideo,
+                'category' => $product->category,
+                'seller_id' => $product->seller_id,
+                'approval_status' => $product->approval_status,
+                'created_at' => $product->created_at,
+                'updated_at' => $product->updated_at,
+            ];
+        });
+
+        return response()->json($productsWithImages);
+    }
+    
+    /**
+     * Get all approved products for public viewing
+     */
+    public function approvedProducts()
+    {
+        try {
+            $products = Product::with('seller.user')
+                ->where('approval_status', 'approved')
+                ->get();
+
+            // Transform products to include full image URLs
+            $productsWithImages = $products->map(function ($product) {
+                $productImageUrl = $product->productImage
+                    ? url('storage/' . ltrim($product->productImage, '/'))
+                    : '';
+                    
+                $productData = [
+                    'id' => $product->product_id,
+                    'productName' => $product->productName,
+                    'productDescription' => $product->productDescription,
+                    'productPrice' => $product->productPrice,
+                    'productQuantity' => $product->productQuantity,
+                    'status' => $product->status,
+                    'productImage' => $productImageUrl,
+                    'productVideo' => $product->productVideo,
+                    'category' => $product->category,
+                    'seller_id' => $product->seller_id,
+                    'approval_status' => $product->approval_status,
+                    'created_at' => $product->created_at,
+                    'updated_at' => $product->updated_at,
+                ];
+
+                // Include seller information if available
+                if ($product->seller) {
+                    $productData['seller'] = [
+                        'sellerID' => $product->seller->sellerID,
+                        'user' => $product->seller->user ? [
+                            'userName' => $product->seller->user->userName,
+                            'userEmail' => $product->seller->user->userEmail,
+                            'userAddress' => $product->seller->user->userAddress,
+                        ] : null,
+                        'profile_picture_path' => $product->seller->profile_picture_path,
+                        'profile_image_url' => $product->seller->profile_picture_path
+                            ? url('storage/' . ltrim($product->seller->profile_picture_path, '/'))
+                            : '',
+                    ];
+                }
+
+                return $productData;
+            });
+
+            return response()->json($productsWithImages);
+        } catch (\Exception $e) {
+            Log::error('Error fetching approved products:', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Error fetching approved products: ' . $e->getMessage()], 500);
+        }
+    }
     
 }

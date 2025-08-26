@@ -14,7 +14,9 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
- 
+use Laravel\Socialite\Facades\Socialite;
+use Exception;
+use Illuminate\Support\Str;
 
 use function Pest\Laravel\withHeaders;
 
@@ -62,7 +64,7 @@ class AuthController extends Controller
                     'userContactNumber' => $seller->user->userContactNumber,
                 ]
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'message' => 'Error fetching seller: ' . $e->getMessage()
             ], 500);
@@ -134,26 +136,22 @@ class AuthController extends Controller
             // 'otp_expires_at' => Carbon::now()->addMinutes(10)
         ]);
 
-        //
-        //
-
-        // Create the specific role record based on selection
         switch ($request->role) {
             case 'admin':
             case 'administrator':
-                $user->administrator()->create([]); // Create an empty administrator profile
+                $user->administrator()->create([]); 
                 break;
             case 'seller':
-                $user->seller()->create([]); // Create an empty seller profile
+                $user->seller()->create([]); 
                 break;
             case 'customer':
-                $user->customer()->create([]); // Create an empty customer profile
+                $user->customer()->create([]); 
                 break;
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;// Create an authentication token
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-        Auth::login($user); // Log the user in after registration
+        Auth::login($user); 
 
         $response = [
             'user' => $user,
@@ -163,13 +161,6 @@ class AuthController extends Controller
         return response($response, 201);
     }
 
-    /**
-     * Handle user login.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -203,13 +194,6 @@ class AuthController extends Controller
             'user_type' => $userType
         ], 200);
     }
-
-    /**
-     * Get the authenticated user.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function user(Request $request)
     {
         return response()->json($request->user());
@@ -225,11 +209,39 @@ class AuthController extends Controller
             'message' => 'Logged out successfully'
         ]);
     }
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->stateless()->redirect();
+    }
 
+    public function handleGoogleCallback()
+    {
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
+    
+            $user = User::where('userEmail', $googleUser->getEmail())->first();
+    
+            if (!$user) {
+                $user = User::create([
+                    'userName'      => $googleUser->getName(),
+                    'userEmail'     => $googleUser->getEmail(),
+                    'userPassword'  => bcrypt(Str::random(16)),
+                    'role'          => 'customer',
+                ]);
+            }
+    
+            $token = $user->createToken('auth_token')->plainTextToken;
+    
+            return redirect("http://localhost:5173/login?token={$token}");
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+    
     public function deactivate(Request $request)
     {
         $userId = Auth::id();
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
@@ -245,9 +257,6 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Account deactivated successfully.']);
     }
-
-
-     //Permanently delete the authenticated user's account.
 
     public function destroy(Request $request)
     {

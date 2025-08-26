@@ -46,10 +46,9 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
+            // For token-based API auth from Vite (5173), do not treat as stateful SPA
+            // This avoids CSRF redirects and allows pure Bearer token auth
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            // \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
-            // \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],

@@ -61,9 +61,29 @@ class SellerController extends AuthController
 
       public function getAllSellers()
     {
-           $sellers = Seller::with('user')->get();
+        $sellers = Seller::with('user')->get();
+        
+        // Transform the data to include profile image URLs
+        $sellersWithImages = $sellers->map(function ($seller) {
+            $profileImageUrl = $seller->profile_picture_path
+                ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
+                : '';
+                
+            return [
+                'sellerID' => $seller->sellerID,
+                'user' => $seller->user,
+                'profile_picture_path' => $seller->profile_picture_path,
+                'profile_image_url' => $profileImageUrl,
+                'specialty' => $seller->specialty ?? '',
+                'story' => $seller->story ?? '',
+                'video_url' => $seller->video_url ?? '',
+                'featured' => $seller->featured ?? false,
+                'rating' => $seller->rating ?? 0,
+                'productCount' => $seller->products()->count(),
+            ];
+        });
 
-    return response()->json($sellers);
+        return response()->json($sellersWithImages);
     }
 
      public function getSellerById($sellerID)
@@ -75,7 +95,22 @@ class SellerController extends AuthController
             return response()->json(['message' => 'Seller not found'], 404);
         }
 
-        return response()->json($seller);
+        // Get profile image URL
+        $profileImageUrl = $seller->profile_picture_path
+            ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
+            : '';
+
+        return response()->json([
+            'sellerID' => $seller->sellerID,
+            'user' => $seller->user,
+            'profile_picture_path' => $seller->profile_picture_path,
+            'profile_image_url' => $profileImageUrl,
+            'specialty' => $seller->specialty ?? '',
+            'story' => $seller->story ?? '',
+            'video_url' => $seller->video_url ?? '',
+            'featured' => $seller->featured ?? false,
+            'rating' => $seller->rating ?? 0,
+        ]);
     }
 
     public function getArtisanDetails($id)
@@ -88,22 +123,37 @@ class SellerController extends AuthController
             return response()->json(['message' => 'Seller not found'], 404);
         }
 
+        // Get profile image URL
+        $profileImageUrl = $seller->profile_picture_path
+            ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
+            : '';
+
         return response()->json([
             'id' => $seller->sellerID,
             'user' => [
                 'userName' => $seller->user->userName,
                 'userAddress' => $seller->user->userAddress,
-                'profile_photo_url' => $seller->user->profile_photo_url ?? '',
+                'profile_photo_url' => $profileImageUrl, // Use the constructed URL
             ],
+            'profile_picture_path' => $seller->profile_picture_path,
+            'profile_image_url' => $profileImageUrl, // Add this field for consistency
             'specialty' => $seller->specialty ?? '',
             'story' => $seller->story ?? '',
             'video_url' => $seller->video_url ?? '',
             'products' => $seller->products->map(function ($p) {
+                $image = $p->productImage;
+                $imageUrl = $image && str_starts_with($image, 'http')
+                    ? $image
+                    : ($image ? url('storage/' . ltrim($image, '/')) : '');
                 return [
-                    'id' => $p->id,
+                    'id' => $p->product_id,
                     'productName' => $p->productName,
                     'productPrice' => $p->productPrice,
-                    'productImage' => $p->productImage,
+                    'productImage' => $imageUrl,
+                    'productDescription' => $p->productDescription,
+                    'category' => $p->category,
+                    'status' => $p->status,
+                    'approval_status' => $p->approval_status,
                 ];
             }),
         ]);
@@ -118,12 +168,15 @@ class SellerController extends AuthController
         $seller = $user->seller;
         if (!$seller) {
             $seller = Seller::create([
-                'userID' => $user->userID,
+                'user_id' => $user->userID,
                 'story' => '',
-                'specialty' => '',
                 'website' => '',
             ]);
         }
+
+        $profileImageUrl = $seller->profile_picture_path
+            ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
+            : '';
 
         return response()->json([
             'sellerID' => $seller->sellerID,
@@ -133,7 +186,7 @@ class SellerController extends AuthController
             'userBirthday' => $user->userBirthday,
             'userContactNumber' => $user->userContactNumber,
             'userAddress' => $user->userAddress,
-            'profileImage' => $user->profile_photo_url ?? '',
+            'profileImage' => $profileImageUrl,
             'story' => $seller->story ?? '',
             'website' => $seller->website ?? '',
         ]);
@@ -156,13 +209,34 @@ class SellerController extends AuthController
         $request->validate([
             'story' => 'nullable|string|max:1000',
             'userName' => 'nullable|string|max:255',
-            'profileImage' => 'nullable|image|max:2048',
+            'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ], [
+            'profileImage.image' => 'The file must be an image.',
+            'profileImage.mimes' => 'The image must be a file of type: jpeg, png, jpg, gif.',
+            'profileImage.max' => 'The image may not be greater than 2MB.',
         ]);
 
         if ($request->hasFile('profileImage')) {
+            \Log::info('Profile image upload detected', [
+                'original_name' => $request->file('profileImage')->getClientOriginalName(),
+                'size' => $request->file('profileImage')->getSize(),
+                'mime_type' => $request->file('profileImage')->getMimeType(),
+            ]);
+            
+            // Delete old image if it exists
+            if ($seller->profile_picture_path) {
+                \Log::info('Deleting old profile image', ['path' => $seller->profile_picture_path]);
+                \Storage::disk('public')->delete($seller->profile_picture_path);
+            }
+            
             $path = $request->file('profileImage')->store('profile_images', 'public');
-            $user->profile_photo_url = '/storage/' . $path;
-            $user->save();
+            \Log::info('Profile image stored', ['path' => $path]);
+            
+            // Save relative path; response will convert to public URL
+            $seller->profile_picture_path = $path;
+            $seller->save();
+        } else {
+            \Log::info('No profile image in request');
         }
 
         if ($request->filled('userName')) {
@@ -175,7 +249,30 @@ class SellerController extends AuthController
             $seller->save();
         }
 
-        return response()->json(['message' => 'Profile updated successfully.']);
+        // Always get the current profile image URL, whether updated or existing
+        $profileImageUrl = $seller->profile_picture_path
+            ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
+            : '';
+
+        \Log::info('Profile update response', [
+            'seller_id' => $seller->sellerID,
+            'profile_picture_path' => $seller->profile_picture_path,
+            'profile_image_url' => $profileImageUrl,
+            'story' => $seller->story,
+        ]);
+
+        return response()->json([
+            'sellerID' => $seller->sellerID,
+            'userName' => $user->userName,
+            'userEmail' => $user->userEmail,
+            'role' => $user->role,
+            'userBirthday' => $user->userBirthday,
+            'userContactNumber' => $user->userContactNumber,
+            'userAddress' => $user->userAddress,
+            'profileImage' => $profileImageUrl,
+            'story' => $seller->story ?? '',
+            'website' => $seller->website ?? '',
+        ]);
     }
 
 }

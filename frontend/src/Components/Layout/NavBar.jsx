@@ -26,7 +26,7 @@ const Navbar = ({ user, onLogout }) => {
 
   return (
     <nav className="navbar">
-      <Link to="/" className="navbar-brand">CraftConnect</Link>
+      <Link to="/home" className="navbar-brand">CraftConnect</Link>
 
       <div className="navbar-links">
         <Link to="/Categories">Categories</Link>
@@ -60,30 +60,34 @@ const Navbar = ({ user, onLogout }) => {
 
 
       {/* User Icon + Dropdown */}
-      <div className="user-account">
-        <FaUser size={20} className="user-icon" onClick={toggleDropdown} />
-        {isDropdownOpen && (
-          <div className="dropdown-content">
-            {!user ? (
-              <>
-                <Link to="/login" onClick={() => setIsDropdownOpen(false)}>Login</Link>
-                <Link to="/register" onClick={() => setIsDropdownOpen(false)}>Register</Link>
-              </>
-            ) : (
-              <>
-                <Link to="/profile" onClick={() => setIsDropdownOpen(false)}>Profile</Link>
-                <Link to="/settings" onClick={() => setIsDropdownOpen(false)}>Settings</Link>
-                <button
-                  onClick={handleLogout}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
-                >
-                  Logout
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+      {/* User Icon + Dropdown */}
+<div className="user-account">
+  <FaUser size={20} className="user-icon" onClick={toggleDropdown} />
+  {isDropdownOpen && (
+    <div className="profile-modal">
+      {!user ? (
+        <>
+          <button onClick={() => { navigate("/login"); setIsDropdownOpen(false); }}>
+            Login
+          </button>
+          <button onClick={() => { navigate("/register"); setIsDropdownOpen(false); }}>
+            Register
+          </button>
+        </>
+      ) : (
+        <>
+          <button onClick={() => { navigate("/profile"); setIsDropdownOpen(false); }}>
+            Profile
+          </button>
+          <button onClick={() => { navigate("/settings"); setIsDropdownOpen(false); }}>
+            Settings
+          </button>
+          <button onClick={handleLogout}>Logout</button>
+        </>
+      )}
+    </div>
+  )}
+</div>
 
       <button className="navbar-toggle">
         <svg

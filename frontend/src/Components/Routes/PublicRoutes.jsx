@@ -1,5 +1,5 @@
 import React from "react";
-import { Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import PublicLayout from "./PublicLayout";
 
 // Pages
@@ -55,6 +55,7 @@ function PublicRoutes() {
       {/* Products */}
       <Route path="products" element={<ProductsPage />} />
       <Route path="products/:id" element={<ProductDetails />} />
+      <Route path="product/:id" element={<ProductDetails />} />
     </Route>
   );
 }

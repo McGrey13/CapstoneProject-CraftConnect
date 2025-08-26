@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowLeft, Filter, Search } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -12,107 +12,103 @@ import {
 } from "../ui/select";
 import { useNavigate } from "react-router-dom";
 
-// --- Full Mock Products ---
-// Mock data has been updated to be consistent with the other components// src/Components/product/ProductsPage.jsx
-
-export const mockProducts = [
-  {
-    id: "prod-1",
-    artisanId: "art-1",
-    title: "Handcrafted Ceramic Mug",
-    price: "1,200",
-    image: "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=800&q=80",
-    isFeatured: true,
-    category: "Ceramics",
-    artisanName: "Sarah",
-    description: "Beautiful handcrafted ceramic mug for your morning coffee or tea.",
-    features: ["Handcrafted", "Microwave safe", "12 oz capacity"],
-    images: [
-      "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=800&q=80",
-      "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&q=80",
-    ],
-    reviews: [
-      { id: 1, name: "Emily Johnson", rating: 5, date: "2024-01-15", comment: "Love this mug! The color is exactly what I wanted.", verified: true },
-      { id: 2, name: "John Smith", rating: 4, date: "2024-02-20", comment: "Great quality, but a bit smaller than I expected.", verified: true },
-    ],
-  },
-  {
-    id: "prod-2",
-    artisanId: "art-2",
-    title: "Hand-Carved Rubber Signature Stamp",
-    price: "7,500",
-    image: "https://images.unsplash.com/photo-1606813909358-4e993b3c4b12?w=400&q=80",
-    isFeatured: true,
-    category: "Accessories",
-    artisanName: "Ceasar",
-    description: "A custom hand-carved rubber stamp for your signature.",
-    features: ["Customizable", "Durable rubber", "Ergonomic wooden handle"],
-    images: [
-      "https://images.unsplash.com/photo-1606813909358-4e993b3c4b12?w=400&q=80",
-      "https://images.unsplash.com/photo-1594951466089-a2a4b8f8e02d?w=400&q=80",
-    ],
-    reviews: [
-      { id: 3, name: "Maria Cruz", rating: 5, date: "2024-03-10", comment: "The carving is so detailed and precise. Perfect for my business.", verified: true },
-      { id: 4, name: "Robert Lee", rating: 5, date: "2024-04-05", comment: "High quality and fast delivery. Very satisfied!", verified: false },
-    ],
-  },
-  {
-    id: "prod-3",
-    artisanId: "art-1",
-    title: "Miniature Model of Rizal’s House",
-    price: "1,800",
-    image: "https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?w=400&q=80",
-    isFeatured: false,
-    category: "Miniature Models",
-    artisanName: "Alex Manalo",
-    description: "A meticulously crafted miniature model of Jose Rizal's ancestral house.",
-    features: ["Handmade", "Detailed craftsmanship", "Historical piece"],
-    images: [
-      "https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?w=400&q=80",
-      "https://images.unsplash.com/photo-1627914434251-16474b1e52f4?w=400&q=80",
-    ],
-    reviews: [
-      { id: 5, name: "Samantha Lim", rating: 5, date: "2024-05-18", comment: "A beautiful and intricate piece of art. A must-have for history lovers.", verified: true },
-    ],
-  },
-  {
-    id: "prod-4",
-    artisanId: "art-1",
-    title: "Kaleidoscope",
-    price: "2,000",
-    image: "https://images.unsplash.com/photo-1591025207163-9e7f55c4d1b8?w=400&q=80",
-    isFeatured: false,
-    category: "Toys",
-    artisanName: "Alex Manalo",
-    description: "A handmade kaleidoscope with unique and beautiful patterns.",
-    features: ["Handmade", "Unique patterns", "Durable materials"],
-    images: [
-      "https://images.unsplash.com/photo-1591025207163-9e7f55c4d1b8?w=400&q=80",
-      "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=800&q=80",
-    ],
-    reviews: [
-      { id: 6, name: "Chris Tan", rating: 4, date: "2024-06-25", comment: "My kids love it! The patterns are so mesmerizing.", verified: true },
-      { id: 7, name: "Diana Garcia", rating: 5, date: "2024-07-01", comment: "Excellent craftsmanship. A great gift.", verified: false },
-    ],
-  },
-];
-
 // --- ProductsPage Component ---
 const ProductsPage = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const filtered = mockProducts.filter((p) => {
+  // Fetch products from backend
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log("Fetching products from API...");
+        const response = await fetch("http://localhost:8000/api/products/approved", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
+
+        console.log("Response status:", response.status);
+        console.log("Response headers:", response.headers);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Response error:", errorText);
+          throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log("Fetched products:", data);
+        console.log("Number of products:", data.length);
+        
+        setProducts(data);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  const filtered = products.filter((p) => {
     const matchesSearch =
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.artisanName.toLowerCase().includes(searchQuery.toLowerCase());
+      p.productName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.seller?.user?.userName?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
-      activeCategory === "all" || p.category.toLowerCase() === activeCategory.toLowerCase();
+      activeCategory === "all" || p.category?.toLowerCase() === activeCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ["all", "ceramics", "textiles", "jewelry", "woodwork", "accessories", "home", "bath & body"];
+  // Get unique categories from products
+  const categories = ["all", ...new Set(products.map(p => p.category).filter(Boolean))];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen p-4 bg-gray-50">
+        <h1 className="text-3xl font-bold mb-4">Explore Handcrafted Products</h1>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading products...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen p-4 bg-gray-50">
+        <h1 className="text-3xl font-bold mb-4">Explore Handcrafted Products</h1>
+        <div className="text-center py-12">
+          <p className="text-red-600 mb-4">Error loading products: {error}</p>
+          <div className="space-y-2 text-sm text-gray-500">
+            <p>Please make sure:</p>
+            <ul className="list-disc list-inside">
+              <li>The Laravel backend server is running on localhost:8000</li>
+              <li>There are approved products in the database</li>
+              <li>The database connection is working</li>
+            </ul>
+          </div>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 bg-gray-50">
@@ -135,20 +131,55 @@ const ProductsPage = () => {
         </TabsList>
       </Tabs>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filtered.map((product) => (
-          <div
-            key={product.id}
-            onClick={() => navigate(`/products/${product.id}`)}
-            className="cursor-pointer bg-white p-4 rounded-lg shadow hover:shadow-md"
-          >
-            <img src={product.images[0]} alt={product.title} className="w-full h-40 object-cover rounded" />
-            <h2 className="mt-2 font-medium">{product.title}</h2>
-            <p className="text-sm text-gray-500">{product.artisanName}</p>
-            <p className="font-bold mt-1">₱{product.price}</p>
-          </div>
-        ))}
-      </div>
+      {filtered.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 mb-2">No products found.</p>
+          <p className="text-sm text-gray-400">
+            {products.length === 0 
+              ? "No products available in the database." 
+              : "No products match your search criteria."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {filtered.map((product) => (
+            <div
+              key={product.id}
+              onClick={() => navigate(`/product/${product.id}`)}
+              className="cursor-pointer bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow"
+            >
+              <div className="w-full h-40 bg-gray-100 rounded overflow-hidden">
+                {product.productImage ? (
+                  <img 
+                    src={product.productImage} 
+                    alt={product.productName} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.log("Image failed to load:", product.productImage);
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                    onLoad={() => {
+                      console.log("Image loaded successfully:", product.productImage);
+                    }}
+                  />
+                ) : null}
+                <div 
+                  className="w-full h-full flex items-center justify-center text-gray-400"
+                  style={{ display: product.productImage ? 'none' : 'flex' }}
+                >
+                  <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="mt-2 font-medium text-gray-900">{product.productName}</h2>
+              <p className="text-sm text-gray-500">{product.seller?.user?.userName || "Unknown Artisan"}</p>
+              <p className="font-bold mt-1 text-gray-900">₱{Number(product.productPrice).toFixed(2)}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

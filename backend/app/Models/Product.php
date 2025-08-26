@@ -34,6 +34,39 @@ public function seller()
 {
     return $this->belongsTo(Seller::class, 'seller_id', 'sellerID');
 }
+
+    /**
+     * Get the full URL for the product image
+     */
+    public function getProductImageUrlAttribute()
+    {
+        if (!$this->productImage) {
+            return null;
+        }
+        
+        if (str_starts_with($this->productImage, 'http')) {
+            return $this->productImage;
+        }
+        
+        return url('storage/' . ltrim($this->productImage, '/'));
+    }
+
+    /**
+     * Get the full URL for the product video
+     */
+    public function getProductVideoUrlAttribute()
+    {
+        if (!$this->productVideo) {
+            return null;
+        }
+        
+        if (str_starts_with($this->productVideo, 'http')) {
+            return $this->productVideo;
+        }
+        
+        return url('storage/' . ltrim($this->productVideo, '/'));
+    }
+
     // Automatically set status when quantity changes
     public static function boot()
     {
@@ -48,6 +81,11 @@ public function seller()
                 $product->status = 'in stock';
             }
         });
+    }
+
+     public function ratings()
+    {
+        return $this->hasMany(Ratings::class, 'product_id', 'product_id');
     }
     
 }

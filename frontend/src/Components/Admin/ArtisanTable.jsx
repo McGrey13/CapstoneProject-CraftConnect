@@ -19,33 +19,49 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Badge } from "../ui/badge";
+import SellerDetail from "./SellerDetail";
+import SellerEdit from "./SellerEdit";
 
 const ArtisanTable = ({ onViewSeller = () => {} }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sellers, setSellers] = useState([]);
   const [allSellers, setAllSellers] = useState([]);
-useEffect(() => {
-  const fetchSellers = async () => {
-    try {
-      const token = localStorage.getItem("token"); // or however you store it
-      const res = await fetch("http://localhost:8000/api/sellers", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // State for view and edit dialogs
+  const [selectedSellerId, setSelectedSellerId] = useState(null);
+  const [selectedSeller, setSelectedSeller] = useState(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-      if (!res.ok) throw new Error("Failed to fetch sellers");
+  useEffect(() => {
+    const fetchSellers = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:8000/api/sellers", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
 
-      const data = await res.json();
-      setSellers(data);
-      setAllSellers(data);
-    } catch (error) {
-      console.error("Error fetching sellers:", error);
-    }
-  };
-  fetchSellers();
-}, []);
+        if (!res.ok) throw new Error("Failed to fetch sellers");
+
+        const data = await res.json();
+        console.log("Sellers data:", data);
+        setSellers(data);
+        setAllSellers(data);
+      } catch (error) {
+        console.error("Error fetching sellers:", error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSellers();
+  }, []);
 
   const handleSearch = (e) => {
     const query = e.target.value.toLowerCase();
@@ -56,14 +72,36 @@ useEffect(() => {
     } else {
       const filtered = allSellers.filter(
         (seller) =>
-          (seller.name && seller.name.toLowerCase().includes(query)) ||
-          (seller.businessName &&
-            seller.businessName.toLowerCase().includes(query)) ||
-          (seller.location && seller.location.toLowerCase().includes(query)) ||
-          (seller.id && seller.id.toLowerCase().includes(query))
+          (seller.user?.userName && seller.user.userName.toLowerCase().includes(query)) ||
+          (seller.businessName && seller.businessName.toLowerCase().includes(query)) ||
+          (seller.user?.userAddress && seller.user.userAddress.toLowerCase().includes(query)) ||
+          (seller.sellerID && seller.sellerID.toString().includes(query))
       );
       setSellers(filtered);
     }
+  };
+
+  const handleViewSeller = (sellerId) => {
+    setSelectedSellerId(sellerId);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleEditSeller = (seller) => {
+    setSelectedSeller(seller);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveSeller = (updatedSeller) => {
+    setSellers(prev => 
+      prev.map(seller => 
+        seller.sellerID === updatedSeller.sellerID ? updatedSeller : seller
+      )
+    );
+    setAllSellers(prev => 
+      prev.map(seller => 
+        seller.sellerID === updatedSeller.sellerID ? updatedSeller : seller
+      )
+    );
   };
 
   const getStatusBadge = (status) => {
@@ -82,9 +120,12 @@ useEffect(() => {
       case "suspended":
         return <Badge variant="destructive">Suspended</Badge>;
       default:
-        return null;
+        return <Badge variant="outline">Unknown</Badge>;
     }
   };
+
+  if (loading) return <div className="p-6">Loading sellers...</div>;
+  if (error) return <div className="p-6 text-red-600">Failed to load sellers: {error}</div>;
 
   return (
     <div className="p-6 space-y-4">
@@ -142,24 +183,24 @@ useEffect(() => {
               <TableRow key={index}>
                 <TableCell>
                   <div>
-                    <div className="font-medium">{seller.userName || ""}</div>
-                    <div className="text-sm text-gray-500">{seller.id || ""}</div>
+                    <div className="font-medium">{seller.user?.userName || ""}</div>
+                    <div className="text-sm text-gray-500">{seller.sellerID || ""}</div>
                   </div>
                 </TableCell>
                 <TableCell>{seller.businessName || ""}</TableCell>
-                <TableCell>{seller.location || ""}</TableCell>
-                <TableCell>{seller.category || ""}</TableCell>
+                <TableCell>{seller.user?.userAddress || ""}</TableCell>
+                <TableCell>{seller.specialty || ""}</TableCell>
                 <TableCell>
-                  {seller.revenue !== undefined ? `$${seller.revenue}` : ""}
+                  ₱0.00
                 </TableCell>
-                <TableCell>{seller.productsCount || ""}</TableCell>
-                <TableCell>{seller.ordersCount || ""}</TableCell>
+                <TableCell>{seller.productCount || 0}</TableCell>
+                <TableCell>0</TableCell>
                 <TableCell>
-                  {seller.joinDate
-                    ? new Date(seller.joinDate).toLocaleDateString()
+                  {seller.created_at
+                    ? new Date(seller.created_at).toLocaleDateString()
                     : ""}
                 </TableCell>
-                <TableCell>{getStatusBadge(seller.status) || ""}</TableCell>
+                <TableCell>{getStatusBadge(seller.status || "active")}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -169,10 +210,10 @@ useEffect(() => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => onViewSeller(seller.id)}>
+                      <DropdownMenuItem onClick={() => handleViewSeller(seller.sellerID)}>
                         <Eye className="h-4 w-4 mr-2" /> View Profile
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditSeller(seller)}>
                         <Edit className="h-4 w-4 mr-2" /> Edit Details
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
@@ -205,6 +246,28 @@ useEffect(() => {
           </Button>
         </div>
       </div>
+
+      {/* Seller Detail Dialog */}
+      <SellerDetail
+        sellerId={selectedSellerId}
+        isOpen={isViewDialogOpen}
+        onClose={() => {
+          setIsViewDialogOpen(false);
+          setSelectedSellerId(null);
+        }}
+        onEdit={handleEditSeller}
+      />
+
+      {/* Seller Edit Dialog */}
+      <SellerEdit
+        seller={selectedSeller}
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setSelectedSeller(null);
+        }}
+        onSave={handleSaveSeller}
+      />
     </div>
   );
 };

@@ -16,6 +16,7 @@ const Artisan = () => {
     fetch("http://localhost:8000/api/get/sellers", {
       headers: {
         "Content-Type": "application/json",
+        Accept: "application/json",
         Authorization: `Bearer ${token}`,
       },
     })
@@ -24,21 +25,42 @@ const Artisan = () => {
         return res.json();
       })
       .then((data) => {
-        const mapped = data.map((seller) => ({
-          // Access nested user object for user details
-          id: seller.sellerID, // Use userID from the user object
-          name: seller.user.userName, // Corrected to use seller.user.userName
-          location: seller.user.userAddress || "Unknown", // Corrected
-          bio: seller.story || "No bio provided.", // Bio is on the seller object
-          image: seller.user.profile_picture_path || "unknown", // Corrected to use profile_photo_url
-          // These properties should be on the seller object, not user
-          specialty: seller.specialty || "Crafts", 
-          rating: seller.rating || 0,
-          productCount: seller.productCount || 0,
-          featured: seller.featured || false,
-          story: seller.story || "",
-          videoUrl: seller.videoUrl || "",
-        }));
+        console.log("Raw seller data:", data);
+        const mapped = data.map((seller) => {
+          // Get the profile image URL properly
+          let profileImageUrl = "https://api.dicebear.com/7.x/avataaars/svg?seed=artisan";
+          
+          // Use the new profile_image_url field if available
+          if (seller.profile_image_url && seller.profile_image_url.trim() !== "") {
+            profileImageUrl = seller.profile_image_url;
+            console.log(`Seller ${seller.sellerID} profile image from URL:`, profileImageUrl);
+          } else if (seller.profile_picture_path) {
+            // Fallback to constructing URL from path
+            if (!seller.profile_picture_path.startsWith('http')) {
+              profileImageUrl = `http://localhost:8000/storage/${seller.profile_picture_path}`;
+            } else {
+              profileImageUrl = seller.profile_picture_path;
+            }
+            console.log(`Seller ${seller.sellerID} profile image from path:`, profileImageUrl);
+          }
+          
+          return {
+            // Access nested user object for user details
+            id: seller.sellerID,
+            name: seller.user.userName, // Corrected to use seller.user.userName
+            location: seller.user.userAddress || "Unknown", // Corrected
+            bio: seller.story || "No bio provided.", // Bio is on the seller object
+            image: profileImageUrl,
+            // These properties should be on the seller object, not user
+            specialty: seller.specialty || "Crafts", 
+            rating: seller.rating || 0,
+            productCount: seller.productCount || 0,
+            featured: seller.featured || false,
+            story: seller.story || "",
+            videoUrl: seller.video_url || "",
+          };
+        });
+        console.log("Mapped seller data:", mapped);
         setArtisans(mapped);
       })
       .catch((err) => {
@@ -198,19 +220,40 @@ const Artisan = () => {
                 })
                   .then((res) => res.json())
                   .then((data) => {
-                    const mapped = data.map((seller) => ({
-                      id: seller.user.userID,
-                      name: seller.user.userName,
-                      location: seller.user.userAddress || "Unknown",
-                      bio: seller.bio || "No bio provided.",
-                      image: seller.user.profile_photo_url || "unknown",
-                      specialty: seller.specialty || "Crafts",
-                      rating: seller.rating || 0,
-                      productCount: seller.productCount || 0,
-                      featured: seller.featured || false,
-                      story: seller.story || "",
-                      videoUrl: seller.videoUrl || "",
-                    }));
+                    console.log("Raw seller data:", data);
+                    const mapped = data.map((seller) => {
+                      // Get the profile image URL properly
+                      let profileImageUrl = "https://api.dicebear.com/7.x/avataaars/svg?seed=artisan";
+                      
+                      // Use the new profile_image_url field if available
+                      if (seller.profile_image_url && seller.profile_image_url.trim() !== "") {
+                        profileImageUrl = seller.profile_image_url;
+                        console.log(`Seller ${seller.sellerID} profile image from URL:`, profileImageUrl);
+                      } else if (seller.profile_picture_path) {
+                        // Fallback to constructing URL from path
+                        if (!seller.profile_picture_path.startsWith('http')) {
+                          profileImageUrl = `http://localhost:8000/storage/${seller.profile_picture_path}`;
+                        } else {
+                          profileImageUrl = seller.profile_picture_path;
+                        }
+                        console.log(`Seller ${seller.sellerID} profile image from path:`, profileImageUrl);
+                      }
+                      
+                      return {
+                        id: seller.sellerID,
+                        name: seller.user.userName,
+                        location: seller.user.userAddress || "Unknown",
+                        bio: seller.story || "No bio provided.",
+                        image: profileImageUrl,
+                        specialty: seller.specialty || "Crafts",
+                        rating: seller.rating || 0,
+                        productCount: seller.productCount || 0,
+                        featured: seller.featured || false,
+                        story: seller.story || "",
+                        videoUrl: seller.video_url || "",
+                      };
+                    });
+                    console.log("Mapped seller data:", mapped);
                     setArtisans(mapped);
                   });
               }}

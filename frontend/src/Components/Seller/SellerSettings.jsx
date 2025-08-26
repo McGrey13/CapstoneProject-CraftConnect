@@ -18,12 +18,41 @@ const SellerSettings = () => {
   const [seller, setSeller] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   // For updating profile image and story
   const [profileImagePreview, setProfileImagePreview] = useState("");
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [story, setStory] = useState("");
   const fileInputRef = useRef();
+
+  // Helper function to get the current image URL
+  const getCurrentImageUrl = () => {
+    if (profileImagePreview) {
+      console.log("Using profile image preview:", profileImagePreview);
+      return profileImagePreview;
+    }
+    if (seller?.profileImage) {
+      console.log("Using seller profile image:", seller.profileImage);
+      return seller.profileImage;
+    }
+    console.log("Using default avatar image");
+    return "https://api.dicebear.com/7.x/avataaars/svg?seed=admin";
+  };
+
+  // Debug: Log whenever the image URL changes
+  useEffect(() => {
+    console.log("Image URL changed - profileImagePreview:", profileImagePreview);
+    console.log("Image URL changed - seller.profileImage:", seller?.profileImage);
+  }, [profileImagePreview, seller?.profileImage]);
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = () => {
+    return profileImageFile !== null || 
+           story !== (seller?.story || "") ||
+           profileImagePreview !== (seller?.profileImage || "");
+  };
 
   // Fetch seller data
   const fetchSellerData = async () => {
@@ -37,11 +66,14 @@ const SellerSettings = () => {
     }
 
     try {
-      // Use the correct endpoint here
-      const res = await fetch("http://localhost:8000/api/profile", {
+      console.log("Fetching seller profile data...");
+      
+      // Fetch authenticated seller profile (includes sellerID)
+      const res = await fetch("http://localhost:8000/api/sellers/profile", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
@@ -51,18 +83,30 @@ const SellerSettings = () => {
       }
 
       const data = await res.json();
+      console.log("Fetched seller data:", data);
+      
       setSeller(data);
       console.log("Seller Data:", data.sellerID);
-      setSellerID(data.id);
-      setProfileImagePreview(data.profileImage || "");
+      setSellerID(data.sellerID);
+      
+      // Set the profile image preview from the fetched data
+      if (data.profileImage) {
+        console.log("Setting profile image from fetched data:", data.profileImage);
+        setProfileImagePreview(data.profileImage);
+      } else {
+        console.log("No profile image in fetched data, resetting preview");
+        setProfileImagePreview(""); // Reset to empty if no image
+      }
+      
       setStory(data.story || "");
       setError(null);
     } catch (err) {
+      console.error("Error fetching seller data:", err);
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
-};
+  };
 
   useEffect(() => {
     fetchSellerData();
@@ -72,10 +116,45 @@ const SellerSettings = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setProfileImagePreview(URL.createObjectURL(file));
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file.');
+        return;
+      }
+      
+      // Validate file size (2MB limit)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Image file size must be less than 2MB.');
+        return;
+      }
+      
+      console.log("Image file selected:", file.name, "Size:", file.size, "Type:", file.type);
+      
+      // Create a preview URL for the selected file
+      const previewUrl = URL.createObjectURL(file);
+      setProfileImagePreview(previewUrl);
       setProfileImageFile(file);
     }
   };
+
+  // Clear image selection
+  const clearImageSelection = () => {
+    if (profileImageFile) {
+      setProfileImageFile(null);
+      // Reset to the original image if available
+      setProfileImagePreview(seller?.profileImage || "");
+    }
+  };
+
+  // Cleanup function for image preview URLs
+  useEffect(() => {
+    return () => {
+      // Cleanup any created object URLs when component unmounts
+      if (profileImagePreview && profileImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(profileImagePreview);
+      }
+    };
+  }, [profileImagePreview]);
 
   // Handle Save
 const handleSave = async () => {
@@ -85,31 +164,88 @@ const handleSave = async () => {
     return;
   }
 
+  if (isSaving) {
+    return; // Prevent multiple submissions
+  }
+
+  setIsSaving(true);
   const token = localStorage.getItem("token");
   const formData = new FormData();
   if (profileImageFile) {
     formData.append("profileImage", profileImageFile);
+    console.log("Adding profile image to form data:", profileImageFile.name);
   }
   formData.append("story", story);
 
+  // Debug: Log FormData contents
+  console.log("FormData contents:");
+  for (let [key, value] of formData.entries()) {
+    console.log(key, value);
+  }
+
   try {
+    console.log("Sending update request for seller ID:", sellerID);
+    
     // Use sellerID instead of the whole object
     const res = await fetch(`http://localhost:8000/api/sellers/${sellerID}/profile`, {
       method: "POST", // or "PUT" depending on your backend
       headers: {
         Authorization: `Bearer ${token}`,
+        Accept: "application/json",
         // Do NOT set Content-Type for FormData; the browser handles it
       },
       body: formData,
     });
 
-    if (!res.ok) throw new Error("Failed to update profile");
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Server response error:", res.status, errorText);
+      throw new Error(`Failed to update profile: ${res.status} ${res.statusText}`);
+    }
 
-    alert("Profile updated!");
+    const updatedProfile = await res.json();
+    console.log("Profile update response:", updatedProfile);
+
+    setSuccessMessage("Profile updated successfully!");
+    setTimeout(() => setSuccessMessage(""), 5000); // Clear after 5 seconds
+
+    // Update the state with the new profile data from the response
+    setSeller(updatedProfile);
+    
+    // IMPORTANT: Always use the response from the backend for the profile image
+    if (updatedProfile.profileImage) {
+      console.log("Setting profile image from response:", updatedProfile.profileImage);
+      setProfileImagePreview(updatedProfile.profileImage);
+      
+      // Force a re-render by updating the seller state with the new image
+      setSeller(prevSeller => ({
+        ...prevSeller,
+        profileImage: updatedProfile.profileImage
+      }));
+    }
+    
+    setStory(updatedProfile.story || "");
+
+    // Clear the selected file only after successful update
     setProfileImageFile(null);
-    fetchSellerData();
+    
+    // Force a re-render by updating the seller state
+    console.log("Updating seller state with new data");
+    
+    // Refresh the seller data to ensure everything is in sync
+    console.log("Refreshing seller data...");
+    await fetchSellerData();
   } catch (err) {
+    console.error("Error updating profile:", err);
     alert("Error updating profile: " + err.message);
+    
+    // If there was an error and we had an image file, keep the preview
+    if (profileImageFile) {
+      console.log("Keeping image preview after error");
+      setProfileImagePreview(URL.createObjectURL(profileImageFile));
+    }
+  } finally {
+    setIsSaving(false);
   }
 };
 
@@ -117,7 +253,7 @@ const handleSave = async () => {
     if (!window.confirm("Are you sure you want to deactivate your account?")) return;
 
     fetch("http://localhost:8000/api/user/deactivate", {
-      method: "PATCH",
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -151,9 +287,7 @@ const handleSave = async () => {
     return <div>Loading Seller settings...</div>;
   }
 
-  if (error) {
-    return <div className="text-red-500">Error: {error}</div>;
-  }
+  // Error is now displayed in the UI above
 
   if (!seller) {
     return <div>No Seller data available.</div>;
@@ -162,9 +296,66 @@ const handleSave = async () => {
   return (
     <div className="space-y-6 bg-white p-6 rounded-lg">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Seller Settings</h1>
-        <Button onClick={handleSave}>Save Changes</Button>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Seller Settings</h1>
+          {hasUnsavedChanges() && (
+            <span className="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+              Unsaved Changes
+            </span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={async () => {
+            try {
+              const res = await fetch('http://localhost:8000/api/test/storage');
+              const data = await res.json();
+              console.log('Storage test result:', data);
+              alert('Storage test completed. Check console for details.');
+            } catch (err) {
+              console.error('Storage test failed:', err);
+              alert('Storage test failed: ' + err.message);
+            }
+          }}>
+            Test Storage
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => {
+              // Reset to original state
+              setProfileImagePreview(seller?.profileImage || "");
+              setProfileImageFile(null);
+              setStory(seller?.story || "");
+              setError(null);
+              setSuccessMessage("");
+            }}
+            disabled={isSaving}
+            className={hasUnsavedChanges() ? "" : "hidden"}
+          >
+            Cancel Changes
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={isSaving || !hasUnsavedChanges()}
+            className="min-w-[120px]"
+          >
+            {isSaving ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
       </div>
+
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
+          <span className="block sm:inline">{successMessage}</span>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          <span className="block sm:inline">Error: {error}</span>
+        </div>
+      )}
 
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
@@ -186,9 +377,16 @@ const handleSave = async () => {
             <CardContent className="space-y-6">
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex flex-col items-center space-y-2">
-                  <Avatar className="h-24 w-24">
+                  <Avatar className="h-24 w-24" key={getCurrentImageUrl()}>
                     <AvatarImage
-                      src={profileImagePreview || seller.profileImage || "https://api.dicebear.com/7.x/avataaars/svg?seed=admin"}
+                      src={getCurrentImageUrl()}
+                      onError={(e) => {
+                        console.log("Image failed to load, using fallback");
+                        e.target.style.display = 'none';
+                      }}
+                      onLoad={() => {
+                        console.log("Image loaded successfully");
+                      }}
                     />
                     <AvatarFallback>{seller.userName?.slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
@@ -206,6 +404,16 @@ const handleSave = async () => {
                   >
                     Change Photo
                   </Button>
+                  {profileImageFile && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearImageSelection}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      Clear Selection
+                    </Button>
+                  )}
                 </div>
 
                 <div className="flex-1 space-y-4">

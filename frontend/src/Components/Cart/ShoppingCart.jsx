@@ -13,7 +13,7 @@ const PALETTE = {
 };
 
 const ShoppingCart = () => {
-  const { cartItems, updateQuantity, removeItem } = useCart();
+  const { cartItems, updateQuantity, removeItem, checkout } = useCart();
   const navigate = useNavigate();
 
   // Helper function to safely parse the price string into a number
@@ -34,16 +34,17 @@ const ShoppingCart = () => {
   const total = subtotal + shipping + tax;
 
   // Proceed to checkout with cart data
-  const handleProceedToCheckout = () => {
-    navigate("/checkout", {
-      state: {
-        cartItems,
-        subtotal,
-        shipping,
-        tax,
-        total,
-      },
-    });
+  const handleProceedToCheckout = async () => {
+    try {
+      const order = await checkout();
+      if (order) {
+        alert('Checkout successful! Your order has been placed.');
+        navigate('/order-history'); // Navigate to the new order history page
+      }
+    } catch (error) {
+      // Error is already handled in the context, but you could add more UI feedback here
+      console.error("Checkout failed in component:", error);
+    }
   };
 
   // Go back to products page
