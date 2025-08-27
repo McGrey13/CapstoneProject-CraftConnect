@@ -12,10 +12,7 @@ import {
 } from "../ui/dropdown-menu";
 import { Badge } from "../ui/badge";
 
-const AdminNavbar = ({
-  userName = "Admin",
-  notificationCount = 0,
-}) => {
+const AdminNavbar = ({ userName = "Admin", notificationCount = 0 }) => {
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem("auth_token");
@@ -63,7 +60,7 @@ const AdminNavbar = ({
         </Link>
 
         {/* Right Side */}
-        <div className="flex items-center space-x-4 relative z-50">
+        <div className="flex items-center space-x-4 relative">
           {/* Notifications */}
           <Link to="/admin/notifications" className="relative">
             <Button variant="ghost" size="icon">
@@ -79,14 +76,14 @@ const AdminNavbar = ({
             </Button>
           </Link>
 
-          {/* Settings */}
+          {/* Settings Shortcut */}
           <Link to="/admin/settings">
             <Button variant="ghost" size="icon">
               <Settings className="h-5 w-5" />
             </Button>
           </Link>
 
-          {/* User Menu */}
+          {/* User Dropdown Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -99,8 +96,8 @@ const AdminNavbar = ({
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              sideOffset={8}
-              className="w-56"
+              sideOffset={6}
+              className="w-56 shadow-lg border border-gray-200 bg-white rounded-md z-[99999]"
             >
               <DropdownMenuLabel>Hi, {userName}</DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -117,7 +114,7 @@ const AdminNavbar = ({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleLogout}
-                className="cursor-pointer"
+                className="cursor-pointer text-red-600"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 <span>Logout</span>

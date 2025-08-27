@@ -440,11 +440,14 @@ const InventoryTab = () => {
           {/* Add Product Modal Trigger */}
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="primary" size="sm">
+              <Button
+                size="sm"
+                className="bg-yellow-500 text-green-900 font-medium hover:bg-yellow-600 hover:text-green-950"
+              >
                 <Plus className="mr-2 h-4 w-4" /> Add Product
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-lg bg-white p-6 rounded-lg shadow-lg">
               <DialogHeader>
                 <DialogTitle>Add New Product</DialogTitle>
               </DialogHeader>
@@ -470,7 +473,6 @@ const InventoryTab = () => {
                   <Input
                     placeholder="Price"
                     type="number"
-                    step="0.01"
                     value={newProduct.productPrice}
                     onChange={(e) => handleInputChange("productPrice", e.target.value)}
                   />
@@ -485,43 +487,40 @@ const InventoryTab = () => {
                   />
                 </div>
                 <div>
-                  <Label>Product Category</Label>
-                  <Select
-                    value={newProduct.category}
-                    onValueChange={(value) => handleInputChange("category", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Pottery">Pottery</SelectItem>
-                      <SelectItem value="Textiles">Textiles</SelectItem>
-                      <SelectItem value="Woodwork">Woodwork</SelectItem>
-                      <SelectItem value="Home Goods">Home Goods</SelectItem>
-                      <SelectItem value="Jewelry">Jewelry</SelectItem>
-                      <SelectItem value="Art">Art</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Category</Label>
+                        <Select
+                          value={newProduct.category}
+                          onValueChange={(value) => handleInputChange("category", value)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent position="popper" className="z-50 bg-white">
+                            <SelectItem value="Pottery">Pottery</SelectItem>
+                            <SelectItem value="Textiles">Textiles</SelectItem>
+                            <SelectItem value="Woodwork">Woodwork</SelectItem>
+                            <SelectItem value="Home Goods">Home Goods</SelectItem>
+                            <SelectItem value="Jewelry">Jewelry</SelectItem>
+                            <SelectItem value="Art">Art</SelectItem>
+                          </SelectContent>
+                        </Select>
                 </div>
                 <div>
                   <Label>Product Image</Label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange("productImage", e.target.files[0])}
-                  />
+                  <Input type="file" accept="image/*" onChange={(e) => handleFileChange("productImage", e.target.files[0])} />
                 </div>
                 <div>
                   <Label>Product Video</Label>
-                  <Input
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => handleFileChange("productVideo", e.target.files[0])}
-                  />
+                  <Input type="file" accept="video/*" onChange={(e) => handleFileChange("productVideo", e.target.files[0])} />
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleAddProduct}>Save</Button>
+                <Button
+                  onClick={handleAddProduct}
+                  className="border border-green-600 text-green-600 hover:bg-green-600 hover:text-white px-4 py-2 rounded-md"
+                >
+                  Save
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
