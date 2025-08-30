@@ -10,8 +10,9 @@ class Kernel extends HttpKernel
 {
 
     protected $routeMiddleware = [
-    // ... other middleware
-    'role' => RoleMiddleware::class,
+        // ... other middleware
+        'role' => RoleMiddleware::class,
+        'cors' => \Illuminate\Http\Middleware\HandleCors::class,
     ];
     /**
      * The application's global HTTP middleware stack.
@@ -21,8 +22,8 @@ class Kernel extends HttpKernel
      * @var array<int, class-string|string>
      */
     protected $middleware = [
-        \Illuminate\Http\Middleware\HandleCors::class, // keep this first
         // \App\Http\Middleware\TrustHosts::class,
+        \Illuminate\Http\Middleware\HandleCors::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \Illuminate\Foundation\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
@@ -46,9 +47,8 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            // For token-based API auth from Vite (5173), do not treat as stateful SPA
-            // This avoids CSRF redirects and allows pure Bearer token auth
-            // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            \Illuminate\Http\Middleware\HandleCors::class, // Ensure CORS is handled for API routes
+            \App\Http\Middleware\DisableSessionsForApi::class, // Custom middleware to disable sessions
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],

@@ -140,6 +140,7 @@ const CustomerTable = ({ onViewCustomer = () => {} }) => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Image</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead>Location</TableHead>
@@ -155,6 +156,19 @@ const CustomerTable = ({ onViewCustomer = () => {} }) => {
             {filteredCustomers.length > 0 ? (
               filteredCustomers.map((customer) => (
                 <TableRow key={customer.userID}>
+                  <TableCell>
+                    {customer.profile_image_url ? (
+                      <img
+                        src={customer.profile_image_url}
+                        alt={customer.userName}
+                        className="w-12 h-12 object-cover rounded-full"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xs text-gray-500">
+                        No Image
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div>
                       <div className="font-medium">{customer.userName || ""}</div>

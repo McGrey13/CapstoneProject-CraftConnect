@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { X, Edit, Package, DollarSign, ShoppingCart, User, Calendar } from "lucide-react";
 import { Button } from "../ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
+import { Input } from "../ui/input";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { useCart } from "../cart/CartContext";
 
 const ProductDetail = ({ productId, isOpen, onClose, onEdit }) => {
   const [product, setProduct] = useState(null);
+  const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     if (isOpen && productId) {
@@ -23,24 +23,64 @@ const ProductDetail = ({ productId, isOpen, onClose, onEdit }) => {
   }, [isOpen, productId]);
 
   const fetchProductDetails = async () => {
+    if (!productId) return;
+    
     setLoading(true);
     setError(null);
     
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`http://localhost:8000/api/products/${productId}`, {
+        method: 'GET',
         headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        const errorText = await response.text();
+        let errorMessage = `Failed to load product. Status: ${response.status}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error('Error parsing error response:', e);
+        }
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
-      setProduct(data);
+      const responseData = await response.json();
+      console.log('Product data received:', responseData);
+      
+      // Handle different response structures
+      let productData = responseData;
+      if (responseData.data) {
+        productData = responseData.data;
+      } else if (Array.isArray(responseData) && responseData.length > 0) {
+        productData = responseData[0];
+      }
+      
+      if (!productData || typeof productData !== 'object') {
+        throw new Error('Invalid product data received from server');
+      }
+      
+      // Ensure required fields exist
+      const processedProduct = {
+        ...productData,
+        product_id: productData.product_id || productData.id || productId,
+        productName: productData.productName || productData.name || 'Unnamed Product',
+        productPrice: parseFloat(productData.productPrice || productData.price || 0),
+        productQuantity: parseInt(productData.productQuantity || productData.quantity || 0, 10),
+        productImage: productData.productImage || productData.image || '',
+        status: productData.status || 'pending',
+        seller: productData.seller || { user: { userName: 'Unknown Seller' } }
+      };
+      
+      console.log('Processed product data:', processedProduct);
+      setProduct(processedProduct);
     } catch (err) {
       console.error("Error fetching product details:", err);
       setError(err.message);
@@ -65,6 +105,53 @@ const ProductDetail = ({ productId, isOpen, onClose, onEdit }) => {
         return <Badge className="bg-green-500">In Stock</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!product || !product.product_id) {
+      alert('Product information is incomplete');
+      return;
+    }
+
+    if (loading) return; // Prevent multiple clicks
+
+    try {
+      setLoading(true);
+      console.log('Attempting to add to cart:', {
+        productId: product.product_id,
+        productName: product.productName,
+        quantity: quantity
+      });
+      
+      const result = await addToCart(product, quantity);
+      
+      if (result && result.success) {
+        console.log('Add to cart successful:', result);
+        alert(`${product.productName} (${quantity}) added to cart`);
+      } else {
+        const errorMsg = result?.error || 'Failed to add item to cart';
+        console.error('Add to cart failed:', errorMsg);
+        alert(errorMsg);
+      }
+    } catch (error) {
+      console.error('Error in handleAddToCart:', error);
+      let errorMessage = 'An error occurred while adding to cart';
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        errorMessage = error.response.data?.message || error.response.statusText || errorMessage;
+      } else if (error.request) {
+        // The request was made but no response was received
+        errorMessage = 'No response from server. Please check your connection.';
+      } else {
+        // Something happened in setting up the request
+        errorMessage = error.message || errorMessage;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,11 +196,40 @@ const ProductDetail = ({ productId, isOpen, onClose, onEdit }) => {
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl font-bold">Product Details</DialogTitle>
             <div className="flex gap-2">
-              <Button onClick={() => onEdit(product)} variant="outline">
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Product
-              </Button>
-              <Button onClick={onClose} variant="ghost" size="sm">
+              <div className="flex flex-col space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                  >
+                    -
+                  </Button>
+                  <Input 
+                    type="number" 
+                    min="1" 
+                    value={quantity} 
+                    onChange={(e) => setQuantity(Number(e.target.value))} 
+                    className="w-16 text-center"
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => setQuantity(prev => prev + 1)}
+                  >
+                    +
+                  </Button>
+                </div>
+                <Button 
+                  className="w-full" 
+                  onClick={handleAddToCart}
+                  disabled={loading}
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Add to Cart
+                </Button>
+              </div>
+              <Button variant="outline" size="sm" onClick={onClose}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -135,9 +251,13 @@ const ProductDetail = ({ productId, isOpen, onClose, onEdit }) => {
                   <div className="w-32 h-32 bg-gray-100 rounded-lg overflow-hidden">
                     {product.productImage ? (
                       <img
-                        src={product.productImage}
+                        src={product.image_url || product.productImage}
                         alt={product.productName}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '';
+                        }}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -147,7 +267,7 @@ const ProductDetail = ({ productId, isOpen, onClose, onEdit }) => {
                   </div>
                   <div className="flex-1">
                     <h2 className="text-2xl font-bold">{product.productName}</h2>
-                    <p className="text-gray-600">Product ID: {product.id}</p>
+                    <p className="text-gray-600">Product ID: {product.product_id || product.id}</p>
                     <div className="mt-2 flex gap-2">
                       {getStatusBadge(product.approval_status)}
                       {getStatusBadge(product.status)}
@@ -165,7 +285,7 @@ const ProductDetail = ({ productId, isOpen, onClose, onEdit }) => {
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-500">Product ID</label>
-                  <p className="text-lg">{product.id}</p>
+                  <p className="text-lg">{product.product_id || product.id}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Category</label>

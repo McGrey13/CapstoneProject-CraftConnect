@@ -9,46 +9,108 @@ use App\Http\Controllers\Auth\CustomerController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
 use App\http\Controllers\ChatController;
+use App\Http\Controllers\Api\ReviewController;
 
 // Public Routes
-Route::post('/register', [AuthController::class, 'register']);
-
-Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
-Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
-
-Route::get('/sellers/{id}/approvedProduct', [ProductController::class, 'getApprovedProducts'])->whereNumber('id');
-Route::get('/products/approved', [ProductController::class, 'approvedProducts']);
-Route::get('/sellers/{id}', [SellerController::class, 'getSellerById'])->whereNumber('id');
-Route::get('/sellers/{id}/details', [SellerController::class, 'getArtisanDetails'])->whereNumber('id');
-Route::post('/login', [AuthController::class, 'login']);
-Route::get('/products/{id}', [ProductController::class, 'getProductDetails'])->whereNumber('id');
-// Route::get('/sellers', [AuthController::class, 'getSellers']);
-Route::get('/get/sellers', [SellerController::class, 'getAllSellers']);
-
-Route::get('/profile', [AuthController::class, 'show']);
-// Test route to verify API is working
-Route::get('/test', function () {
-    return response()->json(['message' => 'API is working!']);
+Route::middleware([])->group(function () {
+    // Auth routes
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+    
+    // Google OAuth routes
+    Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
+    Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+    
+    // Public product routes
+    Route::get('/products/approved', [ProductController::class, 'approvedProducts']);
+    Route::get('/products/{id}', [ProductController::class, 'getProductDetails'])->whereNumber('id');
+    
+    // Seller routes
+    Route::get('/sellers/{id}/approvedProduct', [ProductController::class, 'getApprovedProducts'])->whereNumber('id');
+    Route::get('/sellers/{id}', [SellerController::class, 'getSellerById'])->whereNumber('id');
+    Route::get('/sellers/{id}/details', [SellerController::class, 'getArtisanDetails'])->whereNumber('id');
+    Route::get('/get/sellers', [SellerController::class, 'getAllSellers']);
+    
+    // Review routes
+    Route::get('/products/{id}/reviews', [ReviewController::class, 'getProductReviews']);
+    Route::prefix('products/{product}')->group(function () {
+        Route::get('/reviews/{review}', [ReviewController::class, 'show']);
+    });
+    
+    // Profile route
+    Route::get('/profile', [AuthController::class, 'show']);
+    
+    // Test routes
+    Route::get('/test', function () {
+        return response()->json(['message' => 'API is working!']);
+    });
+    
+    Route::get('/test/storage', function () {
+        $testPath = 'profile_images/test.jpg';
+        $fullUrl = url('storage/' . $testPath);
+        return response()->json([
+            'message' => 'Storage test',
+            'url' => $fullUrl,
+            'storage_path' => storage_path('app/public/' . $testPath),
+            'public_path' => public_path('storage/' . $testPath)
+        ]);
+    });
 });
 
-// Test route to verify storage is working
-Route::get('/test/storage', function () {
-    $testPath = 'profile_images/test.jpg';
-    $fullUrl = url('storage/' . $testPath);
-    return response()->json([
-        'message' => 'Storage test',
-        'test_path' => $testPath,
-        'full_url' => $fullUrl,
-        'storage_path' => storage_path('app/public'),
-        'public_path' => public_path('storage'),
-        'app_url' => env('APP_URL')
-    ]);
+// Protected routes (require authentication)
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Protected review routes
+    Route::prefix('products/{product}')->group(function () {
+        Route::post('/reviews', [ReviewController::class, 'store']);
+    });
+    
+    // Cart routes
+    Route::prefix('cart')->group(function () {
+        Route::get('/', [CartController::class, 'index']);
+        Route::post('/add', [CartController::class, 'store']);
+        Route::put('/update/{id}', [CartController::class, 'update']);
+        Route::delete('/remove/{id}', [CartController::class, 'destroy']);
+        Route::delete('/clear', [CartController::class, 'clear']);
+        Route::post('/checkout', [CartController::class, 'checkout']);
+    });
+    
+    // Order routes
+    Route::prefix('orders')->group(function () {
+        Route::get('/', [OrderController::class, 'index']);
+        Route::get('/{id}', [OrderController::class, 'show']);
+        Route::post('/', [OrderController::class, 'store']);
+    });
+    
+    // Chat routes
+    Route::prefix('chat')->group(function () {
+        Route::get('/conversations', [ChatController::class, 'index']);
+        Route::post('/conversations', [ChatController::class, 'store']);
+        Route::get('/conversations/{conversation}/messages', [ChatController::class, 'messages']);
+        Route::post('/conversations/{conversation}/messages', [ChatController::class, 'sendMessage']);
+    });
+    
+    // Product management routes (for sellers)
+    Route::middleware(['role:seller'])->group(function () {
+        Route::apiResource('products', ProductController::class)->except(['index', 'show']);
+        Route::get('/seller/products', [ProductController::class, 'sellerProducts']);
+    });
+    
+    // Admin routes
+    Route::middleware(['role:admin'])->group(function () {
+        Route::post('/products/{id}/approve', [ProductController::class, 'approve']);
+        Route::post('/products/{id}/reject', [ProductController::class, 'reject']);
+    });
+    
+    // User profile
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 });
 
+// Admin products route
 Route::middleware(['auth:sanctum'])->get('/admin/products', [ProductController::class, 'adminIndex']);
 
 // Protected Routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
     // Product Routes 
     Route::get('products/search/{name}', [ProductController::class, 'search']);
     Route::resource('/products', ProductController::class);
@@ -74,14 +136,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/customers', [AuthController::class, 'getCustomers']);
     Route::get('/admins', [AuthController::class, 'getAdmins']);
     Route::get('/sellers', [AuthController::class, 'getSellers']);
-
-    //Cart Routes
-     Route::get('/cart', [CartController::class, 'index']);
-    Route::post('/cart', [CartController::class, 'store']);
-    Route::put('/cart/{id}', [CartController::class, 'update']);
-    Route::delete('/cart/{id}', [CartController::class, 'destroy']);
-    Route::delete('/cart', [CartController::class, 'clear']);
-    Route::post('/cart/checkout', [CartController::class, 'checkout']);
 
     // Order Routes
     Route::get('/orders', [OrderController::class, 'index']);

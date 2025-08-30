@@ -34,7 +34,27 @@ class AuthController extends Controller
     }
     public function getSellers()
     {
-        return response()->json(User::where('role', 'seller')->get());
+        $sellers = Seller::with(['user', 'products'])->get()->map(function ($seller) {
+            return [
+                'sellerID' => $seller->sellerID,
+                'businessName' => $seller->businessName,
+                'specialty' => $seller->specialty,
+                'status' => $seller->status,
+                'created_at' => $seller->created_at,
+                'updated_at' => $seller->updated_at,
+                'profile_image_url' => $seller->profile_image_url,
+                'products_count' => $seller->products->count(),
+                'user' => [
+                    'id' => $seller->user->id,
+                    'userName' => $seller->user->userName,
+                    'userEmail' => $seller->user->userEmail,
+                    'userAddress' => $seller->user->userAddress,
+                    'userContactNumber' => $seller->user->userContactNumber,
+                ]
+            ];
+        });
+
+        return response()->json($sellers);
     }
 
     public function getSellerById($id)

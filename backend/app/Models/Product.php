@@ -4,11 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Seller;
+use App\Models\Review;
 
 class Product extends Model
 {
     protected $table = 'products';
     protected $primaryKey = 'product_id';
+    protected $keyType = 'string';
+    public $incrementing = false;
 
     protected $fillable = [
         'productName',
@@ -20,20 +25,47 @@ class Product extends Model
         'productVideo',
         'category',
         'seller_id',
-        'approval_status'
+        'approval_status',
+        'average_rating',
+        'review_count'
     ];
-
-    protected $appends = ['id'];
+    
+    protected $appends = ['id', 'average_rating', 'review_count'];
 
     public function getIdAttribute()
     {
         return $this->attributes['product_id'];
     }
 
-public function seller()
-{
-    return $this->belongsTo(Seller::class, 'seller_id', 'sellerID');
-}
+    public function seller()
+    {
+        return $this->belongsTo(Seller::class, 'seller_id', 'sellerID');
+    }
+
+    /**
+     * Get all reviews for the product.
+     */
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'product_id', 'product_id')
+            ->with('user');
+    }
+    
+    /**
+     * Get the average rating for the product.
+     */
+    public function getAverageRatingAttribute()
+    {
+        return $this->reviews()->avg('rating') ?: 0;
+    }
+    
+    /**
+     * Get the number of reviews for the product.
+     */
+    public function getReviewCountAttribute()
+    {
+        return $this->reviews()->count();
+    }
 
     /**
      * Get the full URL for the product image

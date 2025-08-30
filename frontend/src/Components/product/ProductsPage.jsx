@@ -29,28 +29,33 @@ const ProductsPage = () => {
         setError(null);
         
         console.log("Fetching products from API...");
+        const token = localStorage.getItem('token');
         const response = await fetch("http://localhost:8000/api/products/approved", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Accept: "application/json",
+            "Accept": "application/json",
+            ...(token && { "Authorization": `Bearer ${token}` }),
           },
+          credentials: 'include',
         });
 
         console.log("Response status:", response.status);
-        console.log("Response headers:", response.headers);
 
         if (!response.ok) {
           const errorText = await response.text();
           console.error("Response error:", errorText);
-          throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
+          throw new Error(`Failed to load products. Status: ${response.status}`);
         }
 
         const data = await response.json();
         console.log("Fetched products:", data);
-        console.log("Number of products:", data.length);
         
-        setProducts(data);
+        // Handle both array and object responses
+        const productsData = Array.isArray(data) ? data : (data.data || []);
+        console.log("Number of products:", productsData.length);
+        
+        setProducts(productsData);
       } catch (err) {
         console.error("Error fetching products:", err);
         setError(err.message);

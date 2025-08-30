@@ -2,18 +2,22 @@ import './NavBar.css';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaShoppingCart, FaUser, FaHeart } from 'react-icons/fa';
+import { useUser } from '../Context/UserContext';
+import { useCart } from '../Cart/CartContext';
 
-const Navbar = ({ user, onLogout }) => {
+const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const { user, logout } = useUser();
+  const { cartItems } = useCart();
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
 
-  const handleLogout = () => {
-    onLogout && onLogout();
+  const handleLogout = async () => {
+    await logout();
     setIsDropdownOpen(false);
     navigate('/login');
   };
@@ -23,6 +27,9 @@ const Navbar = ({ user, onLogout }) => {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
+
+  // Calculate total items in cart
+  const cartItemCount = cartItems.reduce((total, item) => total + (item.quantity || 1), 0);
 
   return (
     <nav className="navbar">
@@ -54,40 +61,76 @@ const Navbar = ({ user, onLogout }) => {
         </Link>
         <Link to="/cart" className="cart-link">
           <FaShoppingCart size={24} />
-          <span className="cart-count">0</span>
+          <span className="cart-count">{cartItemCount}</span>
         </Link>
       </div>
 
-
       {/* User Icon + Dropdown */}
-      {/* User Icon + Dropdown */}
-<div className="user-account">
-  <FaUser size={20} className="user-icon" onClick={toggleDropdown} />
-  {isDropdownOpen && (
-    <div className="profile-modal">
-      {!user ? (
-        <>
-          <button onClick={() => { navigate("/login"); setIsDropdownOpen(false); }}>
-            Login
-          </button>
-          <button onClick={() => { navigate("/register"); setIsDropdownOpen(false); }}>
-            Register
-          </button>
-        </>
-      ) : (
-        <>
-          <button onClick={() => { navigate("/profile"); setIsDropdownOpen(false); }}>
-            Profile
-          </button>
-          <button onClick={() => { navigate("/settings"); setIsDropdownOpen(false); }}>
-            Settings
-          </button>
-          <button onClick={handleLogout}>Logout</button>
-        </>
-      )}
-    </div>
-  )}
-</div>
+      <div className="user-account">
+        <FaUser size={20} className="user-icon" onClick={toggleDropdown} />
+        {isDropdownOpen && (
+          <div className="profile-modal">
+            {user ? (
+              <>
+                <div className="px-4 py-2 text-sm text-gray-700">
+                  <p>Hello, {user.userName || user.firstName || 'User'}</p>
+                  <p className="text-xs text-gray-500">{user.userEmail || user.email}</p>
+                </div>
+                <div className="border-t border-gray-100"></div>
+                <Link 
+                  to="/orders" 
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  My Orders
+                </Link>
+                <Link 
+                  to="/profile" 
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Profile
+                </Link>
+                <Link 
+                  to="/settings" 
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Settings
+                </Link>
+                <div className="border-t border-gray-100"></div>
+                <button 
+                  onClick={handleLogout} 
+                  className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={() => { 
+                    navigate("/login"); 
+                    setIsDropdownOpen(false); 
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Login
+                </button>
+                <button 
+                  onClick={() => { 
+                    navigate("/register"); 
+                    setIsDropdownOpen(false); 
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Register
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       <button className="navbar-toggle">
         <svg

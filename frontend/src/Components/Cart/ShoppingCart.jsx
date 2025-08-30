@@ -1,9 +1,10 @@
-import React from "react";
-import { useCart } from "../cart/CartContext";
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useCart } from "./CartContext";
+import { Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const PALETTE = {
   sand: "#e5ded7",
@@ -22,29 +23,37 @@ const ShoppingCart = () => {
       // Remove the currency symbol and commas, then parse as a float
       return parseFloat(priceString.replace("₱", "").replace(/,/g, "")) || 0;
     }
-    return priceString || 0;
+    return priceString 
   };
 
+  // Calculate cart totals
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + parsePrice(item.price) * item.quantity,
+    (sum, item) => sum + (parseFloat(item.price || item.total_price || 0) * (item.quantity || 1)),
     0
   );
   const shipping = cartItems.length > 0 ? 9.99 : 0;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
 
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
   // Proceed to checkout with cart data
-  const handleProceedToCheckout = async () => {
-    try {
-      const order = await checkout();
-      if (order) {
-        alert('Checkout successful! Your order has been placed.');
-        navigate('/order-history'); // Navigate to the new order history page
-      }
-    } catch (error) {
-      // Error is already handled in the context, but you could add more UI feedback here
-      console.error("Checkout failed in component:", error);
+  const handleProceedToCheckout = () => {
+    if (cartItems.length === 0) {
+      alert('Your cart is empty');
+      return;
     }
+
+    // Navigate to checkout page with cart data
+    navigate('/checkout', {
+      state: {
+        cartItems,
+        subtotal,
+        shipping,
+        tax,
+        total
+      }
+    });
   };
 
   // Go back to products page
@@ -88,44 +97,53 @@ const ShoppingCart = () => {
                   className="bg-white rounded-xl shadow-sm border border-[#e5ded7]"
                 >
                   <CardContent className="p-6">
-                    <div className="flex items-center space-x-4">
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="w-20 h-20 object-cover rounded-lg border border-[#e5ded7]"
-                      />
+                    <div className="flex items-start space-x-4">
+                      <div className="w-20 h-20 flex-shrink-0">
+                        <img
+                          src={item.image ? 
+                            (item.image.startsWith('http') ? item.image : `http://localhost:8000/storage/${item.image}`) 
+                            : '/placeholder-product.jpg'}
+                          alt={item.title}
+                          className="w-full h-full object-cover rounded-lg border border-[#e5ded7]"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/placeholder-product.jpg';
+                          }}
+                        />
+                      </div>
                       <div className="flex-grow">
-                        <h3 className="font-semibold text-lg text-[#4b3832]">
-                          {item.title}
+                        <h3 className="font-semibold text-lg text-[#4b3832] mb-1">
+                          {item.title || 'Product Name Not Available'}
                         </h3>
-                        <p className="text-[#7a5c52] text-sm">
-                          by {item.artisanName}
-                        </p>
-                        <p className="font-bold text-lg mt-1 text-[#a36b4f]">
-                          ₱{parsePrice(item.price).toFixed(2)}
-                        </p>
+                        {item.seller_name && (
+                          <p className="text-[#7a5c52] text-sm mb-2">
+                            Seller: {item.seller_name}
+                          </p>
+                        )}
+                        <div className="flex flex-col">
+                          <p className="font-bold text-lg text-[#a36b4f]">
+                            ₱{parseFloat(item.price || 0).toFixed(2)}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {item.quantity} × ₱{parseFloat(item.price || 0).toFixed(2)} = ₱{(parseFloat(item.price || 0) * item.quantity).toFixed(2)}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() =>
-                            updateQuantity(item.id, item.quantity - 1)
-                          }
-                          className="h-8 w-8 rounded-full border-[#d8b48f]"
+                          className="h-8 w-8 rounded-full"
+                          onClick={() => updateQuantity(item.product_id, Math.max(1, item.quantity - 1))}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="w-8 text-center font-semibold text-[#4b3832]">
-                          {item.quantity}
-                        </span>
+                        <span className="w-8 text-center">{item.quantity}</span>
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() =>
-                            updateQuantity(item.id, item.quantity + 1)
-                          }
-                          className="h-8 w-8 rounded-full border-[#d8b48f]"
+                          className="h-8 w-8 rounded-full"
+                          onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -133,8 +151,8 @@ const ShoppingCart = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => removeItem(item.id)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                        onClick={() => removeItem(item.cartItemId)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -157,26 +175,18 @@ const ShoppingCart = () => {
                   Order summary
                 </h4>
 
-                <div className="space-y-3 text-sm">
+                <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span style={{ color: PALETTE.warmText }}>
-                      ₱{subtotal.toFixed(2)}
-                    </span>
+                    <span>Subtotal ({cartItems.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
+                    <span>₱{subtotal.toFixed(2)}</span>
                   </div>
-
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Shipping</span>
-                    <span style={{ color: PALETTE.warmText }}>
-                      ₱{shipping.toFixed(2)}
-                    </span>
+                    <span>Shipping</span>
+                    <span>{shipping > 0 ? `₱${shipping.toFixed(2)}` : 'Free'}</span>
                   </div>
-
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Estimated tax</span>
-                    <span style={{ color: PALETTE.warmText }}>
-                      ₱{tax.toFixed(2)}
-                    </span>
+                    <span>Tax (8%)</span>
+                    <span>₱{tax.toFixed(2)}</span>
                   </div>
 
                   <div
@@ -209,8 +219,16 @@ const ShoppingCart = () => {
                       fontWeight: 700,
                     }}
                     onClick={handleProceedToCheckout}
+                    disabled={isCheckingOut || cartItems.length === 0}
                   >
-                    Proceed to checkout
+                    {isCheckingOut ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Proceed to checkout'
+                    )}
                   </Button>
 
                   <Button

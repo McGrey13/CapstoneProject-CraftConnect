@@ -20,6 +20,7 @@ const ProductDetails = () => {
   const [reviews, setReviews] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
   const [selectedMedia, setSelectedMedia] = useState({ type: 'image', src: null });
+  const [addingToCart, setAddingToCart] = useState(false);
 
 
   const fetchProductAndReviews = async () => {
@@ -29,7 +30,12 @@ const ProductDetails = () => {
 
       // Fetch product details
       const productRes = await fetch(`http://localhost:8000/api/products/${id}`);
-      if (!productRes.ok) throw new Error("Product not found");
+      if (!productRes.ok) {
+        if (productRes.status === 404) {
+          throw new Error("Product not found");
+        }
+        throw new Error(`Failed to fetch product: ${productRes.status}`);
+      }
       const productData = await productRes.json();
       setProduct(productData);
       setSelectedMedia({ type: 'image', src: productData.productImage }); // Set default media
@@ -75,10 +81,33 @@ const ProductDetails = () => {
   const isFavorited = favorites.some((p) => p.id === product.id);
 
   const handleQuantityChange = (change) => setQuantity(Math.max(1, quantity + change));
-  const handleAddToCart = () => {
-    addToCart(product, quantity);
-    navigate("/cart");
+  
+  const handleAddToCart = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      // Redirect to login if not authenticated
+      alert('Please log in to add items to your cart.');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      setAddingToCart(true);
+      const result = await addToCart(product, quantity);
+      if (result.success) {
+        alert('Item added to cart successfully!');
+        navigate("/cart");
+      } else {
+        alert(result.error || 'Failed to add item to cart');
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('Failed to add item to cart. Please try again.');
+    } finally {
+      setAddingToCart(false);
+    }
   };
+  
   const handleFavoriteClick = () => {
     isFavorited ? removeFavorite(product.id) : addFavorite(product);
   };
@@ -166,7 +195,14 @@ const ProductDetails = () => {
           </div>
 
           <div className="flex gap-3 mt-4">
-            <Button onClick={handleAddToCart} className="flex-1"><ShoppingCart className="w-5 h-5 mr-2" /> Add to Cart</Button>
+            <Button 
+              onClick={handleAddToCart} 
+              className="flex-1"
+              disabled={addingToCart}
+            >
+              <ShoppingCart className="w-5 h-5 mr-2" /> 
+              {addingToCart ? 'Adding...' : 'Add to Cart'}
+            </Button>
             <Button variant="outline" onClick={handleFavoriteClick}><Heart className={`w-5 h-5 ${isFavorited ? "text-red-500 fill-current" : ""}`} /></Button>
           </div>
 

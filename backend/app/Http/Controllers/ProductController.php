@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Models\Product;
-use app\Models\Seller; 
+use app\Models\Seller;
+use Illuminate\Http\JsonResponse;
 
 class ProductController extends Controller
 {
@@ -179,6 +180,9 @@ class ProductController extends Controller
             $data['status'] = 'in stock';
         }
 
+        // Auto-approve products
+        $data['approval_status'] = 'approved';
+
         Log::info('Data to be saved:', $data);
 
         // Handle image upload
@@ -305,42 +309,47 @@ class ProductController extends Controller
 
     public function search($name)
     {
-        $seller = $this->checkSeller();
-        if ($seller instanceof \Illuminate\Http\JsonResponse) {
-            return $seller;
-        }
-        
-        $sellerId = $seller->sellerID;
         try {
-            $products = Product::where('seller_id', $sellerId)
-                             ->where('productName', 'like', '%' . $name . '%')
-                             ->get();
-            Log::info('Products search completed:', ['search_term' => $name, 'count' => $products->count()]);
+            $seller = $this->checkSeller();
+            if ($seller instanceof \Illuminate\Http\JsonResponse) {
+                return $seller;
+            }
             
-            // Transform products to include full image URLs
-            $productsWithImages = $products->map(function ($product) {
-                $productImageUrl = $product->productImage
-                    ? url('storage/' . ltrim($product->productImage, '/'))
-                    : '';
-                    
-                return [
-                    'id' => $product->product_id,
-                    'productName' => $product->productName,
-                    'productDescription' => $product->productDescription,
-                    'productPrice' => $product->productPrice,
-                    'productQuantity' => $product->productQuantity,
-                    'status' => $product->status,
-                    'productImage' => $productImageUrl,
-                    'productVideo' => $product->productVideo,
-                    'category' => $product->category,
-                    'seller_id' => $product->seller_id,
-                    'approval_status' => $product->approval_status,
-                    'created_at' => $product->created_at,
-                    'updated_at' => $product->updated_at,
-                ];
-            });
-            
-            return response()->json($productsWithImages);
+            $sellerId = $seller->sellerID;
+            try {
+                $products = Product::where('seller_id', $sellerId)
+                                 ->where('productName', 'like', '%' . $name . '%')
+                                 ->get();
+                Log::info('Products search completed:', ['search_term' => $name, 'count' => $products->count()]);
+                
+                // Transform products to include full image URLs
+                $productsWithImages = $products->map(function ($product) {
+                    $productImageUrl = $product->productImage
+                        ? url('storage/' . ltrim($product->productImage, '/'))
+                        : '';
+                        
+                    return [
+                        'id' => $product->product_id,
+                        'productName' => $product->productName,
+                        'productDescription' => $product->productDescription,
+                        'productPrice' => $product->productPrice,
+                        'productQuantity' => $product->productQuantity,
+                        'status' => $product->status,
+                        'productImage' => $productImageUrl,
+                        'productVideo' => $product->productVideo,
+                        'category' => $product->category,
+                        'seller_id' => $product->seller_id,
+                        'approval_status' => $product->approval_status,
+                        'created_at' => $product->created_at,
+                        'updated_at' => $product->updated_at,
+                    ];
+                });
+                
+                return response()->json($productsWithImages);
+            } catch (\Exception $e) {
+                Log::error('Error searching products:', ['error' => $e->getMessage()]);
+                return response()->json(['message' => 'Error searching products: ' . $e->getMessage()], 500);
+            }
         } catch (\Exception $e) {
             Log::error('Error searching products:', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Error searching products: ' . $e->getMessage()], 500);
@@ -396,7 +405,10 @@ class ProductController extends Controller
             return response()->json(['message' => 'Product not found'], 404);
         } catch (\Exception $e) {
             Log::error('Error fetching product details:', ['error' => $e->getMessage()]);
-            return response()->json(['message' => 'Error fetching product details: ' . $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching product details: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -651,5 +663,4 @@ class ProductController extends Controller
             return response()->json(['message' => 'Error fetching approved products: ' . $e->getMessage()], 500);
         }
     }
-    
 }

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { User, ArrowRight, Mail } from "lucide-react";
 import api from "../../api";
 import "./Register.css";
+import { useUser } from "../Context/UserContext";
 
 const Register = () => {
   const [form, setForm] = useState({
@@ -20,6 +21,7 @@ const Register = () => {
 
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { register } = useUser();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -33,7 +35,7 @@ const Register = () => {
     e.preventDefault();
     setError("");
     try {
-      const res = await api.post("/register", {
+      const result = await register({
         userName: form.userName,
         userEmail: form.userEmail,
         userPassword: form.userPassword,
@@ -44,14 +46,11 @@ const Register = () => {
         userAddress: form.userAddress,
         role: form.role,
       });
-      // Store the token
-      localStorage.setItem("token", res.data.token);
-      // Set the token in the API headers for future requests
-      api.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
+      
       // Redirect based on user type
-      if (res.data.user_type === "admin") {
+      if (result.userType === "admin") {
         navigate("/admin");
-      } else if (res.data.user_type === "seller") {
+      } else if (result.userType === "seller") {
         navigate("/seller");
       } else {
         navigate("/home");

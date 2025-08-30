@@ -166,10 +166,10 @@ const ArtisanTable = ({ onViewSeller = () => {} }) => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Image</TableHead>
               <TableHead>Seller</TableHead>
               <TableHead>Business</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Category</TableHead>
               <TableHead>Revenue</TableHead>
               <TableHead>Products</TableHead>
               <TableHead>Orders</TableHead>
@@ -182,6 +182,19 @@ const ArtisanTable = ({ onViewSeller = () => {} }) => {
             {sellers.map((seller, index) => (
               <TableRow key={index}>
                 <TableCell>
+                  {seller.profile_image_url ? (
+                    <img
+                      src={seller.profile_image_url}
+                      alt={seller.user?.userName}
+                      className="w-12 h-12 object-cover rounded-full"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xs text-gray-500">
+                      No Image
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>
                   <div>
                     <div className="font-medium">{seller.user?.userName || ""}</div>
                     <div className="text-sm text-gray-500">{seller.sellerID || ""}</div>
@@ -189,11 +202,10 @@ const ArtisanTable = ({ onViewSeller = () => {} }) => {
                 </TableCell>
                 <TableCell>{seller.businessName || ""}</TableCell>
                 <TableCell>{seller.user?.userAddress || ""}</TableCell>
-                <TableCell>{seller.specialty || ""}</TableCell>
                 <TableCell>
                   ₱0.00
                 </TableCell>
-                <TableCell>{seller.productCount || 0}</TableCell>
+                <TableCell>{seller.products_count || 0}</TableCell>
                 <TableCell>0</TableCell>
                 <TableCell>
                   {seller.created_at

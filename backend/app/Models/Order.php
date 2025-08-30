@@ -29,11 +29,40 @@ class Order extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'customer_id',
-        'totalAmount',
+        'userID',
         'status',
-        'location',
+        'totalAmount',
+        'shippingAddress',
+        'paymentMethod',
+        'paymentStatus',
+        'orderDate',
+        'shippingDate',
+        'deliveryDate',
+        'notes'
     ];
+
+    protected $dates = [
+        'orderDate',
+        'shippingDate',
+        'deliveryDate'
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'userID', 'userID');
+    }
+
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'order_products', 'order_id', 'product_id')
+            ->withPivot(['quantity', 'price', 'total_amount'])
+            ->withTimestamps();
+    }
+
+    public function orderProducts()
+    {
+        return $this->hasMany(OrderProduct::class, 'order_id', 'orderID');
+    }
 
     /**
      * The attributes that should be cast.

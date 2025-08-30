@@ -8,7 +8,7 @@ import {
   Store,
   Mail,
 } from "lucide-react";
-import api from "../../api";
+import { useUser } from "../Context/UserContext";
 import "./Login.css";
 
 const Login = () => {
@@ -18,22 +18,21 @@ const Login = () => {
   const [role, setRole] = useState("customer");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useUser();
 
   // 🔹 Handle Email/Password Login
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     try {
-      const res = await api.post("/login", {
+      const result = await login({
         userEmail: email,
         userPassword: password,
       });
-      localStorage.setItem("token", res.data.token);
-      api.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
-
-      if (res.data.user_type === "admin") {
+      
+      if (result.userType === "admin") {
         navigate("/admin");
-      } else if (res.data.user_type === "seller") {
+      } else if (result.userType === "seller") {
         navigate("/seller");
       } else {
         navigate("/home");
@@ -54,8 +53,7 @@ const Login = () => {
 
     if (token) {
       localStorage.setItem("token", token);
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
+      
       if (userType === "admin") {
         navigate("/admin");
       } else if (userType === "seller") {

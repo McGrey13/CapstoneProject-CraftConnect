@@ -63,6 +63,8 @@ class User extends Authenticatable
         'userBirthday',
         'userContactNumber',
         'userAddress',
+        'userCity',
+        'userPostalCode',
         'role',
         // 'otp',
         // 'otp_expires_at',

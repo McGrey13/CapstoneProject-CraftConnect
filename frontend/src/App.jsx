@@ -22,6 +22,9 @@ import Login from './Components/Auth/Login';
 import ProductsPage from './Components/Product/ProductsPage';
 import ProductDetails from './Components/product/ProductDetails';
 import { Favorites } from './Components/pages/Favorites';
+import Orders from './Components/Orders/Orders';
+import Profile from './Components/Profile/Profile';
+import Settings from './Components/Settings/Settings';
 
 // Seller Pages
 import MarketingTools from './Components/Seller/MarketingTools';
@@ -59,8 +62,11 @@ function App() {
         <Route path="/" element={<PublicLayout />}>
           <Route path="home" element={<Home />} />
           <Route path="favorites" element={<Favorites />} />
-          <Route path="cart" element={<ShoppingCart />} />
-          <Route path="checkout" element={<Checkout />} />
+          <Route path="/cart" element={<ShoppingCart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="search" element={<SearchResults />} />
           <Route path="about" element={<About />} />
           <Route path="contact" element={<Contact />} />

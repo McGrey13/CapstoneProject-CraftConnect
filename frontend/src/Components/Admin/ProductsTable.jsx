@@ -201,6 +201,7 @@ function ProductsTable() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Image</TableHead>
               <TableHead>Product</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
@@ -212,6 +213,19 @@ function ProductsTable() {
           <TableBody>
             {products.map((product) => (
               <TableRow key={product.id}>
+                <TableCell>
+                  {product.productImage ? (
+                    <img
+                      src={product.productImage}
+                      alt={product.productName}
+                      className="w-24 h-24 object-cover rounded-md"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 bg-gray-200 rounded-md flex items-center justify-center text-xs text-gray-500">
+                      No Image
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell>
                   <div>
                     <div className="font-medium">{product.productName}</div>
