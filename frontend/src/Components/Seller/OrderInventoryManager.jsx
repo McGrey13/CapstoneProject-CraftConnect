@@ -444,7 +444,7 @@ const InventoryTab = () => {
                 <Plus className="mr-2 h-4 w-4" /> Add Product
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="max-w-lg w-full rounded-2xl p-6 bg-white shadow-lg">
               <DialogHeader>
                 <DialogTitle>Add New Product</DialogTitle>
               </DialogHeader>
@@ -493,7 +493,7 @@ const InventoryTab = () => {
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper" className="z-50 bg-white">
                       <SelectItem value="Pottery">Pottery</SelectItem>
                       <SelectItem value="Textiles">Textiles</SelectItem>
                       <SelectItem value="Woodwork">Woodwork</SelectItem>
@@ -521,7 +521,9 @@ const InventoryTab = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleAddProduct}>Save</Button>
+                <Button onClick={handleAddProduct}
+                className="bg-gradient-to-r from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 px-4 py-2 rounded-md"
+                >Save</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -596,7 +598,7 @@ const InventoryTab = () => {
 
       {/* Edit Product Modal */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg bg-white p-6 rounded-lg shadow-lg">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
           </DialogHeader>
