@@ -1,88 +1,5 @@
 <?php 
 
-
-// use App\Http\Controllers\Controller;
-// use Illuminate\Http\Request;
-// use App\Models\User;
-// use Illuminate\http\Response;
-// use Illuminate\Support\Facades\Hash;
-
-
-// class AuthController extends Controller
-// {
-//     public function index()
-//     {
-//         // Add your methods here for admin authentication
-//     }
-
-//     public function register(Request $request)
-//     {
-//         $fields = $request->validate([
-//             'userFirstName' => 'required|string|',
-//             'userLastName' => 'required|string|',
-//             'userEmail' => 'required|string|email|max:255|unique:users,userEmail',
-//             'userPassword' => 'required|string|confirmed',
-//             'userBirthDay' => 'nullable|string',
-//             'userContactNumber' => 'nullable|string|max:15',
-//             'userAddress' => 'nullable|string|max:255',
-//         ]);
- 
-//         $user = User::create([
-
-//             'userFirstName' => $fields['userFirstName'],
-//             'userLastName' => $fields['userLastName'], 
-//             'userEmail' => $fields['userEmail'],
-//             'userPassword' => bcrypt($fields['userPassword']),
-//             'userBirthDay' => $fields['userBirthDay']?? null,
-//             'userContactNumber' => $fields['userContactNumber']?? null,
-//             'userAddress' => $fields['userAddress']?? null,
-//         ]);
-
-//         $token = $user->createToken('auth_token')->plainTextToken;
-
-//         $response  = [
-//             'user' => $user,
-//             'token' => $token,
-//         ];
-
-//         return response($response, 201);
-        
-//     }
-
-//     public function login(Request $request)
-//     {
-//         $fields = $request->validate([
-//             'userEmail' => 'required|string|email',
-//             'userPassword' => 'required|string',
-//         ]);
-
-//         // Check email
-//         $user = User::where('userEmail', $fields['userEmail'])->first();
-//         if (!$user || !Hash::check($fields['userPassword'], $user->userPassword)) {
-//             return response([
-//                 'message' => 'Invalid credentials'
-//             ], 401);
-//         }
-
-//         $token = $user->createToken('auth_token')->plainTextToken;
-
-//         $response = [
-//             'user' => $user,
-//             'token' => $token,
-//         ];
-
-//         return response($response, 200);
-//     }
-//      public function logout(Request $request)
-//         {
-//             $request->user()->tokens()->delete();
-
-//             return response([
-//                 'message' => 'Logged out successfully'
-//             ]);
-//         }
-
-
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
@@ -93,7 +10,15 @@ use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Laravel\Socialite\Facades\Socialite;
+use Exception;
+use Illuminate\Support\Str;
+
+use function Pest\Laravel\withHeaders;
 
 class AuthController extends Controller
 {
@@ -102,10 +27,98 @@ class AuthController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function showRegistrationForm()
+
+    public function getCustomers()
     {
-        return view('auth.register'); // You'll need to create this Blade view
+        return response()->json(User::where('role', 'customer')->get());
     }
+    public function getSellers()
+    {
+        $sellers = Seller::with(['user', 'products'])->get()->map(function ($seller) {
+            return [
+                'sellerID' => $seller->sellerID,
+                'businessName' => $seller->businessName,
+                'specialty' => $seller->specialty,
+                'status' => $seller->status,
+                'created_at' => $seller->created_at,
+                'updated_at' => $seller->updated_at,
+                'profile_image_url' => $seller->profile_image_url,
+                'products_count' => $seller->products->count(),
+                'user' => [
+                    'id' => $seller->user->id,
+                    'userName' => $seller->user->userName,
+                    'userEmail' => $seller->user->userEmail,
+                    'userAddress' => $seller->user->userAddress,
+                    'userContactNumber' => $seller->user->userContactNumber,
+                ]
+            ];
+        });
+
+        return response()->json($sellers);
+    }
+
+    public function getSellerById($id)
+    {
+        try {
+            $seller = Seller::where('user_id', $id)
+                ->with('user') // eager load the user relationship
+                ->first();
+
+            if (!$seller) {
+                return response()->json(['message' => 'Seller not found'], 404);
+            }
+
+            return response()->json([
+                'id' => $seller->id,
+                'shop_name' => $seller->shop_name ?? null,
+                'shop_description' => $seller->shop_description ?? null,
+                'created_at' => $seller->created_at,
+                'updated_at' => $seller->updated_at,
+
+                // pull user fields
+                'user' => [
+                    'id' => $seller->user->id,
+                    'userName' => $seller->user->userName,
+                    'userEmail' => $seller->user->userEmail,
+                    'userAddress' => $seller->user->userAddress,
+                    'userContactNumber' => $seller->user->userContactNumber,
+                ]
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Error fetching seller: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function getAdmins()
+    {
+        return response()->json(User::where('role', 'admin')->get());
+    }
+
+    public function show(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        // Return only the basic user data to avoid potential relationship errors
+        // You can add more columns here if needed.
+        $profileData = [
+            'id' => $user->id,
+            'userName' => $user->userName,
+            'userEmail' => $user->userEmail,
+            'role' => $user->role,
+            'userBirthday' => $user->userBirthday,
+            'userContactNumber' => $user->userContactNumber,
+            'userAddress' => $user->userAddress,
+        ];
+        
+        return response()->json($profileData);
+    }
+
 
     /**
      * Handle user registration.
@@ -139,25 +152,26 @@ class AuthController extends Controller
             'userContactNumber' => $request->userContactNumber,
             'userAddress' => $request->userAddress,
             'role' => $request->role,
+            // 'otp'=> rand(100000, 999999),
+            // 'otp_expires_at' => Carbon::now()->addMinutes(10)
         ]);
 
-        // Create the specific role record based on selection
         switch ($request->role) {
             case 'admin':
             case 'administrator':
-                $user->administrator()->create([]); // Create an empty administrator profile
+                $user->administrator()->create([]); 
                 break;
             case 'seller':
-                $user->seller()->create([]); // Create an empty seller profile
+                $user->seller()->create([]); 
                 break;
             case 'customer':
-                $user->customer()->create([]); // Create an empty customer profile
+                $user->customer()->create([]); 
                 break;
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;// Create an authentication token
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-        Auth::login($user); // Log the user in after registration
+        Auth::login($user); 
 
         $response = [
             'user' => $user,
@@ -167,23 +181,6 @@ class AuthController extends Controller
         return response($response, 201);
     }
 
-    /**
-     * Show the login form.
-     *
-     * @return \Illuminate\View\View
-     */
-    public function showLoginForm()
-    {
-        return view('auth.login'); // You'll need to create this Blade view
-    }
-
-    /**
-     * Handle user login.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -217,24 +214,13 @@ class AuthController extends Controller
             'user_type' => $userType
         ], 200);
     }
-
-    /**
-     * Get the authenticated user.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function user(Request $request)
     {
         return response()->json($request->user());
     }
 
-    /**
-     * Log the user out of the application.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+     // Log the user out of the application.
+
     public function logout(Request $request)
     {
         $request->user()->tokens()->delete();
@@ -242,6 +228,75 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Logged out successfully'
         ]);
+    }
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->stateless()->redirect();
+    }
+
+    public function handleGoogleCallback()
+    {
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
+    
+            $user = User::where('userEmail', $googleUser->getEmail())->first();
+    
+            if (!$user) {
+                $user = User::create([
+                    'userName'      => $googleUser->getName(),
+                    'userEmail'     => $googleUser->getEmail(),
+                    'userPassword'  => bcrypt(Str::random(16)),
+                    'role'          => 'customer',
+                ]);
+            }
+    
+            $token = $user->createToken('auth_token')->plainTextToken;
+    
+            return redirect("http://localhost:5173/login?token={$token}");
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+    
+    public function deactivate(Request $request)
+    {
+        $userId = Auth::id();
+        $user = User::find($userId);
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $user->status = 'inactive';
+        $user->save();
+
+        if (method_exists($user, 'tokens')) {
+            $user->tokens()->delete();
+        }
+
+        Log::info('User deactivated account.', ['user_id' => $user->id]);
+
+        return response()->json(['message' => 'Account deactivated successfully.']);
+    }
+
+    public function destroy(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+        
+        if ($user instanceof \App\Models\User) {
+            if (method_exists($user, 'tokens')) {
+                $user->tokens()->delete();
+            }
+            $user->delete();
+        } else {
+            return response()->json(['message' => 'User instance not found.'], 500);
+        }
+
+        Log::info('User deleted account.', ['user_id' => $user->id]);
+
+        return response()->json(['message' => 'Account deleted successfully.']);
     }
 }
 

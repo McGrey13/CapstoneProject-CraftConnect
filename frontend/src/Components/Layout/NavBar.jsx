@@ -1,19 +1,23 @@
 import './NavBar.css';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaShoppingCart, FaUser } from 'react-icons/fa';
+import { FaShoppingCart, FaUser, FaHeart } from 'react-icons/fa';
+import { useUser } from '../Context/UserContext';
+import { useCart } from '../Cart/CartContext';
 
-const Navbar = ({ user, onLogout }) => {
+const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const { user, logout } = useUser();
+  const { cartItems } = useCart();
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
 
-  const handleLogout = () => {
-    onLogout && onLogout();
+  const handleLogout = async () => {
+    await logout();
     setIsDropdownOpen(false);
     navigate('/login');
   };
@@ -24,9 +28,12 @@ const Navbar = ({ user, onLogout }) => {
     }
   };
 
+  // Calculate total items in cart
+  const cartItemCount = cartItems.reduce((total, item) => total + (item.quantity || 1), 0);
+
   return (
     <nav className="navbar">
-      <Link to="/" className="navbar-brand">CraftConnect</Link>
+      <Link to="/home" className="navbar-brand">CraftConnect</Link>
 
       <div className="navbar-links">
         <Link to="/Categories">Categories</Link>
@@ -47,10 +54,14 @@ const Navbar = ({ user, onLogout }) => {
         <button className="search-button" onClick={handleSearch}>Search</button>
       </div>
 
+      {/* Heart beside Cart */}
       <div className="navbar-cart">
+        <Link to="/favorites" className="favorites-link" style={{ marginRight: "12px" }}>
+          <FaHeart size={22} color="white" />
+        </Link>
         <Link to="/cart" className="cart-link">
           <FaShoppingCart size={24} />
-          <span className="cart-count">0</span>
+          <span className="cart-count">{cartItemCount}</span>
         </Link>
       </div>
 
@@ -58,17 +69,63 @@ const Navbar = ({ user, onLogout }) => {
       <div className="user-account">
         <FaUser size={20} className="user-icon" onClick={toggleDropdown} />
         {isDropdownOpen && (
-          <div className="dropdown-content">
-            {!user ? (
+          <div className="profile-modal">
+            {user ? (
               <>
-                <Link to="/login" onClick={() => setIsDropdownOpen(false)}>Login</Link>
-                <Link to="/register" onClick={() => setIsDropdownOpen(false)}>Register</Link>
+                <div className="px-4 py-2 text-sm text-gray-700">
+                  <p>Hello, {user.userName || user.firstName || 'User'}</p>
+                  <p className="text-xs text-gray-500">{user.userEmail || user.email}</p>
+                </div>
+                <div className="border-t border-gray-100"></div>
+                <Link 
+                  to="/orders" 
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  My Orders
+                </Link>
+                <Link 
+                  to="/profile" 
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Profile
+                </Link>
+                <Link 
+                  to="/settings" 
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Settings
+                </Link>
+                <div className="border-t border-gray-100"></div>
+                <button 
+                  onClick={handleLogout} 
+                  className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                >
+                  Sign out
+                </button>
               </>
             ) : (
               <>
-                <Link to="/profile" onClick={() => setIsDropdownOpen(false)}>Profile</Link>
-                <Link to="/settings" onClick={() => setIsDropdownOpen(false)}>Settings</Link>
-                <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}>Logout</button>
+                <button 
+                  onClick={() => { 
+                    navigate("/login"); 
+                    setIsDropdownOpen(false); 
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Login
+                </button>
+                <button 
+                  onClick={() => { 
+                    navigate("/register"); 
+                    setIsDropdownOpen(false); 
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Register
+                </button>
               </>
             )}
           </div>

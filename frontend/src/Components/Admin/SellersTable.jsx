@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Edit, Trash2, Eye, MoreHorizontal, Filter } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input"; 
@@ -14,126 +14,57 @@ import {
 import { Badge } from "../ui/badge"; 
 
 
-const mockSellers = [
-  {
-    id: "SEL-1001",
-    name: "Sarah Johnson",
-    businessName: "Sarah's Pottery",
-    location: "Calamba, Laguna",
-    category: "Ceramics",
-    joinDate: "2023-01-15",
-    status: "active",
-    revenue: 12450.75,
-    productsCount: 24,
-    ordersCount: 87,
-  },
-  {
-    id: "SEL-1002",
-    name: "Miguel Santos",
-    businessName: "Weaving Wonders",
-    location: "San Pedro, Laguna",
-    category: "Textiles",
-    joinDate: "2023-02-22",
-    status: "active",
-    revenue: 9875.5,
-    productsCount: 18,
-    ordersCount: 65,
-  },
-  {
-    id: "SEL-1003",
-    name: "Elena Cruz",
-    businessName: "Knot & Fiber",
-    location: "Victoria, Laguna",
-    category: "Textiles",
-    joinDate: "2023-01-05",
-    status: "active",
-    revenue: 15320.25,
-    productsCount: 31,
-    ordersCount: 112,
-  },
-  {
-    id: "SEL-1004",
-    name: "Antonio Reyes",
-    businessName: "Forest Crafts",
-    location: "Paete, Laguna",
-    category: "Woodworking",
-    joinDate: "2023-03-10",
-    status: "pending",
-    revenue: 0,
-    productsCount: 15,
-    ordersCount: 0,
-  },
-  {
-    id: "SEL-1005",
-    name: "Maria Lim",
-    businessName: "Paper Artistry",
-    location: "Pakil, Laguna",
-    category: "Paper Crafts",
-    joinDate: "2023-02-18",
-    status: "suspended",
-    revenue: 2150.0,
-    productsCount: 12,
-    ordersCount: 23,
-  },
-  {
-    id: "SEL-1006",
-    name: "Jose Garcia",
-    businessName: "Glass Wonders",
-    location: "Liliw, Laguna",
-    category: "Glass Works",
-    joinDate: "2023-03-25",
-    status: "active",
-    revenue: 7890.5,
-    productsCount: 9,
-    ordersCount: 42,
-  },
-  {
-    id: "SEL-1007",
-    name: "Sophia Mendoza",
-    businessName: "Natural Essentials",
-    location: "Los Baños, Laguna",
-    category: "Bath & Body",
-    joinDate: "2023-01-30",
-    status: "active",
-    revenue: 11245.75,
-    productsCount: 22,
-    ordersCount: 95,
-  },
-  {
-    id: "SEL-1008",
-    name: "Rafael Dizon",
-    businessName: "Metal Creations",
-    location: "Nagcarlan, Laguna",
-    category: "Metal Works",
-    joinDate: "2023-02-05",
-    status: "active",
-    revenue: 8765.25,
-    productsCount: 14,
-    ordersCount: 56,
-  },
-];
-
 const SellersTable = ({ onViewSeller = () => {} }) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [sellers, setSellers] = useState(mockSellers);
+  const [sellers, setSellers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchSellers = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:8000/api/sellers", {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+
+        const data = await res.json();
+        console.log("API Response:", data);
+
+        setSellers(data);
+      } catch (err) {
+        console.error("Error fetching sellers:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSellers();
+  }, []);
+
 
   const handleSearch = (e) => {
     const query = e.target.value.toLowerCase();
     setSearchQuery(query);
 
-    if (query.trim() === "") {
-      setSellers(mockSellers);
-    } else {
-      const filtered = mockSellers.filter(
-        (seller) =>
-          seller.name.toLowerCase().includes(query) ||
-          seller.businessName.toLowerCase().includes(query) ||
-          seller.location.toLowerCase().includes(query) ||
-          seller.id.toLowerCase().includes(query)
-      );
-      setSellers(filtered);
-    }
+    // This will now filter the state directly, no need to reset to mock data
+    // The filtering logic below will handle both searching and clearing the search
   };
+
+  const filteredSellers = sellers.filter(
+    (seller) =>
+      (seller.user?.userName.toLowerCase() || "").includes(searchQuery) ||
+      (seller.businessName?.toLowerCase() || "").includes(searchQuery) ||
+      (seller.user?.userAddress?.toLowerCase() || "").includes(searchQuery) ||
+      (seller.sellerID?.toString() || "").includes(searchQuery)
+  );
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -194,10 +125,10 @@ const SellersTable = ({ onViewSeller = () => {} }) => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Image</TableHead>
               <TableHead>Seller</TableHead>
               <TableHead>Business</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Category</TableHead>
               <TableHead>Revenue</TableHead>
               <TableHead>Products</TableHead>
               <TableHead>Orders</TableHead>
@@ -207,22 +138,47 @@ const SellersTable = ({ onViewSeller = () => {} }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sellers.map((seller) => (
-              <TableRow key={seller.id}>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={11} className="text-center">
+                  Loading sellers...
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={11} className="text-center text-red-600">
+                  Failed to load sellers: {error}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredSellers.map((seller) => (
+                <TableRow key={seller.sellerID}>
+                <TableCell>
+                  {seller.profile_image_url ? (
+                    <img
+                      src={seller.profile_image_url}
+                      alt={seller.user?.userName}
+                      className="w-12 h-12 object-cover rounded-full"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-xs text-gray-500">
+                      No Image
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell>
                   <div>
-                    <div className="font-medium">{seller.name}</div>
-                    <div className="text-sm text-gray-500">{seller.id}</div>
+                    <div className="font-medium">{seller.user?.userName}</div>
+                    <div className="text-sm text-gray-500">{seller.sellerID}</div>
                   </div>
                 </TableCell>
                 <TableCell>{seller.businessName}</TableCell>
                 <TableCell>{seller.location}</TableCell>
-                <TableCell>{seller.category}</TableCell>
-                <TableCell>${seller.revenue.toFixed(2)}</TableCell>
-                <TableCell>{seller.productsCount}</TableCell>
-                <TableCell>{seller.ordersCount}</TableCell>
+                <TableCell>₱{Number(seller.revenue || 0).toFixed(2)}</TableCell>
+                <TableCell>{seller.products_count || 0}</TableCell>
+                <TableCell>{seller.orders_count || 0}</TableCell>
                 <TableCell>
-                  {new Date(seller.joinDate).toLocaleDateString()}
+                  {new Date(seller.created_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell>{getStatusBadge(seller.status)}</TableCell>
                 <TableCell className="text-right">
@@ -301,15 +257,16 @@ const SellersTable = ({ onViewSeller = () => {} }) => {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
-              </TableRow>
-            ))}
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500">
-          Showing {sellers.length} of {mockSellers.length} sellers
+          Showing {filteredSellers.length} of {sellers.length} sellers
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="sm" disabled>

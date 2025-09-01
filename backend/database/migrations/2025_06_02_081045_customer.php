@@ -19,6 +19,7 @@ return new class extends Migration
         Schema::create('customers', function (Blueprint $table) {
             $table->id('customerID'); // Primary key for customers table
             $table->foreignId('user_id')->constrained('users', 'userID')->onDelete('cascade'); // Foreign key to users table
+            $table->string('profile_picture_path')->nullable(); 
             // Note: customerEmail and customerPassword are typically handled by the 'users' table.
             $table->timestamps();
         });

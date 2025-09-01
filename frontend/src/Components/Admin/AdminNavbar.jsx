@@ -13,11 +13,30 @@ import {
 import { Badge } from "../ui/badge";
 
 const AdminNavbar = ({
-  userName = "Admin User",
-  notificationCount = 5,
+  userName = "Admin",
+  notificationCount = 0,
 }) => {
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      await fetch("http://localhost:8000/api/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+    } catch (error) {
+      console.error("Error during logout:", error);
+    } finally {
+      localStorage.removeItem("auth_token");
+      window.location.href = "/login";
+    }
+  };
+
   return (
-    <nav className="w-full h-16 bg-white border-b border-gray-200 px-4">
+    <nav className="w-full h-16 bg-white border-b border-gray-200 px-4 fixed top-0 left-0 z-[9999]">
       <div className="h-full flex items-center justify-between">
         {/* Logo */}
         <Link to="/admin" className="flex items-center">
@@ -43,8 +62,8 @@ const AdminNavbar = ({
           </div>
         </Link>
 
-        {/* Right Side Icons */}
-        <div className="flex items-center space-x-4">
+        {/* Right Side */}
+        <div className="flex items-center space-x-4 relative z-50">
           {/* Notifications */}
           <Link to="/admin/notifications" className="relative">
             <Button variant="ghost" size="icon">
@@ -67,32 +86,41 @@ const AdminNavbar = ({
             </Button>
           </Link>
 
-          {/* User Account */}
+          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full relative"
+              >
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent
+              align="end"
+              sideOffset={8}
+              className="w-56"
+            >
               <DropdownMenuLabel>Hi, {userName}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Link to="/admin/profile" className="w-full">
+              <DropdownMenuItem asChild>
+                <Link to="/admin/profile" className="w-full cursor-pointer">
                   Profile
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Link to="/admin/settings" className="w-full">
+              <DropdownMenuItem asChild>
+                <Link to="/admin/settings" className="w-full cursor-pointer">
                   Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Link to="/logout" className="w-full flex items-center">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Link>
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="cursor-pointer"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                <span>Logout</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

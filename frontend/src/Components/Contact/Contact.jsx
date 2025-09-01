@@ -38,6 +38,26 @@ const ContactPage = () => {
     }, 1500);
   };
 
+  // Define the FAQs data with both questions and answers
+  const faqs = [
+    {
+      question: "How can I become a seller?",
+      answer: "You can become a seller by registering on our website and submitting an application. We review each application to ensure all artisans create authentic, handcrafted products that align with our community's values."
+    },
+    {
+      question: "What payment methods are accepted?",
+      answer: "We accept various secure payment options for your convenience, including major credit and debit cards, popular e-wallets like GCash and PayMaya, and bank transfers."
+    },
+    {
+      question: "How long does shipping take?",
+      answer: "Shipping times typically range from 3 to 7 business days, depending on your location. We provide a tracking number for every order so you can monitor your package's journey from the artisan's hands to your doorstep."
+    },
+    {
+      question: "What is your return policy?",
+      answer: "We want you to be completely satisfied with your purchase. If you receive a damaged or incorrect item, you can request a return or exchange within 7 days of delivery. The item must be in its original packaging."
+    }
+  ];
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <div className="container mx-auto px-4 py-8">
@@ -156,13 +176,12 @@ const ContactPage = () => {
         <div className="mb-12">
           <h2 className="text-xl font-semibold mb-4">FAQs</h2>
           <div className="space-y-4">
-            {["How can I become a seller?", "What payment methods are accepted?", "How long does shipping take?", "What is your return policy?"]
-              .map((q, i) => (
-                <div key={i} className="bg-white p-4 rounded-lg shadow-sm">
-                  <h3 className="font-medium text-lg mb-2">{q}</h3>
-                  <p className="text-gray-600">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-                </div>
-              ))}
+            {faqs.map((faq, i) => (
+              <div key={i} className="bg-white p-4 rounded-lg shadow-sm">
+                <h3 className="font-medium text-lg mb-2">{faq.question}</h3>
+                <p className="text-gray-600">{faq.answer}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
