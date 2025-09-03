@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MessageCircle } from "lucide-react";
 
 const ArtisanDetail = () => {
   const { id } = useParams();
@@ -10,6 +10,13 @@ const ArtisanDetail = () => {
   const [artisanProducts, setArtisanProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // Chat states
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { sender: "bot", text: "Hi! Feel free to chat with the artisan." },
+  ]);
+  const [newMessage, setNewMessage] = useState("");
 
   useEffect(() => {
     const fetchArtisan = async () => {
@@ -32,19 +39,12 @@ const ArtisanDetail = () => {
           story: data.story || "",
           videoUrl: data.video_url || "",
           image: (() => {
-            // Prioritize profile_picture_path from seller data
             if (data.profile_picture_path) {
-              const imageUrl = `http://localhost:8000/storage/${data.profile_picture_path}`;
-              console.log("Using seller profile_picture_path:", imageUrl);
-              return imageUrl;
+              return `http://localhost:8000/storage/${data.profile_picture_path}`;
             }
-            // Fallback to user profile_photo_url
             if (data.user.profile_photo_url && data.user.profile_photo_url.trim() !== "") {
-              console.log("Using user profile_photo_url:", data.user.profile_photo_url);
               return data.user.profile_photo_url;
             }
-            // Default fallback
-            console.log("Using default avatar");
             return "https://api.dicebear.com/7.x/avataaars/svg?seed=artisan";
           })(),
         });
@@ -63,6 +63,19 @@ const ArtisanDetail = () => {
     };
     fetchArtisan();
   }, [id]);
+
+  // Chat send handler
+  const handleSend = () => {
+    if (!newMessage.trim()) return;
+    setMessages([...messages, { sender: "user", text: newMessage }]);
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: "Thanks for your message! The artisan will reply soon." },
+      ]);
+    }, 800);
+    setNewMessage("");
+  };
 
   if (loading) {
     return (
@@ -84,8 +97,8 @@ const ArtisanDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white py-16">
-      <div className="container mx-auto px-6 max-w-6xl">
+    <div className="min-h-screen bg-white pb-48"> {/* space for chat */}
+      <div className="container mx-auto px-6 max-w-6xl py-16">
         <Link
           to="/artisan"
           className="inline-flex items-center mb-12 text-[#a4785a] hover:text-[#7a5c44] transition-colors font-semibold cursor-pointer"
@@ -103,7 +116,18 @@ const ArtisanDetail = () => {
             loading="lazy"
           />
           <div className="flex-1">
-            <h1 className="text-5xl font-extrabold text-gray-900 mb-3">{artisan.name}</h1>
+            <div className="flex items-center justify-between mb-3">
+              <h1 className="text-5xl font-extrabold text-gray-900">{artisan.name}</h1>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 border-[#a4785a] text-[#a4785a] hover:bg-[#a4785a] hover:text-white"
+                onClick={() => setIsChatOpen(true)}
+              >
+                <MessageCircle className="h-5 w-5" />
+                Chat
+              </Button>
+            </div>
             <p className="uppercase text-[#a4785a] font-semibold tracking-wide mb-6">
               {artisan.location} &bull; {artisan.specialty}
             </p>
@@ -155,7 +179,9 @@ const ArtisanDetail = () => {
                     />
                     <CardContent className="p-5">
                       <h3 className="font-semibold text-lg mb-2 text-gray-900">{product.title}</h3>
-                      <p className="text-[#a4785a] font-bold text-xl">₱{Number(product.price).toFixed(2)}</p>
+                      <p className="text-[#a4785a] font-bold text-xl">
+                        ₱{Number(product.price).toFixed(2)}
+                      </p>
                     </CardContent>
                   </Card>
                 </Link>
@@ -164,6 +190,59 @@ const ArtisanDetail = () => {
           )}
         </section>
       </div>
+
+      {/* Fixed Chat at Bottom */}
+      {isChatOpen && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 shadow-lg">
+          <div className="max-w-6xl mx-auto p-4">
+            {/* Header */}
+            <div className="flex justify-between items-center bg-[#a4785a] text-white px-4 py-2 rounded-t-lg">
+              <h3 className="font-semibold">Chat with {artisan.name}</h3>
+              <button onClick={() => setIsChatOpen(false)} className="border border-[#a4785a] text-[#a4785a] hover:bg-[#a4785a] hover:text-white px-4 py-2 rounded-full text-sm font-semibold transition">
+                ✕
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="p-4 h-64 overflow-y-auto bg-gray-50 rounded-b-lg">
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex mb-3 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`px-4 py-2 rounded-xl max-w-[70%] text-sm shadow-sm ${
+                      msg.sender === "user"
+                        ? "bg-[#a4785a] text-white rounded-br-none"
+                        : "bg-gray-200 text-gray-800 rounded-bl-none"
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Input */}
+            <div className="flex items-center gap-2 border-t p-3 bg-white">
+              <input
+                type="text"
+                placeholder="Type your message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#a4785a]"
+              />
+              <button
+                onClick={handleSend}
+                className="border border-[#a4785a] text-[#a4785a] hover:bg-[#a4785a] hover:text-white px-4 py-2 rounded-full text-sm font-semibold transition"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

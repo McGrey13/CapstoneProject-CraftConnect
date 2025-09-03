@@ -13,6 +13,7 @@ import {
   Bell,
   LogOut,
   UserCircle,
+  MessageCircle,
 } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -55,6 +56,13 @@ const SellerLayout = () => {
   const userName = "Seller User";
   const notificationCount = 3;
 
+  // Chat states
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { sender: "bot", text: "Hi! This is your seller support chat." },
+  ]);
+  const [newMessage, setNewMessage] = useState("");
+
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem("auth_token");
@@ -72,6 +80,18 @@ const SellerLayout = () => {
       localStorage.removeItem("token");
       window.location.href = "/login";
     }
+  };
+
+  const handleSend = () => {
+    if (!newMessage.trim()) return;
+    setMessages([...messages, { sender: "user", text: newMessage }]);
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: "Thanks! Our team will get back to you shortly." },
+      ]);
+    }, 800);
+    setNewMessage("");
   };
 
   const renderContent = () => {
@@ -187,6 +207,65 @@ const SellerLayout = () => {
           {renderContent()}
         </main>
       </div>
+
+      {/* Floating Chat Button */}
+      <button
+        onClick={() => setIsChatOpen(true)}
+        className="fixed bottom-6 right-6 bg-white border border-[#a4785a] text-[#a4785a] hover:bg-[#a4785a] hover:text-white p-4 rounded-full shadow-lg transition"
+      >
+        <MessageCircle className="h-6 w-6" />
+      </button>
+
+      {/* Chat Popup */}
+      {isChatOpen && (
+        <div className="fixed bottom-20 right-6 w-80 bg-white border border-gray-300 rounded-xl shadow-lg flex flex-col">
+          {/* Header */}
+          <div className="flex justify-between items-center bg-[#a4785a] text-white px-4 py-2 rounded-t-xl">
+            <h3 className="font-semibold">Support Chat</h3>
+            <button onClick={() => setIsChatOpen(false)} className="hover:text-gray-200">
+              ✕
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="p-3 h-64 overflow-y-auto bg-gray-50">
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className={`flex mb-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`px-3 py-2 rounded-lg max-w-[70%] text-sm shadow-sm ${
+                    msg.sender === "user"
+                      ? "bg-[#a4785a] text-white rounded-br-none"
+                      : "bg-gray-200 text-gray-800 rounded-bl-none"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Input */}
+          <div className="flex items-center gap-2 border-t p-2">
+            <input
+              type="text"
+              placeholder="Type your message..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              className="flex-1 border border-gray-300 rounded-full px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#a4785a]"
+            />
+            <button
+              onClick={handleSend}
+              className="border border-[#a4785a] text-[#a4785a] hover:bg-[#a4785a] hover:text-white px-3 py-1 rounded-full text-sm font-semibold transition"
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
