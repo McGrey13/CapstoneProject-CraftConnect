@@ -222,7 +222,7 @@ const SellerLayout = () => {
           {/* Header */}
           <div className="flex justify-between items-center bg-[#a4785a] text-white px-4 py-2 rounded-t-xl">
             <h3 className="font-semibold">Support Chat</h3>
-            <button onClick={() => setIsChatOpen(false)} className="hover:text-gray-200">
+            <button onClick={() => setIsChatOpen(false)} className="border border-[#a4785a] text-[#a4785a] hover:bg-[#a4785a] hover:text-white px-3 py-1 rounded-full text-sm font-semibold transition">
               ✕
             </button>
           </div>
