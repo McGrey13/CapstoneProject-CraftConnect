@@ -609,6 +609,97 @@ class ProductController extends Controller
     /**
      * Get all approved products for public viewing
      */
+    /**
+     * Toggle featured status of a product
+     */
+    public function toggleFeatured($id)
+    {
+        try {
+            $product = Product::findOrFail($id);
+            
+            // Check if the product belongs to the authenticated seller
+            $ownershipCheck = $this->checkProductOwnership($product);
+            if ($ownershipCheck !== true) {
+                return $ownershipCheck;
+            }
+            
+            $product->is_featured = !$product->is_featured;
+            $product->save();
+            
+            return response()->json([
+                'success' => true,
+                'is_featured' => $product->is_featured,
+                'message' => 'Product featured status updated successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update featured status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get featured products for public viewing
+     */
+    public function featuredProducts()
+    {
+        try {
+            $products = Product::with('seller.user')
+                ->where('approval_status', 'approved')
+                ->where('is_featured', true)
+                ->get();
+
+            // Transform products to include full image URLs
+            $productsWithImages = $products->map(function ($product) {
+                $productImageUrl = $product->productImage
+                    ? url('storage/' . ltrim($product->productImage, '/'))
+                    : '';
+                    
+                $productData = [
+                    'id' => $product->product_id,
+                    'productName' => $product->productName,
+                    'productDescription' => $product->productDescription,
+                    'productPrice' => $product->productPrice,
+                    'productQuantity' => $product->productQuantity,
+                    'status' => $product->status,
+                    'productImage' => $productImageUrl,
+                    'productVideo' => $product->productVideo,
+                    'category' => $product->category,
+                    'seller_id' => $product->seller_id,
+                    'approval_status' => $product->approval_status,
+                    'is_featured' => $product->is_featured,
+                    'created_at' => $product->created_at,
+                    'updated_at' => $product->updated_at,
+                ];
+
+                // Include seller information if available
+                if ($product->seller) {
+                    $productData['seller'] = [
+                        'sellerID' => $product->seller->sellerID,
+                        'user' => $product->seller->user ? [
+                            'userName' => $product->seller->user->userName,
+                            'userEmail' => $product->seller->user->userEmail,
+                            'userAddress' => $product->seller->user->userAddress,
+                        ] : null,
+                        'profile_picture_path' => $product->seller->profile_picture_path,
+                        'profile_image_url' => $product->seller->profile_picture_path
+                            ? url('storage/' . ltrim($product->seller->profile_picture_path, '/'))
+                            : '',
+                    ];
+                }
+
+                return $productData;
+            });
+
+            return response()->json($productsWithImages);
+        } catch (\Exception $e) {
+            Log::error('Error fetching featured products:', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Error fetching featured products: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function approvedProducts()
     {
         try {

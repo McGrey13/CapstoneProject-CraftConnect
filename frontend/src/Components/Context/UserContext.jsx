@@ -9,7 +9,7 @@ export const UserProvider = ({ children }) => {
 
   // Check if user is authenticated on app load
   const checkAuthStatus = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     if (!token) {
       setLoading(false);
       return;
@@ -25,7 +25,7 @@ export const UserProvider = ({ children }) => {
     } catch (error) {
       console.error('Authentication check failed:', error);
       // Clear invalid token
-      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
       delete api.defaults.headers.common['Authorization'];
     } finally {
       setLoading(false);
@@ -38,12 +38,13 @@ export const UserProvider = ({ children }) => {
       const response = await api.post('/login', credentials);
       const { token, user: userData } = response.data;
       
-      localStorage.setItem('token', token);
+      localStorage.setItem('auth_token', token);
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(userData);
       
       return { success: true, userType: response.data.user_type };
     } catch (error) {
+      console.error('Login error:', error);
       throw error;
     }
   };
@@ -52,7 +53,7 @@ export const UserProvider = ({ children }) => {
   const logout = async () => {
     try {
       // Call logout endpoint if token exists
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       if (token) {
         await api.post('/logout');
       }
@@ -60,7 +61,7 @@ export const UserProvider = ({ children }) => {
       console.error('Logout error:', error);
     } finally {
       // Clear local state regardless of API call success
-      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
       delete api.defaults.headers.common['Authorization'];
       setUser(null);
     }
@@ -70,14 +71,20 @@ export const UserProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await api.post('/register', userData);
-      const { token, user: newUser } = response.data;
       
-      localStorage.setItem('token', token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(newUser);
+      // The backend returns the user data directly in the response
+      // We'll store the token if it's provided, but don't expect it for OTP flow
+      if (response.data.token) {
+        localStorage.setItem('auth_token', response.data.token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        setUser(response.data.user);
+        return { ...response.data, success: true };
+      }
       
-      return { success: true, userType: response.data.user_type };
+      // For OTP flow, just return the success response
+      return { ...response.data, success: true };
     } catch (error) {
+      console.error('Registration error:', error);
       throw error;
     }
   };

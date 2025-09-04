@@ -7,16 +7,12 @@ import { useUser } from "../Context/UserContext";
 
 const Register = () => {
   const [form, setForm] = useState({
-    // These keys MUST match your User.php $fillable array exactly
     userName: "",
     userEmail: "",
     userPassword: "",
-    userPassword_confirmation: "", // This is for frontend and backend validation, not saved directly to DB
-    userAge: "",
-    userBirthDay: "",
+    userPassword_confirmation: "",
     userContactNumber: "",
-    userAddress: "",
-    role: "customer",
+    role: "",
   });
 
   const [error, setError] = useState("");
@@ -30,39 +26,56 @@ const Register = () => {
   const handleRole = (type) => {
     setForm({ ...form, role: type });
   };
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    
+    // Ensure all required fields are filled
+    if (!form.role) {
+      setError("Please select a role");
+      return;
+    }
+
     try {
+      // Call the register function from UserContext
       const result = await register({
         userName: form.userName,
         userEmail: form.userEmail,
         userPassword: form.userPassword,
         userPassword_confirmation: form.userPassword_confirmation,
-        userAge: form.userAge,
-        userBirthday: form.userBirthDay,
         userContactNumber: form.userContactNumber,
-        userAddress: form.userAddress,
         role: form.role,
       });
+
+      console.log("Registration result:", result);
       
-      // Redirect based on user type
-      if (result.userType === "admin") {
-        navigate("/admin");
-      } else if (result.userType === "seller") {
-        navigate("/seller");
-      } else {
-        navigate("/home");
-      }
+      // Navigate to OTP verification page with the email
+      navigate("/verify-otp", { 
+        state: { 
+          email: result.userEmail || form.userEmail 
+        } 
+      });
+      
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        JSON.stringify(err.response?.data?.errors) ||
-        "Registration failed."
-      );
+      console.error("Registration error:", err);
+      let errorMessage = "Registration failed. Please try again.";
+      
+      if (err.response) {
+        // Handle validation errors from the server
+        if (err.response.data?.errors) {
+          errorMessage = Object.values(err.response.data.errors)
+            .flat()
+            .join('\n');
+        } else if (err.response.data?.message) {
+          errorMessage = err.response.data.message;
+        }
+      }
+      
+      setError(errorMessage);
     }
   };
+  
 
   return (
     <div className="register-bg">
@@ -141,31 +154,6 @@ const Register = () => {
             onChange={handleChange}
             required
           />
-          <div className="register-row">
-            <div className="register-col">
-              <label htmlFor="userAge">Age</label>
-              <input
-                id="userAge"
-                name="userAge" // Corrected name to match state and model
-                placeholder="Your age"
-                type="number"
-                value={form.userAge}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="register-col">
-              <label htmlFor="userBirthDay">Birth Date</label>
-              <input
-                id="userBirthDay"
-                name="userBirthDay" // Corrected name to match state and model
-                type="date"
-                value={form.userBirthDay}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
           <label htmlFor="userContactNumber">Contact Number</label>
           <input
             id="userContactNumber"
@@ -173,16 +161,6 @@ const Register = () => {
             placeholder="+63XXXXXXXXXX"
             type="text"
             value={form.userContactNumber}
-            onChange={handleChange}
-            required
-          />
-          <label htmlFor="userAddress">Address</label>
-          <input
-            id="userAddress"
-            name="userAddress" // Corrected name to match state and model
-            placeholder="Your address"
-            type="text"
-            value={form.userAddress}
             onChange={handleChange}
             required
           />

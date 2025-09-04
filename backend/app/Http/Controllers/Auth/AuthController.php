@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Exception;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 
 use function Pest\Laravel\withHeaders;
 
@@ -32,6 +33,7 @@ class AuthController extends Controller
     {
         return response()->json(User::where('role', 'customer')->get());
     }
+
     public function getSellers()
     {
         $sellers = Seller::with(['user', 'products'])->get()->map(function ($seller) {
@@ -128,58 +130,47 @@ class AuthController extends Controller
      * @throws \Illuminate\Validation\ValidationException
      */
     public function register(Request $request)
-    {
-        
-        
-        $request->validate([
-            'userName' => ['required', 'string', 'max:255'],
-            'userEmail' => ['required', 'string', 'email', 'max:255', 'unique:users,userEmail'],
-            'userPassword' => ['required', 'string', 'min:8', 'confirmed'],
-            'userAge' => ['nullable', 'string', 'max:255'],
-            'userBirthday' => ['nullable', 'date'],
-            'userContactNumber' => ['nullable', 'string', 'max:255'],
-            'userAddress' => ['nullable', 'string', 'max:255'],
-            'role' => ['required', 'in:admin,administrator,seller,customer'], // User selects their role
-        ]);
+{
+    $request->validate([
+        'userName' => 'required|string|max:255',
+        'userEmail' => 'required|string|email|max:255|unique:users,userEmail',
+        'userPassword' => 'required|string|min:8|confirmed',
+        'userContactNumber' => 'required|string|max:15',
+        'role' => 'required|string|in:administrator,seller,customer',
+    ]);
 
-        // Create the main User record
-        $user = User::create([
-            'userName' => $request->userName,
-            'userEmail' => $request->userEmail,
-            'userPassword' => Hash::make($request->userPassword),
-            'userAge' => $request->userAge,
-            'userBirthday' => $request->userBirthday,
-            'userContactNumber' => $request->userContactNumber,
-            'userAddress' => $request->userAddress,
-            'role' => $request->role,
-            // 'otp'=> rand(100000, 999999),
-            // 'otp_expires_at' => Carbon::now()->addMinutes(10)
-        ]);
+    $otp = rand(100000, 999999);
 
-        switch ($request->role) {
-            case 'admin':
-            case 'administrator':
-                $user->administrator()->create([]); 
-                break;
-            case 'seller':
-                $user->seller()->create([]); 
-                break;
-            case 'customer':
-                $user->customer()->create([]); 
-                break;
-        }
+    $user = User::create([
+        'userName' => $request->userName,
+        'userEmail' => $request->userEmail,
+        'userPassword' => Hash::make($request->userPassword),
+        'userContactNumber' => $request->userContactNumber,
+        'role' => $request->role,
+        'otp' => $otp,
+        'otp_expires_at' => Carbon::now()->addMinutes(10),
+        'is_verified' => false, // default
+    ]);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        Auth::login($user); 
-
-        $response = [
-            'user' => $user,
-            'token' => $token,
-        ];
-
-        return response($response, 201);
+    // Assign role relationships
+    if ($request->role === 'administrator') {
+        Administrator::create(['user_id' => $user->userID]);
+    } elseif ($request->role === 'seller') {
+        Seller::create(['user_id' => $user->userID]);
+    } elseif ($request->role === 'customer') {
+        Customer::create(['user_id' => $user->userID]);
     }
+
+    // Send OTP
+    Mail::raw("Your OTP is: {$otp}", function ($message) use ($user) {
+        $message->to($user->userEmail)->subject('Your OTP Code');
+    });
+
+    return response()->json([
+        'message' => 'User registered successfully. Please verify with the OTP sent to your email.',
+        'userEmail' => $user->userEmail, 
+    ], 201);
+}
 
     public function login(Request $request)
     {
@@ -195,6 +186,10 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Invalid credentials'
             ], 401);
+        }
+
+        if (!$user->is_verified) {
+            return response()->json(['message' => 'Please verify your account before logging in.'], 403);
         }
 
         // Create token
@@ -214,12 +209,43 @@ class AuthController extends Controller
             'user_type' => $userType
         ], 200);
     }
+
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'userEmail' => 'required|email',
+            'otp' => 'required'
+        ]);
+    
+        $user = User::where('userEmail', $request->userEmail)->first();
+    
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+    
+        if ($user->otp !== $request->otp || Carbon::now()->greaterThan($user->otp_expires_at)) {
+            return response()->json(['message' => 'Invalid or expired OTP'], 400);
+        }
+    
+        $user->is_verified = true;
+        $user->otp = null;
+        $user->otp_expires_at = null;
+        $user->save();
+    
+        // 🔑 Create token after successful verification
+        $token = $user->createToken('auth_token')->plainTextToken;
+    
+        return response()->json([
+            'message' => 'Account verified successfully',
+            'token' => $token,
+            'user' => $user
+        ]);
+    }
+    
     public function user(Request $request)
     {
         return response()->json($request->user());
     }
-
-     // Log the user out of the application.
 
     public function logout(Request $request)
     {
@@ -273,7 +299,7 @@ class AuthController extends Controller
             $user->tokens()->delete();
         }
 
-        Log::info('User deactivated account.', ['user_id' => $user->id]);
+        Log::info('User deactivated account.', ['userID' => $user->id]);
 
         return response()->json(['message' => 'Account deactivated successfully.']);
     }
@@ -294,7 +320,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'User instance not found.'], 500);
         }
 
-        Log::info('User deleted account.', ['user_id' => $user->id]);
+        Log::info('User deleted account.', ['userID' => $user->id]);
 
         return response()->json(['message' => 'Account deleted successfully.']);
     }

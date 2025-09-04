@@ -1,5 +1,5 @@
 :root {
-  --navbar-height: 70px; /* Adjust here if you change navbar size */
+  --navbar-height: 65px; /* Adjust here if you change navbar size */
 }
 
 .navbar {
@@ -27,7 +27,7 @@ body {
   font-weight: bold;
   text-decoration: none;
   color: white;
-  margin-left: 15rem;
+  margin-left: 20rem;
 }
 
 .navbar-brand:hover {
@@ -43,7 +43,8 @@ body {
 .user-account {
   position: relative;
   display: inline-block;
-  margin-left: 1rem;
+  margin-right: 20rem;
+  margin-left: -20rem;
 }
 
 .profile-modal {

@@ -1,5 +1,4 @@
-<?php 
-
+<?php
 
 namespace App\Http\Controllers\Auth;
 
@@ -56,7 +55,10 @@ class SellerController extends AuthController
             'userAddress' => $request->userAddress,
          ]);
 
-        return redirect()->back()->with('success', 'Your seller information has been updated!');
+         return response()->json([
+            'success' => true,
+            'message' => 'Your seller information has been updated!',
+        ]);
     }
 
       public function getAllSellers()
@@ -162,35 +164,59 @@ class SellerController extends AuthController
     // Show the authenticated seller's profile
     public function showProfile(Request $request)
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'User not authenticated'], 401);
+            }
 
-        // Ensure seller exists
-        $seller = $user->seller;
-        if (!$seller) {
-            $seller = Seller::create([
-                'user_id' => $user->userID,
-                'story' => '',
-                'website' => '',
+            // Load the seller relationship
+            $seller = $user->seller;
+            
+            // If seller doesn't exist, create a new one
+            if (!$seller) {
+                $seller = Seller::create([
+                    'user_id' => $user->userID,
+                    'businessName' => $user->userName . "'s Business",
+                    'story' => '',
+                    'website' => '',
+                ]);
+            }
+
+            // Get profile image URL
+            $profileImageUrl = '';
+            if ($seller->profile_picture_path) {
+                $profileImageUrl = str_contains($seller->profile_picture_path, 'http') 
+                    ? $seller->profile_picture_path 
+                    : url('storage/' . ltrim($seller->profile_picture_path, '/'));
+            }
+
+            return response()->json([
+                'success' => true,
+                'sellerID' => $seller->sellerID,
+                'userID' => $user->userID,
+                'userName' => $user->userName,
+                'userEmail' => $user->userEmail,
+                'role' => $user->role,
+                'userBirthday' => $user->userBirthday,
+                'userContactNumber' => $user->userContactNumber,
+                'userAddress' => $user->userAddress,
+                'profileImage' => $profileImageUrl,
+                'story' => $seller->story ?? '',
+                'website' => $seller->website ?? '',
+                'businessName' => $seller->businessName ?? '',
             ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error in showProfile: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch profile',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-
-        $profileImageUrl = $seller->profile_picture_path
-            ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
-            : '';
-
-        return response()->json([
-            'sellerID' => $seller->sellerID,
-            'userName' => $user->userName,
-            'userEmail' => $user->userEmail,
-            'role' => $user->role,
-            'userBirthday' => $user->userBirthday,
-            'userContactNumber' => $user->userContactNumber,
-            'userAddress' => $user->userAddress,
-            'profileImage' => $profileImageUrl,
-            'story' => $seller->story ?? '',
-            'website' => $seller->website ?? '',
-        ]);
-}
+    }
 
 
         // Update the seller's profile

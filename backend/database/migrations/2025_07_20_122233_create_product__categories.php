@@ -23,6 +23,8 @@ return new class extends Migration
             $table->string('productVideo')->nullable();
             $table->string('category')->nullable();
             $table->enum('approval_status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->enum('publish_status', ['published', 'draft'])->default('draft');
+            $table->boolean('is_featured')->default(false);
             $table->timestamps();
         });
     }

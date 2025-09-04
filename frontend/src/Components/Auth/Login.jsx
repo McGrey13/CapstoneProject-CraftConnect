@@ -29,7 +29,8 @@ const Login = () => {
         userEmail: email,
         userPassword: password,
       });
-      
+
+      // ✅ Role-based redirect
       if (result.userType === "admin") {
         navigate("/admin");
       } else if (result.userType === "seller") {
@@ -38,10 +39,18 @@ const Login = () => {
         navigate("/home");
       }
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Login failed. Please check your credentials."
-      );
+      // ✅ OTP handling
+      if (
+        err.response?.status === 403 &&
+        err.response?.data?.message === "Please verify your account"
+      ) {
+        navigate("/verify-otp", { state: { email } });
+      } else {
+        setError(
+          err.response?.data?.message ||
+            "Login failed. Please check your credentials."
+        );
+      }
     }
   };
 
@@ -53,7 +62,7 @@ const Login = () => {
 
     if (token) {
       localStorage.setItem("token", token);
-      
+
       if (userType === "admin") {
         navigate("/admin");
       } else if (userType === "seller") {

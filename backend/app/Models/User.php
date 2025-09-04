@@ -29,9 +29,111 @@
 //     ];
 
 
+// namespace App\Models;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+// use Illuminate\Database\Eloquent\Factories\HasFactory;
+// use Illuminate\Foundation\Auth\User as Authenticatable;
+// use Illuminate\Notifications\Notifiable;
+// use Laravel\Sanctum\HasApiTokens;
+// use Illuminate\Database\Eloquent\Relations\HasOne;
+
+// class User extends Authenticatable
+// {
+//     use HasApiTokens, HasFactory, Notifiable;
+
+//     /**
+//      * The primary key for the model.
+//      */
+//     protected $primaryKey = 'userID';
+
+//     /**
+//      * The attributes that are mass assignable.
+//      */
+//     protected $fillable = [
+//         'userName',
+//         'userEmail',
+//         'userPassword',
+//         'userAge',
+//         'userBirthday',
+//         'userContactNumber',
+//         'userAddress',
+//         'userCity',
+//         'userPostalCode',
+//         'role',
+//         'otp',
+//         'otp_expires_at',
+//         'is_verified',
+//     ];
+
+//     /**
+//      * The attributes that should be hidden for serialization.
+//      */
+//     protected $hidden = [
+//         'userPassword',
+//         'remember_token',
+//     ];
+    
+        
+//     //The attributes that should be cast.
+//     protected $casts = [
+//         'email_verified_at' => 'datetime',
+//         'userPassword' => 'hashed',
+//         'userBirthday' => 'date', 
+//     ];
+
+//     //Get the password for the user.
+
+//     public function getAuthPassword()
+//     {
+//         return $this->userPassword;
+//     }
+
+
+//      //Get the name of the unique identifier for the user.
+
+//     public function getAuthIdentifierName()
+//     {
+//         return 'userEmail';
+//     }
+
+//     //Get the administrator profile associated with the user.
+
+//     public function administrator(): HasOne
+//     {
+//         return $this->hasOne(Administrator::class, 'user_id', 'userID');
+    
+//     }
+    
+
+//      //Get the seller profile associated with the user.
+//     public function seller(): HasOne
+//     {
+//         return $this->hasOne(Seller::class, 'user_id', 'userID');
+//     }
+
+    
+//      //Get the customer profile associated with the user.
+
+//     public function customer(): HasOne
+//     {
+//         return $this->hasOne(Customer::class, 'user_id', 'userID');
+//     }
+
+//     public function isSeller()
+//     {
+//         return $this->seller()->exists();
+//     }
+
+//     //for getting the email of user for OTP
+//     public function getEmailAttribute()
+//     {
+//         return $this->userEmail;
+//     }
+
+
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -42,59 +144,34 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The primary key for the model.
-     *
-     * @var string
-     */
     protected $primaryKey = 'userID';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'userName',
         'userEmail',
-        // 'email_verified_at',
         'userPassword',
-        'userAge',
-        'userBirthday',
         'userContactNumber',
-        'userAddress',
-        'userCity',
-        'userPostalCode',
         'role',
-        // 'otp',
-        // 'otp_expires_at',
+        'otp',
+        'otp_expires_at',
+        'is_verified',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'userPassword',
         'remember_token',
+        'otp', // hide OTP too
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'userPassword' => 'hashed',
-        'userBirthday' => 'date', // Cast birthday to a date object
+        'userBirthday' => 'date', 
+        'otp_expires_at' => 'datetime',
+        'is_verified' => 'boolean',
     ];
 
     /**
-     * Get the password for the user.
-     *
-     * @return string
+     * Override default password field
      */
     public function getAuthPassword()
     {
@@ -102,35 +179,24 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the name of the unique identifier for the user.
-     *
-     * @return string
+     * Override default email field
      */
     public function getAuthIdentifierName()
     {
         return 'userEmail';
     }
 
-    /**
-     * Get the administrator profile associated with the user.
-     */
+    // === RELATIONSHIPS ===
     public function administrator(): HasOne
     {
         return $this->hasOne(Administrator::class, 'user_id', 'userID');
-    
     }
 
-    /**
-     * Get the seller profile associated with the user.
-     */
     public function seller(): HasOne
     {
         return $this->hasOne(Seller::class, 'user_id', 'userID');
     }
 
-    /**
-     * Get the customer profile associated with the user.
-     */
     public function customer(): HasOne
     {
         return $this->hasOne(Customer::class, 'user_id', 'userID');
@@ -141,4 +207,10 @@ class User extends Authenticatable
         return $this->seller()->exists();
     }
 
+    // Allow accessing $user->email instead of $user->userEmail
+    public function getEmailAttribute()
+    {
+        return $this->userEmail;
+    }
 }
+

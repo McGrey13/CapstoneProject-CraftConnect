@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
+
+
 // Layouts
 import PublicLayout from './Components/Routes/PublicLayout';
 import SellerLayout from './Components/Seller/SellerLayout';
@@ -19,6 +21,7 @@ import Artisan from './Components/Artisans/Artisan';
 import ArtisanDetail from './Components/Artisans/ArtisanDetail';
 import Register from './Components/Auth/Register';
 import Login from './Components/Auth/Login';
+import OtpVerification from './Components/Auth/otpVerification';
 import ProductsPage from './Components/Product/ProductsPage';
 import ProductDetails from './Components/product/ProductDetails';
 import { Favorites } from './Components/pages/Favorites';
@@ -76,6 +79,7 @@ function App() {
           <Route path="artisans/:id" element={<ArtisanDetail />} />
           <Route path="register" element={<Register />} />
           <Route path="login" element={<Login />} />
+          <Route path="verify-otp" element={<OtpVerification />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="product/:id" element={<ProductDetails />} />
         </Route>

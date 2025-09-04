@@ -49,15 +49,16 @@ return new class extends Migration
             $table->id('userID'); // Changed to userID as per UML
             $table->string('userName');
             $table->string('userEmail')->unique();
-            // $table->timestamp('email_verified_at')->nullable();
-            $table->string('userPassword'); // Changed to userPassword
-            $table->string('userAge')->nullable(); // Assuming age can be a string (e.g., "25-30") or convert to int
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('userPassword'); 
+            $table->string('userAge')->nullable();
             $table->date('userBirthday')->nullable();
             $table->string('userContactNumber')->nullable();
             $table->string('userAddress')->nullable();
             $table->enum('role', ['administrator', 'seller', 'customer'])->nullable();
-            // $table->string('otp')->nullable();
-            // $table->string('otp_expires-at');
+            $table->string('otp')->nullable();
+            $table->timestamp('otp_expires_at')->nullable();
+            $table->boolean('is_verified')->default(false);
             $table->rememberToken();
             $table->timestamps();
         });

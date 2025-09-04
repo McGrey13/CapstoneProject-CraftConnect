@@ -42,18 +42,6 @@ const Navbar = () => {
         <Link to="/Contact">Contact</Link>
       </div>
 
-      <div className="navbar-search">
-        <input
-          type="text"
-          placeholder="Search products..."
-          className="search-input"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-        />
-        <button className="search-button" onClick={handleSearch}>Search</button>
-      </div>
-
       {/* Heart beside Cart */}
       <div className="navbar-cart">
         <Link to="/favorites" className="favorites-link" style={{ marginRight: "12px" }}>
@@ -132,7 +120,7 @@ const Navbar = () => {
         )}
       </div>
 
-      <button className="navbar-toggle">
+      {/* <button className="navbar-toggle">
         <svg
           className="mobile-menu-icon"
           fill="none"
@@ -147,7 +135,7 @@ const Navbar = () => {
             d="M4 6h16M4 12h16M4 18h16"
           />
         </svg>
-      </button>
+      </button> */}
     </nav>
   );
 };

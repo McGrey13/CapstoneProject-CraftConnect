@@ -13,12 +13,22 @@ return new class extends Migration
     {
         Schema::create('messages', function (Blueprint $table) {
             $table->id('message_id');
-            $table->foreignId('conversation_id')->constrained('conversations', 'conversation_id')->onDelete('cascade');
-            $table->foreignId('sender_id')->constrained('users', 'userID')->onDelete('cascade');
-            $table->foreignId('receiver_id')->constrained('users', 'userID')->onDelete('cascade');
+            $table->foreignId('conversation_id')
+                  ->constrained('conversations', 'conversation_id')
+                  ->onDelete('cascade');
+            $table->foreignId('sender_id')
+                  ->constrained('users', 'userID')
+                  ->onDelete('cascade');
+            $table->foreignId('receiver_id')
+                  ->constrained('users', 'userID')
+                  ->onDelete('cascade');
             $table->text('message');
+            $table->boolean('is_read')->default(false);
             $table->timestamps();
-});
+            
+            $table->index(['conversation_id', 'created_at']);
+        });
+
 
     }
 

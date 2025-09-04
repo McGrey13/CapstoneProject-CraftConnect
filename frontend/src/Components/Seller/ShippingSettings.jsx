@@ -31,7 +31,6 @@ const ShippingSettings = () => {
       <Tabs defaultValue="domestic" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="domestic">Domestic Shipping</TabsTrigger>
-          <TabsTrigger value="international">International Shipping</TabsTrigger>
           <TabsTrigger value="packaging">Packaging Options</TabsTrigger>
         </TabsList>
 
@@ -44,23 +43,6 @@ const ShippingSettings = () => {
               </CardTitle>
               <CardDescription>
                 Configure your domestic shipping options
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* ...content unchanged */}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="international" className="space-y-4 pt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Globe className="h-5 w-5 mr-2 text-primary" />
-                International Shipping
-              </CardTitle>
-              <CardDescription>
-                Configure your international shipping options
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

@@ -8,25 +8,12 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Button } from "../ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
-import {
-  Search,
-  Filter,
-  Plus,
-  Download,
-  RefreshCw,
-  Edit,
-  Trash2,
-} from "lucide-react";
+import { Search, Filter, Plus, Download, RefreshCw, Edit, Trash2, Image as ImageIcon } from "lucide-react";
+import { AddProductModal } from "./AddProductModal";
+import EditProductModal from "./EditProductModal";
 import {
   Dialog,
   DialogContent,
@@ -142,8 +129,6 @@ const InventoryTab = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
     productName: "",
     productDescription: "",
@@ -153,6 +138,8 @@ const InventoryTab = () => {
     productImage: null,
     productVideo: null,
   });
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
 
   // Fetch products from backend
@@ -168,60 +155,69 @@ const InventoryTab = () => {
 
       const response = await fetch("http://localhost:8000/api/products", {
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       });
 
       console.log("Response status:", response.status);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Products fetched:", data);
-        setInventory(data);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("API Response:", result);
+
+      // Check if the response has the expected data structure
+      if (result.status === 'success' && Array.isArray(result.data)) {
+        setInventory(result.data);
+      } else if (Array.isArray(result)) {
+        // Fallback in case the API returns the array directly
+        setInventory(result);
       } else {
-        const errorData = await response.json();
-        console.error("Failed to fetch products:", errorData);
+        console.error('Unexpected response format:', result);
+        setInventory([]);
       }
     } catch (error) {
       console.error("Error fetching products:", error);
+      // Set empty array to prevent undefined errors
+      setInventory([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddProduct = async () => {
-    try {
-      console.log("Current newProduct state:", newProduct);
+  const resetForm = () => {
+    setNewProduct({
+      productName: "",
+      productDescription: "",
+      productPrice: "",
+      productQuantity: "",
+      category: "",
+      productImage: null,
+      productVideo: null,
+    });
+  };
 
-      // Validate required fields
-      if (!newProduct.productName || !newProduct.productPrice || !newProduct.productQuantity || !newProduct.category) {
-        alert("Please fill in all required fields");
+  const handleAddProduct = async (formData) => {
+    try {
+      console.log("Adding new product:", Object.fromEntries(formData));
+      
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please log in to add products");
         return;
       }
 
-      const formData = new FormData();
-      formData.append("productName", newProduct.productName);
-      formData.append("productDescription", newProduct.productDescription || "");
-      formData.append("productPrice", newProduct.productPrice);
-      formData.append("productQuantity", newProduct.productQuantity);
-      formData.append("category", newProduct.category);
-
-      if (newProduct.productImage) {
-        formData.append("productImage", newProduct.productImage);
-      }
-      if (newProduct.productVideo) {
-        formData.append("productVideo", newProduct.productVideo);
-      }
-
-      console.log("Sending product data:", Object.fromEntries(formData));
-
-      const token = localStorage.getItem("token");
-      console.log("Token for upload:", token ? "Token exists" : "No token");
+      console.log("Token for upload: Token exists");
 
       const response = await fetch("http://localhost:8000/api/products", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: formData,
       });
@@ -234,38 +230,21 @@ const InventoryTab = () => {
           const result = text ? JSON.parse(text) : { message: "Product added successfully" };
           console.log("Product added successfully:", result.message);
           alert("Product added successfully!");
-          setIsAddDialogOpen(false);
-          setNewProduct({
-            productName: "",
-            productDescription: "",
-            productPrice: "",
-            productQuantity: "",
-            category: "",
-            productImage: null,
-            productVideo: null,
-          });
-          fetchProducts(); // Refresh the list
-        } catch {
+        } catch (error) {
           console.log("Product added successfully (no JSON response)");
           alert("Product added successfully!");
-          setIsAddDialogOpen(false);
-          setNewProduct({
-            productName: "",
-            productDescription: "",
-            productPrice: "",
-            productQuantity: "",
-            category: "",
-            productImage: null,
-            productVideo: null,
-          });
-          fetchProducts(); // Refresh the list
         }
+        
+        setIsAddDialogOpen(false);
+        resetForm();
+        fetchProducts(); // Refresh the list
       } else {
         try {
           const errorData = await response.json();
           console.error("Failed to add product:", errorData);
           alert(`Failed to add product: ${errorData.message || "Unknown error"}`);
-        } catch{
+        } catch (error) {
+          console.error("Failed to parse error response:", error);
           console.error("Failed to add product (status:", response.status, ")");
           alert(`Failed to add product. Status: ${response.status}`);
         }
@@ -276,42 +255,38 @@ const InventoryTab = () => {
     }
   };
 
-  const handleUpdateProduct = async () => {
+  const handleUpdateProduct = async (formData) => {
     try {
-      const formData = new FormData();
-      formData.append("productName", currentProduct.productName);
-      formData.append("productDescription", currentProduct.productDescription || "");
-      formData.append("productPrice", currentProduct.productPrice);
-      formData.append("productQuantity", currentProduct.productQuantity);
-      formData.append("category", currentProduct.category);
-      formData.append("status", currentProduct.status);
-      formData.append("_method", "PUT"); // Laravel needs this for PUT/PATCH requests with FormData
-
-      if (currentProduct.productImage && currentProduct.productImage instanceof File) {
-        formData.append("productImage", currentProduct.productImage);
-      }
-      if (currentProduct.productVideo && currentProduct.productVideo instanceof File) {
-        formData.append("productVideo", currentProduct.productVideo);
-      }
-
       const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please log in to update products");
+        return;
+      }
+
+      // Ensure _method is set to PUT for Laravel
+      if (!formData.has('_method')) {
+        formData.append('_method', 'PUT');
+      }
 
       const response = await fetch(`http://localhost:8000/api/products/${currentProduct.product_id}`, {
-        method: "POST", // Use POST with _method=PUT
+        method: "POST", // Using POST with _method=PUT for Laravel
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: formData,
       });
 
       if (response.ok) {
+        const result = await response.json();
+        console.log("Product updated successfully:", result);
         alert("Product updated successfully!");
         setIsEditDialogOpen(false);
-        fetchProducts();
+        fetchProducts(); // Refresh the list
       } else {
         const errorData = await response.json();
-        alert(`Failed to update product: ${errorData.message}`);
         console.error("Failed to update product:", errorData);
+        alert(`Failed to update product: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error("Error updating product:", error);
@@ -319,25 +294,34 @@ const InventoryTab = () => {
     }
   };
 
-  const handleDeleteProduct = async (product_id) => {
+  const handleDeleteProduct = async () => {
+    if (!currentProduct) return;
+    
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please log in to delete products");
+        return;
+      }
 
-      const response = await fetch(`http://localhost:8000/api/products/${product_id}`, {
+      const response = await fetch(`http://localhost:8000/api/products/${currentProduct.product_id}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       });
 
       if (response.ok) {
+        const result = await response.json();
+        console.log("Product deleted successfully:", result);
         alert("Product deleted successfully!");
         setIsDeleteDialogOpen(false);
         fetchProducts(); // Refresh the product list
       } else {
         const errorData = await response.json();
-        alert(`Failed to delete product: ${errorData.message}`);
         console.error("Failed to delete product:", errorData);
+        alert(`Failed to delete product: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error("Error deleting product:", error);
@@ -423,9 +407,9 @@ const InventoryTab = () => {
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search products..."
-            className="pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -437,97 +421,24 @@ const InventoryTab = () => {
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
-          {/* Add Product Modal Trigger */}
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="primary" size="sm">
-                <Plus className="mr-2 h-4 w-4" /> Add Product
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Add New Product</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div>
-                  <Label>Product Name</Label>
-                  <Input
-                    placeholder="Product Name"
-                    value={newProduct.productName}
-                    onChange={(e) => handleInputChange("productName", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Product Description</Label>
-                  <Textarea
-                    placeholder="Description"
-                    value={newProduct.productDescription}
-                    onChange={(e) => handleInputChange("productDescription", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Product Price</Label>
-                  <Input
-                    placeholder="Price"
-                    type="number"
-                    step="0.01"
-                    value={newProduct.productPrice}
-                    onChange={(e) => handleInputChange("productPrice", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Product Quantity</Label>
-                  <Input
-                    placeholder="Quantity"
-                    type="number"
-                    value={newProduct.productQuantity}
-                    onChange={(e) => handleInputChange("productQuantity", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Product Category</Label>
-                  <Select
-                    value={newProduct.category}
-                    onValueChange={(value) => handleInputChange("category", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Pottery">Pottery</SelectItem>
-                      <SelectItem value="Textiles">Textiles</SelectItem>
-                      <SelectItem value="Woodwork">Woodwork</SelectItem>
-                      <SelectItem value="Home Goods">Home Goods</SelectItem>
-                      <SelectItem value="Jewelry">Jewelry</SelectItem>
-                      <SelectItem value="Art">Art</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Product Image</Label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange("productImage", e.target.files[0])}
-                  />
-                </div>
-                <div>
-                  <Label>Product Video</Label>
-                  <Input
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => handleFileChange("productVideo", e.target.files[0])}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleAddProduct}>Save</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          
+          {/* Add Product Button */}
+          <Button 
+            className="ml-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800"
+            onClick={() => setIsAddDialogOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Product
+          </Button>
+          
+          {/* Add Product Modal */}
+          <AddProductModal 
+            isOpen={isAddDialogOpen} 
+            onClose={() => setIsAddDialogOpen(false)}
+            onSave={handleAddProduct}
+          />
         </div>
       </div>
-
+      
       <Card>
         <CardHeader className="pb-2">
           <CardTitle>Inventory</CardTitle>
@@ -537,7 +448,7 @@ const InventoryTab = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Product ID</TableHead>
+                <TableHead>Image</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Price</TableHead>
@@ -562,8 +473,20 @@ const InventoryTab = () => {
                 </TableRow>
               ) : (
                 filteredInventory.map((product) => (
-                  <TableRow key={product.product_id}>
-                    <TableCell className="font-medium">{product.product_id}</TableCell>
+                  <TableRow key={product.id || product.product_id || `product-${Math.random().toString(36).substr(2, 9)}`}>
+                    <TableCell>
+                      {product.productImage ? (
+                        <img 
+                          src={product.productImage} 
+                          alt={product.productName} 
+                          className="h-10 w-10 object-cover rounded"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
+                          <ImageIcon className="h-5 w-5 text-gray-400" />
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>{product.productName}</TableCell>
                     <TableCell>{product.category}</TableCell>
                     <TableCell>${product.productPrice}</TableCell>
@@ -582,134 +505,23 @@ const InventoryTab = () => {
                       <Button variant="ghost" size="sm" onClick={() => handleEditClick(product)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(product)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
+          
+          {/* Edit Product Modal */}
+          <EditProductModal
+            isOpen={isEditDialogOpen}
+            onClose={() => setIsEditDialogOpen(false)}
+            product={currentProduct}
+            onSave={handleUpdateProduct}
+          />
+
         </CardContent>
       </Card>
-
-      {/* Edit Product Modal */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Product</DialogTitle>
-          </DialogHeader>
-          {currentProduct && (
-            <div className="grid gap-4 py-4">
-              <div>
-                <Label>Product Name</Label>
-                <Input
-                  value={currentProduct.productName}
-                  onChange={(e) => handleInputChange("productName", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Product Description</Label>
-                <Textarea
-                  value={currentProduct.productDescription || ""}
-                  onChange={(e) => handleInputChange("productDescription", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Product Price</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={currentProduct.productPrice}
-                  onChange={(e) => handleInputChange("productPrice", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Product Quantity</Label>
-                <Input
-                  type="number"
-                  value={currentProduct.productQuantity}
-                  onChange={(e) => handleInputChange("productQuantity", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Product Category</Label>
-                <Select
-                  value={currentProduct.category}
-                  onValueChange={(value) => handleInputChange("category", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Pottery">Pottery</SelectItem>
-                    <SelectItem value="Textiles">Textiles</SelectItem>
-                    <SelectItem value="Woodwork">Woodwork</SelectItem>
-                    <SelectItem value="Home Goods">Home Goods</SelectItem>
-                    <SelectItem value="Jewelry">Jewelry</SelectItem>
-                    <SelectItem value="Art">Art</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Product Status</Label>
-                <Select
-                  value={currentProduct.status}
-                  onValueChange={(value) => handleInputChange("status", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="in stock">In Stock</SelectItem>
-                    <SelectItem value="low stock">Low Stock</SelectItem>
-                    <SelectItem value="out of stock">Out of Stock</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Product Image</Label>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileChange("productImage", e.target.files[0])}
-                />
-              </div>
-              <div>
-                <Label>Product Video</Label>
-                <Input
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => handleFileChange("productVideo", e.target.files[0])}
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button onClick={handleUpdateProduct}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Product Alert Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the product
-              **{currentProduct?.productName}** from your inventory.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleDeleteProduct(currentProduct?.product_id)}>
-              Continue
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
