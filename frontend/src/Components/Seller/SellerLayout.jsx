@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -34,6 +34,7 @@ import ShippingSettings from "./ShippingSettings";
 import SocialMedia from "./SocialMedia";
 import WorkshopsEvents from "./WorkshopsEvents";
 import SellerSettings from "./SellerSettings";
+import { getMyStore } from "../../api";
 
 const sidebarItems = [
   { key: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
@@ -49,8 +50,26 @@ const sidebarItems = [
 
 const SellerLayout = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [loading, setLoading] = useState(true);
   const userName = "Seller User";
   const notificationCount = 3;
+
+  useEffect(() => {
+    const checkApproval = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        const { data } = await getMyStore(token);
+        if (!data || data.status !== 'approved') {
+          window.location.href = '/';
+        }
+      } catch (e) {
+        window.location.href = '/';
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkApproval();
+  }, []);
 
   const renderContent = () => {
   console.log("Active Tab:", activeTab); // Add this for debug
@@ -78,6 +97,8 @@ const SellerLayout = () => {
   }
 };
 
+
+  if (loading) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">

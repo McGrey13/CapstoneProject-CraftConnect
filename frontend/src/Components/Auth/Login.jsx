@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Lock, ArrowRight, ShoppingBag, Store, Mail } from "lucide-react";
-import api from "../../api";
+import api, { getMyStore } from "../../api";
 import "./Login.css";
 
 const Login = () => {
@@ -18,13 +18,25 @@ const Login = () => {
     try {
       const res = await api.post("/login", { userEmail: email, userPassword: password });
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("auth_token", res.data.token);
       // Set the token in the API headers for future requests
       api.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
       // Redirect based on user type
       if (res.data.user_type === "admin") {
-        navigate("/admin/dashboard");
+        navigate("/admin");
       } else if (res.data.user_type === "seller") {
-        navigate("/seller");
+        // Check if seller has an approved store
+        try {
+          const storeRes = await getMyStore(res.data.token);
+          if (storeRes.data && storeRes.data.status === 'approved') {
+            navigate("/seller");
+          } else {
+            navigate("/seller/create-store");
+          }
+        } catch (err) {
+          // No store found, redirect to create store
+          navigate("/seller/create-store");
+        }
       } else {
         navigate("/home");
       }

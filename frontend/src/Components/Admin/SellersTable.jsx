@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Badge } from "../ui/badge"; 
+import { approveStore, rejectStore } from "../../api";
 
 
 const mockSellers = [
@@ -155,6 +156,30 @@ const SellersTable = ({ onViewSeller = () => {} }) => {
     }
   };
 
+  const onApprove = async () => {
+    const storeId = prompt('Enter Store ID to approve:');
+    if (!storeId) return;
+    try {
+      const token = localStorage.getItem('auth_token');
+      await approveStore(storeId, token);
+      alert('Store approved');
+    } catch (e) {
+      alert('Failed to approve');
+    }
+  };
+
+  const onReject = async () => {
+    const storeId = prompt('Enter Store ID to reject:');
+    if (!storeId) return;
+    try {
+      const token = localStorage.getItem('auth_token');
+      await rejectStore(storeId, token);
+      alert('Store rejected');
+    } catch (e) {
+      alert('Failed to reject');
+    }
+  };
+
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -241,7 +266,7 @@ const SellersTable = ({ onViewSeller = () => {} }) => {
                         <Edit className="h-4 w-4 mr-2" /> Edit Details
                       </DropdownMenuItem>
                       {seller.status === "pending" && (
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={onApprove}>
                           <svg
                             className="h-4 w-4 mr-2 text-green-500"
                             fill="none"
@@ -256,6 +281,11 @@ const SellersTable = ({ onViewSeller = () => {} }) => {
                             />
                           </svg>
                           Approve
+                        </DropdownMenuItem>
+                      )}
+                      {seller.status === "pending" && (
+                        <DropdownMenuItem onClick={onReject} className="text-red-600">
+                          <Trash2 className="h-4 w-4 mr-2" /> Reject
                         </DropdownMenuItem>
                       )}
                       {seller.status === "active" && (

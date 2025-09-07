@@ -11,6 +11,7 @@ import Login from './Components/Auth/Login.jsx';
 import Register from './Components/Auth/Register.jsx';
 import Home from './Components/home.jsx';
 import ProductsPage from './Components/Product/ProductsPage.jsx';
+import CreateStore from './Components/Store/CreateStore.jsx';
 
 import SellerLayout from './Components/Seller/SellerLayout.jsx';
 import WorkshopsEvents from './Components/Seller/WorkshopsEvents.jsx';
@@ -47,6 +48,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/seller/create-store" element={<CreateStore />} />
 
           {/* Seller routes */}
           <Route path="/seller" element={<SellerLayout />}>
