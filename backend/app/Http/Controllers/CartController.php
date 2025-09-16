@@ -79,7 +79,7 @@ class CartController extends Controller
             return response()->json($formattedCart);
 
         } catch (\Exception $e) {
-            \Log::error('CartController error: ' . $e->getMessage());
+            Log::error('CartController error: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to fetch cart items',
                 'message' => $e->getMessage()
@@ -145,9 +145,7 @@ class CartController extends Controller
     // Remove product from cart
     public function destroy($id)
     {
-        $cartItem = Cart::where('userID', Auth::user()->userID)
-                        ->where('cart_id', $id)
-                        ->firstOrFail();
+        $cartItem = Cart::where('userID', Auth::user()->userID)->where('cart_id', operator: $id)->firstOrFail();
         $cartItem->delete();
 
         return response()->json([
@@ -172,9 +170,7 @@ class CartController extends Controller
             // Start database transaction
             return DB::transaction(function () {
                 $user = Auth::user();
-                $cartItems = Cart::with('product')
-                    ->where('userID', $user->userID)
-                    ->get();
+                $cartItems = Cart::with('product')->where('userID', $user->userID)->get();
 
                 if ($cartItems->isEmpty()) {
                     return response()->json([
@@ -234,7 +230,7 @@ class CartController extends Controller
                 ]);
             });
         } catch (\Exception $e) {
-            \Log::error('CartController error: ' . $e->getMessage());
+            Log::error('CartController error: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to process checkout',
                 'message' => $e->getMessage()

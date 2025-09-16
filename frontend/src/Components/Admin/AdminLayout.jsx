@@ -93,8 +93,6 @@ const AdminLayout = () => {
         return <div>Inventory Page</div>;
       case "addProduct":
         return <div><AcceptPendingProduct /></div>;
-      case "editProduct":
-        return <div>Edit Products</div>;
       case "customers":
         return <CustomerTable />;
       case "artisans":
@@ -163,13 +161,6 @@ const AdminLayout = () => {
                 icon={<ShoppingBag className="h-4 w-4" />}
                 label="Accept Pending Product"
                 tabKey="addProduct"
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-              />
-              <SidebarItem
-                icon={<FileText className="h-4 w-4" />}
-                label="Edit Products"
-                tabKey="editProduct"
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
               />

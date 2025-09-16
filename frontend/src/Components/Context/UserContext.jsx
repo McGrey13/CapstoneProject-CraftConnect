@@ -33,21 +33,21 @@ export const UserProvider = ({ children }) => {
   };
 
   // Login function
-  const login = async (credentials) => {
-    try {
-      const response = await api.post('/login', credentials);
-      const { token, user: userData } = response.data;
-      
-      localStorage.setItem('auth_token', token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(userData);
-      
-      return { success: true, userType: response.data.user_type };
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
-  };
+const login = async (credentials) => {
+  try {
+    const response = await api.post('/login', credentials);
+    const { token, user: userData, userType } = response.data;
+    
+    localStorage.setItem('auth_token', token);
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    setUser(userData);
+    
+    return { success: true, userType: userType }; // ✅ normalize
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+};
 
   // Logout function
   const logout = async () => {

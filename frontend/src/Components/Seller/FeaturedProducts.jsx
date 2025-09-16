@@ -14,7 +14,7 @@ export default function FeaturedProducts() {
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch('http://localhost:8000/api/products', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -38,7 +38,7 @@ export default function FeaturedProducts() {
 
   const toggleFeatured = async (productId, currentStatus) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(
         `http://localhost:8000/api/products/${productId}/toggle-featured`,
         {

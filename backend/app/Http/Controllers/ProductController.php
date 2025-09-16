@@ -573,10 +573,12 @@ class ProductController extends Controller
             ], 500);
         }
     }
-
+    /**
+     * Get all approved products for public viewing
+     */
     public function getApprovedProducts($sellerId)
     {
-        $products = Product::where('seller_id', $sellerId)   // 👈 make sure your column is seller_id
+        $products = Product::where('seller_id', $sellerId) 
                            ->where('approval_status', 'approved')
                            ->get();
 
@@ -606,9 +608,6 @@ class ProductController extends Controller
         return response()->json($productsWithImages);
     }
     
-    /**
-     * Get all approved products for public viewing
-     */
     /**
      * Toggle featured status of a product
      */

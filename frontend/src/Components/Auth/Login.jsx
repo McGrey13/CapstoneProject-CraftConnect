@@ -15,7 +15,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [role, setRole] = useState("customer");
+  const [role, setRole] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { login } = useUser();
@@ -25,19 +25,20 @@ const Login = () => {
     e.preventDefault();
     setError("");
     try {
-      const result = await login({
-        userEmail: email,
-        userPassword: password,
-      });
+    const result = await login({
+      userEmail: email,
+      userPassword: password,
+      remember: rememberMe,
+    });
+    console.log("DEBUG ROLE:", result.userType);
 
-      // ✅ Role-based redirect
-      if (result.userType === "admin") {
-        navigate("/admin");
-      } else if (result.userType === "seller") {
-        navigate("/seller");
-      } else {
-        navigate("/home");
-      }
+    if (result.userType === "admin") {
+      navigate("/admin");
+    } else if (result.userType === "seller") {
+      navigate("/seller");
+    } else {
+      navigate("/home");
+  }
     } catch (err) {
       // ✅ OTP handling
       if (
@@ -55,22 +56,24 @@ const Login = () => {
   };
 
   // 🔹 Handle Google Login Redirect
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-    const userType = params.get("user_type"); // must be returned from backend
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  const userType = params.get("user_type"); // backend returns snake_case
 
-    if (token) {
-      localStorage.setItem("token", token);
+  if (token) {
+    localStorage.setItem("auth_token", token);
+    // eslint-disable-next-line no-undef
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      if (userType === "admin") {
-        navigate("/admin");
-      } else if (userType === "seller") {
-        navigate("/seller");
-      } else {
-        navigate("/home");
-      }
+    if (userType === "admin") {
+      navigate("/admin");
+    } else if (userType === "seller") {
+      navigate("/seller");
+    } else {
+      navigate("/home");
     }
+  }
   }, [navigate]);
 
   // 🔹 Trigger Google OAuth

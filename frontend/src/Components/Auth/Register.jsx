@@ -16,6 +16,7 @@ const Register = () => {
   });
 
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const navigate = useNavigate();
   const { register } = useUser();
 
@@ -38,6 +39,10 @@ const Register = () => {
     }
 
     try {
+      // Reset errors
+      setError("");
+      setFieldErrors({});
+      
       // Call the register function from UserContext
       const result = await register({
         userName: form.userName,
@@ -53,32 +58,53 @@ const Register = () => {
       // Navigate to OTP verification page with the email
       navigate("/verify-otp", { 
         state: { 
-          email: result.userEmail || form.userEmail 
+          email: result.userEmail || form.userEmail,
+          registrationSuccess: true
         } 
       });
       
     } catch (err) {
       console.error("Registration error:", err);
-      let errorMessage = "Registration failed. Please try again.";
       
       if (err.response) {
         // Handle validation errors from the server
-        if (err.response.data?.errors) {
-          errorMessage = Object.values(err.response.data.errors)
-            .flat()
-            .join('\n');
+        if (err.response.status === 422 && err.response.data?.errors) {
+          // Set field-specific errors
+          setFieldErrors(err.response.data.errors);
+          // Set a general error message if available, or use a default
+          setError(err.response.data.message || 'Please correct the errors below.');
+          return;
         } else if (err.response.data?.message) {
-          errorMessage = err.response.data.message;
+          // For other types of errors with a message
+          setError(err.response.data.message);
+          return;
         }
       }
       
-      setError(errorMessage);
+      // Fallback error message
+      setError('Registration failed. Please try again later.');
     }
   };
   
 
   return (
     <div className="register-bg">
+      {error && (
+        <div className="error-message mb-4 p-3 bg-red-50 text-red-700 rounded-md">
+          {error}
+          {Object.keys(fieldErrors).length > 0 && (
+            <ul className="mt-2 list-disc list-inside">
+              {Object.entries(fieldErrors).map(([field, messages]) => (
+                <li key={field}>
+                  {messages.map((message, index) => (
+                    <div key={index}>{message}</div>
+                  ))}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       <div className="register-card register-card-large">
         <div className="register-header">
           <div className="register-avatar">
@@ -127,13 +153,21 @@ const Register = () => {
             <input
               id="userEmail"
               name="userEmail" // Corrected name to match state and model
-              placeholder="you@example.com"
               type="email"
               value={form.userEmail}
               onChange={handleChange}
+              placeholder="Email"
               required
+              className={`w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                fieldErrors.userEmail ? 'border-red-500' : 'border-gray-300'
+              }`}
             />
           </div>
+          {fieldErrors.userEmail && (
+            <div className="text-red-500 text-sm mt-1">
+              {fieldErrors.userEmail[0]}
+            </div>
+          )}
           <label htmlFor="userPassword">Password</label>
           <input
             id="userPassword"

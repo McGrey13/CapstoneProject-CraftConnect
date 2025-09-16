@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import {
@@ -14,33 +15,6 @@ import { Input } from "../ui/input";
 import { Search, Filter, Plus, Download, RefreshCw, Edit, Trash2, Image as ImageIcon } from "lucide-react";
 import { AddProductModal } from "./AddProductModal";
 import EditProductModal from "./EditProductModal";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-} from "../ui/dialog";
-import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../ui/alert-dialog";
 
 const OrdersTab = () => {
   const orders = [
@@ -150,7 +124,7 @@ const InventoryTab = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("auth_token");
       console.log("Fetching products with token:", token ? "Token exists" : "No token");
 
       const response = await fetch("http://localhost:8000/api/products", {
@@ -205,7 +179,7 @@ const InventoryTab = () => {
     try {
       console.log("Adding new product:", Object.fromEntries(formData));
       
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("auth_token");
       if (!token) {
         alert("Please log in to add products");
         return;
@@ -257,7 +231,7 @@ const InventoryTab = () => {
 
   const handleUpdateProduct = async (formData) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("auth_token");
       if (!token) {
         alert("Please log in to update products");
         return;
@@ -298,7 +272,7 @@ const InventoryTab = () => {
     if (!currentProduct) return;
     
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("auth_token");
       if (!token) {
         alert("Please log in to delete products");
         return;

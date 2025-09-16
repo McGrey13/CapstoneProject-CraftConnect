@@ -22,7 +22,7 @@ import { Badge } from "../ui/badge";
 import SellerDetail from "./SellerDetail";
 import SellerEdit from "./SellerEdit";
 
-const ArtisanTable = ({ onViewSeller = () => {} }) => {
+const ArtisanTable = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sellers, setSellers] = useState([]);
   const [allSellers, setAllSellers] = useState([]);
@@ -39,7 +39,7 @@ const ArtisanTable = ({ onViewSeller = () => {} }) => {
     const fetchSellers = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("auth_token");
         const res = await fetch("http://localhost:8000/api/sellers", {
           headers: {
             Authorization: `Bearer ${token}`,

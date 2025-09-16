@@ -13,14 +13,14 @@ return new class extends Migration
     {
        Schema::create('conversations', function (Blueprint $table) {
             $table->id('conversation_id');
-            $table->foreignId('customerID')->constrained('users', 'userID')->onDelete('cascade');
-            $table->foreignId('sellerID')->constrained('users', 'userID')->onDelete('cascade');
+            $table->foreignId('sender_id')->constrained('users', 'userID')->onDelete('cascade');
+            $table->foreignId('recever_id')->constrained('users', 'userID')->onDelete('cascade');
             $table->foreignId('orderID')->nullable()->constrained('orders', 'orderID')->onDelete('set null');
+            $table->foreignId('product_id')->nullable()->constrained('products', 'product_id')->onDelete('cascade');
             $table->timestamps();
 });
 
     }
-
     /**
      * Reverse the migrations.
      */

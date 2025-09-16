@@ -19,12 +19,13 @@ const Checkout = () => {
     paymentMethod: "credit",
   });
 
+  const [couponCode, setCouponCode] = useState(""); // 👈 new state for coupon
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handlePlaceOrder = async () => {
-    // Validate that user has complete shipping information
     if (!user?.userName || !user?.userAddress || !user?.userCity || !user?.userPostalCode) {
       alert('Please complete your profile information (name, address, city, and postal code) before placing an order.');
       navigate('/profile');
@@ -48,7 +49,6 @@ const Checkout = () => {
     }
   };
 
-  // If no cart data, redirect to cart
   if (!cartItems || cartItems.length === 0) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50 py-8 px-4">
@@ -68,7 +68,6 @@ const Checkout = () => {
     );
   }
 
-  // If user is not logged in, redirect to login
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50 py-8 px-4">
@@ -102,7 +101,6 @@ const Checkout = () => {
                 key={item.id}
                 className="flex items-center space-x-4 border-b pb-4 last:border-b-0"
               >
-                {/* Product Image */}
                 <div className="w-16 h-16 flex-shrink-0">
                   <img
                     src={item.image ? 
@@ -116,8 +114,6 @@ const Checkout = () => {
                     }}
                   />
                 </div>
-                
-                {/* Product Details */}
                 <div className="flex-grow min-w-0">
                   <h3 className="font-bold text-base text-[#4b3832] mb-1 truncate">
                     {item.title || 'Product Name Not Available'}
@@ -131,8 +127,6 @@ const Checkout = () => {
                     Quantity: {item.quantity} × ₱{parseFloat(item.price || 0).toFixed(2)}
                   </p>
                 </div>
-                
-                {/* Price */}
                 <div className="text-right">
                   <p className="font-semibold text-[#4b3832]">
                     ₱{(parseFloat(item.price || 0) * item.quantity).toFixed(2)}
@@ -140,7 +134,7 @@ const Checkout = () => {
                 </div>
               </div>
             ))}
-            
+
             {/* Order Totals */}
             <div className="pt-4 space-y-2">
               <div className="flex justify-between text-sm">
@@ -158,6 +152,25 @@ const Checkout = () => {
               <div className="flex justify-between font-bold text-base pt-2 border-t">
                 <span>Total</span>
                 <span>₱{total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Coupon Code Input */}
+            <div className="pt-4">
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Discount Coupon
+              </label>
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  placeholder="Enter coupon code"
+                  className="flex-grow border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#a36b4f] focus:border-transparent"
+                />
+                <Button variant="outline">
+                  Apply
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -180,8 +193,6 @@ const Checkout = () => {
                 Update Profile
               </Button>
             </div>
-            
-            {/* Customer Name */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <User className="h-4 w-4" />
@@ -193,8 +204,6 @@ const Checkout = () => {
                 </p>
               </div>
             </div>
-            
-            {/* Address */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
@@ -206,8 +215,6 @@ const Checkout = () => {
                 </p>
               </div>
             </div>
-            
-            {/* City and Postal Code in a row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">
@@ -230,8 +237,6 @@ const Checkout = () => {
                 </div>
               </div>
             </div>
-
-            {/* Warning if information is incomplete */}
             {(!user.userName || !user.userAddress || !user.userCity || !user.userPostalCode) && (
               <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-yellow-800 text-sm">

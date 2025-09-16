@@ -56,12 +56,17 @@ const SellerSettings = () => {
 
   // Fetch seller data
   const fetchSellerData = async () => {
+    setIsLoading(true);
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("Authentication token not found. Please log in again.");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      setIsLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
+      console.log("Fetching seller profile data...");
       
       // Fetch authenticated seller profile (includes sellerID)
       const res = await fetch("http://localhost:8000/api/sellers/profile", {
@@ -73,20 +78,15 @@ const SellerSettings = () => {
         },
       });
 
-      const data = await res.json();
-      
       if (!res.ok) {
-        throw new Error(data.message || `Failed to fetch seller data: ${res.statusText}`);
+        throw new Error(`Failed to fetch seller data: ${res.statusText}`);
       }
 
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to fetch profile data');
-      }
-
+      const data = await res.json();
       console.log("Fetched seller data:", data);
       
-      // Update seller state with the response data
       setSeller(data);
+      console.log("Seller Data:", data.sellerID);
       setSellerID(data.sellerID);
       
       // Set the profile image preview from the fetched data
@@ -94,8 +94,8 @@ const SellerSettings = () => {
         console.log("Setting profile image from fetched data:", data.profileImage);
         setProfileImagePreview(data.profileImage);
       } else {
-        console.log("No profile image in fetched data, using default");
-        setProfileImagePreview("");
+        console.log("No profile image in fetched data, resetting preview");
+        setProfileImagePreview(""); // Reset to empty if no image
       }
       
       setStory(data.story || "");

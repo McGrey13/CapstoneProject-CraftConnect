@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DiscountCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class DiscountCodeController extends Controller
 {
@@ -13,7 +14,7 @@ class DiscountCodeController extends Controller
     public function index()
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             if (!$user) {
                 return response()->json([
                     'status' => 'error',
@@ -22,7 +23,7 @@ class DiscountCodeController extends Controller
             }
 
             // Log the authenticated user for debugging
-            \Log::info('Fetching discount codes for user:', [
+            Log::info('Fetching discount codes for user:', [
                 'user_id' => $user->userID,
                 'email' => $user->userEmail
             ]);
@@ -46,14 +47,14 @@ class DiscountCodeController extends Controller
                 });
             
             // Log the number of discounts found for debugging
-            \Log::info('Fetched discounts count: ' . $discounts->count());
+            Log::info('Fetched discounts count: ' . $discounts->count());
                 
             return response()->json([
                 'status' => 'success',
                 'data' => $discounts
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error fetching discount codes: ' . $e->getMessage());
+            Log::error('Error fetching discount codes: ' . $e->getMessage());
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to fetch discount codes',
@@ -65,7 +66,7 @@ class DiscountCodeController extends Controller
     public function store(Request $request)
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             if (!$user) {
                 return response()->json([
                     'status' => 'error',
@@ -118,7 +119,7 @@ class DiscountCodeController extends Controller
             ], 422);
             
         } catch (\Exception $e) {
-            \Log::error('Discount code creation error: ' . $e->getMessage() . '\n' . $e->getTraceAsString());
+            Log::error('Discount code creation error: ' . $e->getMessage() . '\n' . $e->getTraceAsString());
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to create discount code: ' . $e->getMessage(),
@@ -128,35 +129,30 @@ class DiscountCodeController extends Controller
         }
     }
 
-    public function destroy($id)
-    {
-        try {
-            $discount = DiscountCode::where('created_by', auth()->id())
-                ->where('coupons_id', $id)
-                ->first();
-                
-            if (!$discount) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Discount code not found or you do not have permission to delete it'
-                ], 404);
-            }
-            
-            $code = $discount->code;
-            $discount->delete();
-            
-            return response()->json([
-                'status' => 'success',
-                'message' => `Discount code ${$code} has been deleted`
-            ]);
-            
-        } catch (\Exception $e) {
-            \Log::error('Error deleting discount code: ' . $e->getMessage());
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to delete discount code',
-                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
-            ], 500);
+public function destroy($id)
+{
+    try {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['status' => 'error','message' => 'User not authenticated'], 401);
         }
+
+        $discount = DiscountCode::where('created_by', $user->userID)->where('coupons_id', $id)->first();
+
+        if (!$discount) {
+            return response()->json([
+                'status' => 'error','message' => 'Discount code not found or you do not have permission to delete it'], 404);
+        }
+
+        $code = $discount->code;
+        $discount->delete();
+
+        return response()->json(['status' => 'success','message' => "Discount code {$code} has been deleted"]);
+
+    } catch (\Exception $e) {
+        Log::error('Error deleting discount code: ' . $e->getMessage());
+        return response()->json(['status' => 'error','message' => 'Failed to delete discount code','error' => config('app.debug') ? $e->getMessage() : 'Internal server error'], 500);
     }
+}
+
 }

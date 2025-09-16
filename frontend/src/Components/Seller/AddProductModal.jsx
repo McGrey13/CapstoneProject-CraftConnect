@@ -13,9 +13,7 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
   const [video, setVideo] = useState({ file: null, preview: null });
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
-  const [weight, setWeight] = useState('');
-  const [dimensions, setDimensions] = useState({ length: '', width: '', height: '' });
-  const [shippingClass, setShippingClass] = useState('standard');
+  // const [shippingClass, setShippingClass] = useState('standard');
   const [publishStatus, setPublishStatus] = useState('draft');
 
   const fileInputRef = useRef(null);
@@ -25,7 +23,7 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('auth_token');
         const response = await fetch('http://localhost:8000/api/categories', {
           headers: {
             'Accept': 'application/json',
@@ -412,7 +410,12 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                       onChange={(e) => setMainCategory(e.target.value)}
                       required
                     >
-                      <option value="" disabled>Select a category</option>
+                      <option value="" disabled selected>Select a category</option>
+                      <option value="Miniatures & Souvenirs">Miniatures & Souvenirs</option>
+                      <option value="Rubber Stamp Engraving">Rubber Stamp Engraving</option>
+                      <option value="Traditional Accessories">Traditional Accessories</option>
+                      <option value="Statuary & Sculpture">Statuary & Sculpture</option>
+                      <option value="Basketry & Weaving">Basketry & Weaving</option>
                       {apiCategories.map(category => (
                         <option key={category.id} value={category.id}>{category.name}</option>
                       ))}

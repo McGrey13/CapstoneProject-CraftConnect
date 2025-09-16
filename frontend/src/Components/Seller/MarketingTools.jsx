@@ -41,34 +41,48 @@ const MarketingTools = () => {
   const [products, setProducts] = useState([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
-  const fetchProducts = async () => {
-    try {
-      setIsLoadingProducts(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/products/seller', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+const fetchProducts = async () => {
+  try {
+    setIsLoadingProducts(true);
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch('http://localhost:8000/api/seller/products', { 
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch products');
-      }
-
-      const data = await response.json();
-      setProducts(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      alert('Failed to load products');
-    } finally {
-      setIsLoadingProducts(false);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch products');
     }
-  };
+
+    const data = await response.json();
+    
+    // Ensure each product has the correct ID field
+    const processedData = Array.isArray(data) ? data.map(product => ({
+      ...product,
+      id: product.product_id || product.id // Ensure we have a consistent ID field
+    })) : [];
+    
+    setProducts(processedData);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    alert(error.message || 'Failed to load products');
+  } finally {
+    setIsLoadingProducts(false);
+  }
+};
 
   const toggleFeatured = async (productId, currentStatus) => {
+    if (!productId) {
+      console.error('Product ID is undefined');
+      alert('Invalid product ID');
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(
         `http://localhost:8000/api/products/${productId}/toggle-featured`,
         {
@@ -77,22 +91,28 @@ const MarketingTools = () => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify({}), // Empty body but needed for POST request
         }
       );
 
       if (!response.ok) {
-        throw new Error('Failed to update featured status');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update featured status');
       }
 
+
       // Update the local state to reflect the change
-      setProducts(products.map(product => 
-        product.product_id === productId 
+      setProducts(prevProducts => prevProducts.map(product => 
+        product.id === productId 
           ? { ...product, is_featured: !currentStatus } 
           : product
       ));
+
+      // Show success message
+      alert('Product featured status updated successfully');
     } catch (error) {
       console.error('Error toggling featured status:', error);
-      alert('Failed to update featured status');
+      alert(error.message || 'Failed to update featured status');
     }
   };
 
@@ -106,7 +126,7 @@ const MarketingTools = () => {
   const fetchDiscounts = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       if (!token) {
         console.error('No authentication token found');
         return;
@@ -119,8 +139,7 @@ const MarketingTools = () => {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Important for sending cookies if using session-based auth
+        }, 
       });
       
       console.log('Discount codes response status:', response.status);
@@ -150,7 +169,7 @@ const MarketingTools = () => {
     } catch (error) {
       console.error('Error in fetchDiscounts:', error);
       // Only show error to user if it's not an auth error (handled by auth flow)
-      if (!error.message.includes('401') && !error.message.includes('token')) {
+      if (!error.message.includes('401') && !error.message.includes('auth_token')) {
         alert(`Error loading discount codes: ${error.message}`);
       }
     } finally {
@@ -168,7 +187,7 @@ const MarketingTools = () => {
 
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       if (!token) {
         throw new Error('No authentication token found. Please log in again.');
       }
@@ -230,7 +249,7 @@ const MarketingTools = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`http://localhost:8000/api/discount-codes/${id}`, {
         method: 'DELETE',
         headers: {
@@ -254,7 +273,6 @@ const MarketingTools = () => {
     <div className="space-y-6 bg-white p-6 rounded-lg">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Marketing Tools</h1>
-        <Button>Create New Campaign</Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -327,7 +345,7 @@ const MarketingTools = () => {
                 <div className="space-y-4">
                   {products.map((product) => (
                     <div
-                      key={product.product_id}
+                      key={product.id || product.product_id}
                       className="flex items-center justify-between p-4 border rounded-lg"
                     >
                       <div className="flex items-center space-x-4">
@@ -352,12 +370,12 @@ const MarketingTools = () => {
                       <Button
                         variant={product.is_featured ? "default" : "outline"}
                         size="sm"
-                        onClick={() => toggleFeatured(product.product_id, product.is_featured)}
+                        onClick={() => toggleFeatured(product.id || product.product_id, product.is_featured)}
                         disabled={isLoadingProducts}
                       >
                         {product.is_featured ? (
                           <>
-                            <Star className="h-4 w-4 mr-2" />
+                            <Star className={`h-4 w-4 mr-2 ${product.is_featured ? "text-yellow-500 fill-yellow-500" : ""}`}/>
                             Featured
                           </>
                         ) : (
@@ -580,7 +598,7 @@ const MarketingTools = () => {
                                     if (window.confirm(`Are you sure you want to delete discount code ${discount.code}? This action cannot be undone.`)) {
                                       setIsLoading(true);
                                       try {
-                                        const token = localStorage.getItem('token');
+                                        const token = localStorage.getItem('auth_token');
                                         const response = await fetch(`http://localhost:8000/api/discount-codes/${discount.id}`, {
                                           method: 'DELETE',
                                           headers: {

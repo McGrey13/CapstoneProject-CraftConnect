@@ -23,7 +23,7 @@ const SellersTable = ({ onViewSeller = () => {} }) => {
   useEffect(() => {
     const fetchSellers = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("auth_token");
         const res = await fetch("http://localhost:8000/api/sellers", {
           method: "GET",
           headers: {

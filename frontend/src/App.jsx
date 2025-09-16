@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 
-
 // Layouts
 import PublicLayout from './Components/Routes/PublicLayout';
 import SellerLayout from './Components/Seller/SellerLayout';
@@ -29,6 +28,9 @@ import Orders from './Components/Orders/Orders';
 import Profile from './Components/Profile/Profile';
 import Settings from './Components/Settings/Settings';
 
+//
+
+
 // Seller Pages
 import MarketingTools from './Components/Seller/MarketingTools';
 import OrderInventoryManager from './Components/Seller/OrderInventoryManager';
@@ -40,6 +42,7 @@ import StorefrontCustomizer from './Components/Seller/StorefrontCustomizer';
 import WorkshopsEvents from './Components/Seller/WorkshopsEvents';
 import ProfilePage from './Components/Seller/ProfilePage';
 import EditableSellerDetail from './Components/Seller/EditableSellerDetail';
+import ChatBox from './Components/Chat/ChatBox';
 
 // Admin Pages
 import Dashboard from './Components/Admin/AdminDashboard';
@@ -82,6 +85,8 @@ function App() {
           <Route path="verify-otp" element={<OtpVerification />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="product/:id" element={<ProductDetails />} />
+          <Route path="chatbox" element={<ChatBox />} />
+
         </Route>
 
         {/* Seller Routes */}
@@ -96,7 +101,8 @@ function App() {
           <Route path="workshops-events" element={<WorkshopsEvents />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="editable-seller-detail" element={<EditableSellerDetail />} />
-        </Route>
+          <Route path="chatbox" element={<ChatBox/>} />
+        </Route>  
 
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminLayout />}>

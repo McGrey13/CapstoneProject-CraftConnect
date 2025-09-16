@@ -19,7 +19,7 @@ const AdminSettings = () => {
   const [error, setError] = useState(null);
 
   // Get token once
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("auth_token");
 
   // Fetch admin profile
   const fetchAdminData = async () => {

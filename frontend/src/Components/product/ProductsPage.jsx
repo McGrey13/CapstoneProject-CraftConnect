@@ -29,7 +29,7 @@ const ProductsPage = () => {
         setError(null);
         
         console.log("Fetching products from API...");
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('auth_token');
         const response = await fetch("http://localhost:8000/api/products/approved", {
           method: "GET",
           headers: {
@@ -37,7 +37,6 @@ const ProductsPage = () => {
             "Accept": "application/json",
             ...(token && { "Authorization": `Bearer ${token}` }),
           },
-          credentials: 'include',
         });
 
         console.log("Response status:", response.status);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Eye, Trash2, MoreHorizontal, Filter, Search, X, Edit} from "lucide-react";
+import { Eye, Trash2, MoreHorizontal, Filter, Search, X, Edit } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import {
@@ -22,12 +22,12 @@ import { Badge } from "../ui/badge";
 import CustomerDetail from "./CustomerDetail";
 import CustomerEdit from "./CustomerEdit";
 
-const CustomerTable = ({ onViewCustomer = () => {} }) => {
+const CustomerTable = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // State for view and edit dialogs
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -37,7 +37,7 @@ const CustomerTable = ({ onViewCustomer = () => {} }) => {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("auth_token");
         const res = await fetch("http://localhost:8000/api/customers", {
           method: "GET",
           headers: {
@@ -78,8 +78,8 @@ const CustomerTable = ({ onViewCustomer = () => {} }) => {
   };
 
   const handleSaveCustomer = (updatedCustomer) => {
-    setCustomers(prev => 
-      prev.map(customer => 
+    setCustomers((prev) =>
+      prev.map((customer) =>
         customer.userID === updatedCustomer.userID ? updatedCustomer : customer
       )
     );
@@ -109,7 +109,8 @@ const CustomerTable = ({ onViewCustomer = () => {} }) => {
   );
 
   if (loading) return <div className="p-6">Loading customers...</div>;
-  if (error) return <div className="p-6 text-red-600">Failed to load customers: {error}</div>;
+  if (error)
+    return <div className="p-6 text-red-600">Failed to load customers: {error}</div>;
 
   return (
     <div className="p-6 space-y-4">
@@ -190,9 +191,7 @@ const CustomerTable = ({ onViewCustomer = () => {} }) => {
                   <TableCell>0</TableCell>
                   <TableCell>₱0.00</TableCell>
                   <TableCell>-</TableCell>
-                  <TableCell>
-                    {getStatusBadge(customer.status)}
-                  </TableCell>
+                  <TableCell>{getStatusBadge(customer.status)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -202,15 +201,20 @@ const CustomerTable = ({ onViewCustomer = () => {} }) => {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleViewCustomer(customer.userID)}>
+                        <DropdownMenuItem
+                          onClick={() => handleViewCustomer(customer.userID)}
+                        >
                           <Eye className="h-4 w-4 mr-2" /> View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>
+                        <DropdownMenuItem
+                          onClick={() => handleEditCustomer(customer)}
+                        >
                           <Edit className="h-4 w-4 mr-2" /> Edit Details
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-red-600">
-                            <X className="h-4 w-4 mr-2" />Deactivate
+                          <X className="h-4 w-4 mr-2" />
+                          Deactivate
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-red-600">
@@ -243,7 +247,7 @@ const CustomerTable = ({ onViewCustomer = () => {} }) => {
         onEdit={handleEditCustomer}
       />
 
-      {/* Customer Edit Dialog */}
+      {/* Customer Edit Dialog (white background fix) */}
       <CustomerEdit
         customer={selectedCustomer}
         isOpen={isEditDialogOpen}
@@ -252,6 +256,7 @@ const CustomerTable = ({ onViewCustomer = () => {} }) => {
           setSelectedCustomer(null);
         }}
         onSave={handleSaveCustomer}
+        className="bg-white" // 👈 Ensures white background for readability
       />
     </div>
   );

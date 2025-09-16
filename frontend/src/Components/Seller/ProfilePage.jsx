@@ -23,7 +23,7 @@ const ProfilePage = () => {
     // Function to fetch the current user's data from the backend
     const fetchUserData = async () => {
         setIsLoading(true);
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('auth_token');
         if (!token) {
             setError("Authentication token not found. Please log in again.");
             setIsLoading(false);

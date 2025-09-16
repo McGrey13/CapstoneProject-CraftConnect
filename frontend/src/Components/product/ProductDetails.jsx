@@ -83,7 +83,7 @@ const ProductDetails = () => {
   const handleQuantityChange = (change) => setQuantity(Math.max(1, quantity + change));
   
   const handleAddToCart = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     if (!token) {
       // Redirect to login if not authenticated
       alert('Please log in to add items to your cart.');

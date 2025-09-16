@@ -10,7 +10,12 @@ class Messages extends Model
             'conversation_id',
              'sender_id',
               'message',
-              'receiver_id'
+              'receiver_id',
+              'message_type',
+              'attachment_url',
+              'is_read',
+              'created_at',
+              'updated_at'
         ];
 
     public function conversation()

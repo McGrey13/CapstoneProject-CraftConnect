@@ -163,7 +163,7 @@ class SellerController extends AuthController
 
     // Show the authenticated seller's profile
     public function showProfile(Request $request)
-    {
+    {   
         try {
             $user = Auth::user();
             

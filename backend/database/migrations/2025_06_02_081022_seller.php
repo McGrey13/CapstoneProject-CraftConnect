@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('profile_picture_path')->nullable(); 
             $table->string('background_picture_path')->nullable(); 
             $table->string('promotional_video_path')->nullable(); 
+            $table->integer('seller_rating')->default(0);
             $table->timestamps();
         });
     }

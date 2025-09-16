@@ -14,7 +14,8 @@ class Conversation extends Model
     protected $fillable = [
         'customer_id', 
         'seller_id',
-        'order_id'
+        'order_id',
+        'product_id'
     ];
 
     public function messages()

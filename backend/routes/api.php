@@ -4,30 +4,23 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\Auth\SellerController;
 use App\Http\Controllers\Auth\CustomerController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
 use App\http\Controllers\ChatController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\DiscountCodeController;
 
 // Public Routes
 Route::middleware([])->group(function () {
     // Auth routes
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
-
-    Route::get('/users', function () {return User::all();});
     
-    // Google OAuth routes
-    Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
-    Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
-    Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
     
     // Public product routes
     Route::get('/products/approved', [ProductController::class, 'approvedProducts']);
-    Route::get('/products/featured', [ProductController::class, 'featuredProducts']);
     Route::get('/products/{id}', [ProductController::class, 'getProductDetails'])->whereNumber('id');
     
     // Seller routes
@@ -41,6 +34,9 @@ Route::middleware([])->group(function () {
     Route::prefix('products/{product}')->group(function () {
         Route::get('/reviews/{review}', [ReviewController::class, 'show']);
     });
+    
+    // Profile route
+    Route::get('/profile', [AuthController::class, 'show']);
     
     // Test routes
     Route::get('/test', function () {
@@ -59,28 +55,19 @@ Route::middleware([])->group(function () {
     });
 });
 
-// Protected routes (require authentication)
+// Protected routes 
 Route::middleware(['auth:sanctum'])->group(function () {
-    // Discount Code Routes
-    Route::apiResource('discount-codes', 'App\Http\Controllers\Api\DiscountCodeController');
-    
-    // Toggle featured status of a product
-    Route::post('/products/{product}/toggle-featured', [ProductController::class, 'toggleFeatured']);
-    
-    // Review routes
+    // Protected review routes
     Route::prefix('products/{product}')->group(function () {
         Route::post('/reviews', [ReviewController::class, 'store']);
     });
-
-    // Profile route
-    Route::get('/profile', [AuthController::class, 'show']);
     
     // Cart routes
     Route::prefix('cart')->group(function () {
         Route::get('/', [CartController::class, 'index']);
-        Route::post('/products', [ProductController::class, 'store']);
-        Route::put('/products/{product}', [ProductController::class, 'update']);
-        Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+        Route::post('/add', [CartController::class, 'store']);
+        Route::put('/update/{id}', [CartController::class, 'update']);
+        Route::delete('/remove/{id}', [CartController::class, 'destroy']);
         Route::delete('/clear', [CartController::class, 'clear']);
         Route::post('/checkout', [CartController::class, 'checkout']);
     });
@@ -93,47 +80,75 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
     
     // Chat routes
-    Route::prefix('chat')->group(function () {
-        Route::get('/conversations', [ChatController::class, 'index']);
-        Route::post('/conversations', [ChatController::class, 'store']);
-        Route::get('/conversations/{conversation}/messages', [ChatController::class, 'messages']);
-        Route::post('/conversations/{conversation}/messages', [ChatController::class, 'sendMessage']);
-    });
+    // Route::prefix('chat')->group(function () {
+    //     Route::get('/conversations', [ChatController::class, 'index']);
+    //     Route::post('/conversations', [ChatController::class, 'store']);
+    //     Route::get('/conversations/{conversation}/messages', [ChatController::class, 'messages']);
+    //     Route::post('/conversations/{conversation}/messages', [ChatController::class, 'sendMessage']);
+    // });
     
-    // Product routes
-    Route::get('products/search/{name}', [ProductController::class, 'search']);
-    Route::get('products', [ProductController::class, 'index']);
-    Route::post('products/{product}/toggle-featured', [ProductController::class, 'toggleFeatured']);
-    Route::resource('products', ProductController::class)->except(['index', 'show']);
-    
-    // Category routes
-    Route::get('categories', [CategoryController::class, 'index']);
-    
-    // Seller routes
+    // Product management routes (for sellers)
     Route::middleware(['role:seller'])->group(function () {
+        Route::apiResource('products', ProductController::class)->except(['index', 'show']);
         Route::get('/seller/products', [ProductController::class, 'sellerProducts']);
-        Route::get('sellers/profile', [SellerController::class, 'showProfile']);
-        Route::post('sellers/{sellerID}/profile', [SellerController::class, 'updateProfile']);
     });
     
     // Admin routes
     Route::middleware(['role:admin'])->group(function () {
         Route::post('/products/{id}/approve', [ProductController::class, 'approve']);
         Route::post('/products/{id}/reject', [ProductController::class, 'reject']);
-        Route::get('/admin/products', [ProductController::class, 'adminIndex']);
-        Route::resource('customers', CustomerController::class);
     });
     
-    // User profile and auth
+    // User profile
     Route::put('/profile', [AuthController::class, 'updateProfile']);
-    Route::get('/profile', [AuthController::class, 'show']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+});
+
+// Admin products route
+Route::middleware(['auth:sanctum'])->get('/admin/products', [ProductController::class, 'adminIndex']);
+
+// Protected Routes
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Product Routes 
+    Route::get('products/search/{name}', [ProductController::class, 'search']);
+    Route::resource('/products', ProductController::class);
+
+    //Toggle Featured Product
+    Route::post('/products/{id}/toggle-featured', [ProductController::class, 'toggleFeatured']);
+     Route::get('/seller/products', [ProductController::class, 'index']);
+
+    //Discount Code Routes
+    Route::resource('/discount-codes', DiscountCodeController::class);
+        Route::get('/discount-codes', [DiscountCodeController::class, 'index']);
+        Route::post('/discount-codes', [DiscountCodeController::class, 'store']);
+        Route::delete('/discount-codes/{id}', [DiscountCodeController::class, 'destroy']);
+    
+    //Seller Routes
+   Route::get('sellers/profile', [SellerController::class, 'showProfile']);
+    Route::post('sellers/{sellerID}/profile', [SellerController::class, 'updateProfile']);
+    Route::post('/user/deactivate', [AuthController::class, 'deactivate']);
+    Route::delete('/user', [AuthController::class, 'destroy']);
+
+    //Products Routes in Admin Side
+    Route::post('/products/{id}/approve', [ProductController::class, 'approve']);
+    Route::post('/products/{id}/reject', [ProductController::class, 'reject']);
+    Route::put('/products/{id}/update', [ProductController::class, 'update']);
+    
+    // Customer Routes
+    Route::resource('/customers', CustomerController::class);
+    
+    // User routes
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::delete('/user', [AuthController::class, 'destroy']);
-    Route::post('/user/deactivate', [AuthController::class, 'deactivate']);
-    
-    // User management
+    Route::get('/profile', [AuthController::class, 'show']);
     Route::get('/customers', [AuthController::class, 'getCustomers']);
     Route::get('/admins', [AuthController::class, 'getAdmins']);
     Route::get('/sellers', [AuthController::class, 'getSellers']);
+
+    // Order Routes
+    Route::get('/orders', [OrderController::class, 'index']);
+
+    //Chat Routes 
+     Route::post('/chat/{conversation}/send', [ChatController::class, 'sendMessage']);
+    Route::get('/chat/{conversation}/messages', [ChatController::class, 'getMessages']);
 });

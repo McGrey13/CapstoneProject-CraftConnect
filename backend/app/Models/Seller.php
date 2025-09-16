@@ -14,19 +14,13 @@ class Seller extends Model
 {
     use HasFactory;
 
-    
-
     /**
      * The primary key for the model.
-     *
-     * @var string
      */
     protected $primaryKey = 'sellerID';
 
     /**
      * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
      */
     protected $fillable = [
         'user_id',
@@ -99,9 +93,10 @@ class Seller extends Model
         return $this->hasMany(Product::class, 'seller_id', 'sellerID');
     }
 
-public function orders()
-{
-    return $this->hasMany(Order::class);
-}
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
 }
 

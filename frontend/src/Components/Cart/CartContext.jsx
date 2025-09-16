@@ -9,7 +9,7 @@ export const CartProvider = ({ children }) => {
   const addToCartTimeoutRef = useRef(null);
 
   const fetchCart = async () => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("auth_token");
     if (!token || !isAuthenticated) {
       console.log("No token found or user not authenticated, clearing cart");
       setCartItems([]);
@@ -25,14 +25,13 @@ export const CartProvider = ({ children }) => {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
       });
 
       console.log("Cart response status:", response.status);
       
       if (response.status === 401) {
         console.warn('User not authenticated, clearing token and redirecting to login');
-        localStorage.removeItem('token');
+        localStorage.removeItem('auth_token');
         setCartItems([]);
         // Redirect to login page
         window.location.href = '/login';
@@ -136,7 +135,7 @@ export const CartProvider = ({ children }) => {
 
   // Add product to cart with debounce
   const addToCart = async (product, quantity = 1) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("auth_token");
     if (!token || !isAuthenticated) {
       const errorMsg = "Please log in to add items to your cart.";
       console.warn(errorMsg);
@@ -187,7 +186,6 @@ export const CartProvider = ({ children }) => {
               product_id: Number(productId),
               quantity: qty
             }),
-            credentials: 'include'
           });
 
           let responseData;
@@ -226,7 +224,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const updateQuantity = async (productId, quantity) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("auth_token");
     const item = cartItems.find(i => i.product_id === productId);
     if (!token || !isAuthenticated || !item || !item.cartItemId) {
       console.error('Missing required data for update:', { token, isAuthenticated, item, productId });
@@ -267,7 +265,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const removeItem = async (cartId) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("auth_token");
     if (!token || !isAuthenticated || !cartId) {
       console.error('Missing token, authentication, or cart ID:', { token, isAuthenticated, cartId });
       return { success: false, error: 'Missing required data' };
@@ -282,7 +280,6 @@ export const CartProvider = ({ children }) => {
           'Accept': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        credentials: 'include',
       });
 
       const responseText = await response.text();
@@ -299,7 +296,7 @@ export const CartProvider = ({ children }) => {
         console.error('Failed to remove item:', response.status, responseData);
         
         if (response.status === 401) {
-          localStorage.removeItem('token');
+          localStorage.removeItem('auth_token');
           window.location.href = '/login';
           return { 
             success: false, 
@@ -345,7 +342,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const checkout = async () => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("auth_token");
     if (!token || !isAuthenticated) {
       const errorMsg = "Please log in to proceed to checkout.";
       console.warn(errorMsg);
@@ -361,7 +358,6 @@ export const CartProvider = ({ children }) => {
           'Accept': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        credentials: 'include',
       });
 
       const responseText = await response.text();
@@ -378,7 +374,7 @@ export const CartProvider = ({ children }) => {
         console.error('Checkout failed:', response.status, responseData);
         
         if (response.status === 401) {
-          localStorage.removeItem('token');
+          localStorage.removeItem('auth_token');
           window.location.href = '/login';
           return { 
             success: false, 
@@ -418,7 +414,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const clearCart = async () => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("auth_token");
     if (!token || !isAuthenticated) {
       console.log("No token found or user not authenticated");
       return;
@@ -431,7 +427,6 @@ export const CartProvider = ({ children }) => {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
-        credentials: 'include',
       });
 
       if (!response.ok) {

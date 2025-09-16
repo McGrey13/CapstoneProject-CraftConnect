@@ -34,30 +34,29 @@ class AuthController extends Controller
         return response()->json(User::where('role', 'customer')->get());
     }
 
-    public function getSellers()
-    {
-        $sellers = Seller::with(['user', 'products'])->get()->map(function ($seller) {
-            return [
-                'sellerID' => $seller->sellerID,
-                'businessName' => $seller->businessName,
-                'specialty' => $seller->specialty,
-                'status' => $seller->status,
-                'created_at' => $seller->created_at,
-                'updated_at' => $seller->updated_at,
-                'profile_image_url' => $seller->profile_image_url,
-                'products_count' => $seller->products->count(),
-                'user' => [
-                    'id' => $seller->user->id,
-                    'userName' => $seller->user->userName,
-                    'userEmail' => $seller->user->userEmail,
-                    'userAddress' => $seller->user->userAddress,
-                    'userContactNumber' => $seller->user->userContactNumber,
-                ]
-            ];
-        });
+public function getSellers()
+{
+    $sellers = Seller::with(['user', 'products'])->get()->map(function ($seller) {
+        return [
+            'sellerID' => $seller->sellerID,
+            'businessName' => $seller->businessName,
+            'created_at' => $seller->created_at,
+            'updated_at' => $seller->updated_at,
+            'profile_image_url' => $seller->profile_image_url,
+            'products_count' => $seller->products->count(),
+            'user' => [
+                'userID' => $seller->user->userID,
+                'userName' => $seller->user->userName,
+                'userEmail' => $seller->user->userEmail,
+                'userAddress' => $seller->user->userAddress ?? null, // avoid errors if missing
+                'userContactNumber' => $seller->user->userContactNumber,
+            ]
+        ];
+    });
 
-        return response()->json($sellers);
-    }
+    return response()->json($sellers);
+}
+
 
     public function getSellerById($id)
     {
@@ -162,9 +161,21 @@ class AuthController extends Controller
     }
 
     // Send OTP
-    Mail::raw("Your OTP is: {$otp}", function ($message) use ($user) {
-        $message->to($user->userEmail)->subject('Your OTP Code');
-    });
+    // Mail::raw("Your OTP is: {$otp}", function ($message) use ($user) {
+    //     $message->to($user->userEmail)->subject('Your OTP Code');
+    // });
+    Http::withHeaders([
+        'accept' => 'application/json',
+        'api-key' => env('BREVO_API_KEY'),
+        'content-type' => 'application/json'
+    ])->post('https://api.brevo.com/v3/smtp/email',[
+        'sender' => ['name'=>'CraftConnect', 'email'=> env('BREVO_SENDER_EMAIL')],
+        'to' => [['name' =>$user->userName, 'email'=>$user->userEmail]],
+        'subject' => 'Your OTP Code',
+        'htmlContent' => "Your OTP is: {$otp}",
+    ]);
+
+    session(['otp_email' => $user->userEmail]);
 
     return response()->json([
         'message' => 'User registered successfully. Please verify with the OTP sent to your email.',
@@ -196,17 +207,14 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         // Determine user type for frontend routing
-        $userType = 'customer'; // default
-        if ($user->administrator) {
-            $userType = 'admin';
-        } elseif ($user->seller) {
-            $userType = 'seller';
-        }
+    $userType = $user->role === 'administrator'
+        ? 'admin'
+        : $user->role; 
 
         return response()->json([
             'user' => $user,
             'token' => $token,
-            'user_type' => $userType
+            'userType' => $userType
         ], 200);
     }
 
