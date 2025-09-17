@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\SellerController;
 use App\Http\Controllers\Auth\CustomerController;
+use App\Http\Controllers\StoreController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
 use App\http\Controllers\ChatController;
@@ -17,6 +18,7 @@ Route::middleware([])->group(function () {
     // Auth routes
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
     
     
     // Public product routes
@@ -133,6 +135,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/products/{id}/approve', [ProductController::class, 'approve']);
     Route::post('/products/{id}/reject', [ProductController::class, 'reject']);
     Route::put('/products/{id}/update', [ProductController::class, 'update']);
+    
+    // Store Routes
+    Route::prefix('stores')->group(function () {
+        Route::get('/me', [StoreController::class, 'me']);
+        Route::post('/', [StoreController::class, 'store']);
+        Route::get('/{store}', [StoreController::class, 'show']);
+        Route::put('/{store}', [StoreController::class, 'update']);
+        Route::delete('/{store}', [StoreController::class, 'destroy']);
+        Route::post('/{store}/approve', [StoreController::class, 'approve']);
+        Route::post('/{store}/reject', [StoreController::class, 'reject']);
+        Route::get('/', [StoreController::class, 'index']);
+    });
     
     // Customer Routes
     Route::resource('/customers', CustomerController::class);

@@ -59,10 +59,9 @@ const OtpVerification = () => {
         localStorage.setItem("user", JSON.stringify(res.data.user));
 
         // Handle redirection logic
-        const nextDestination = location.state?.redirectTo;
-        if (nextDestination) {
+        if (res.data.redirectTo) {
           // Special redirect (e.g., to create store for sellers)
-          navigate(nextDestination);
+          navigate(res.data.redirectTo);
         } else if (res.data.user.role) {
           // Role-based redirect
           const redirectMap = {

@@ -43,6 +43,10 @@ import WorkshopsEvents from './Components/Seller/WorkshopsEvents';
 import ProfilePage from './Components/Seller/ProfilePage';
 import EditableSellerDetail from './Components/Seller/EditableSellerDetail';
 import ChatBox from './Components/Chat/ChatBox';
+import CreateStore from './Components/Store/CreateStore';
+import OwnerInfo from './Components/Store/OwnerInfo';
+import RulesGuidelines from './Components/Store/RulesGuidelines';
+import StoreDetails from './Components/Store/StoreDetails';
 
 // Admin Pages
 import Dashboard from './Components/Admin/AdminDashboard';
@@ -86,7 +90,7 @@ function App() {
           <Route path="products" element={<ProductsPage />} />
           <Route path="product/:id" element={<ProductDetails />} />
           <Route path="chatbox" element={<ChatBox />} />
-
+          <Route path="create-store" element={<CreateStore />} />
         </Route>
 
         {/* Seller Routes */}
@@ -102,6 +106,10 @@ function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="editable-seller-detail" element={<EditableSellerDetail />} />
           <Route path="chatbox" element={<ChatBox/>} />
+          <Route path="create-store" element={<CreateStore />} />
+          <Route path="owner-info" element={<OwnerInfo />} />
+          <Route path="rules-guidelines" element={<RulesGuidelines />} />
+          <Route path="store-details" element={<StoreDetails />} />
         </Route>  
 
         {/* Admin Routes */}

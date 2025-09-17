@@ -206,15 +206,25 @@ public function getSellers()
         // Create token
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // Check if user is a seller and has a store
+        $redirectTo = null;
+        if ($user->role === 'seller') {
+            $seller = Seller::where('user_id', $user->userID)->first();
+            if (!$seller || !$seller->store) {
+                $redirectTo = '/create-store';
+            }
+        }
+
         // Determine user type for frontend routing
-    $userType = $user->role === 'administrator'
-        ? 'admin'
-        : $user->role; 
+        $userType = $user->role === 'administrator'
+            ? 'admin'
+            : $user->role; 
 
         return response()->json([
             'user' => $user,
             'token' => $token,
-            'userType' => $userType
+            'userType' => $userType,
+            'redirectTo' => $redirectTo
         ], 200);
     }
 
@@ -243,10 +253,20 @@ public function getSellers()
         // 🔑 Create token after successful verification
         $token = $user->createToken('auth_token')->plainTextToken;
     
+        // Check if user is a seller and has a store
+        $redirectTo = null;
+        if ($user->role === 'seller') {
+            $seller = Seller::where('user_id', $user->userID)->first();
+            if (!$seller || !$seller->store) {
+                $redirectTo = '/create-store';
+            }
+        }
+    
         return response()->json([
             'message' => 'Account verified successfully',
             'token' => $token,
-            'user' => $user
+            'user' => $user,
+            'redirectTo' => $redirectTo
         ]);
     }
     

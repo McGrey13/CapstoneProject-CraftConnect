@@ -48,6 +48,7 @@ const Register = () => {
         userName: form.userName,
         userEmail: form.userEmail,
         userPassword: form.userPassword,
+        role: form.role, // Make sure role is included
         userPassword_confirmation: form.userPassword_confirmation,
         userContactNumber: form.userContactNumber,
         role: form.role,
@@ -55,11 +56,12 @@ const Register = () => {
 
       console.log("Registration result:", result);
       
-      // Navigate to OTP verification page with the email
+      // Navigate to OTP verification page with the email and next destination
       navigate("/verify-otp", { 
         state: { 
           email: result.userEmail || form.userEmail,
-          registrationSuccess: true
+          registrationSuccess: true,
+          redirectTo: form.role === 'seller' ? '/create-store' : undefined
         } 
       });
       
