@@ -18,11 +18,11 @@ import EditProductModal from "./EditProductModal";
 
 const OrdersTab = () => {
   const orders = [
-    { id: "ORD-1234", customer: "Jane Smith", date: "2023-06-15", total: "$78.50", status: "Processing", items: 3 },
-    { id: "ORD-1235", customer: "John Doe", date: "2023-06-14", total: "$125.00", status: "Shipped", items: 2 },
-    { id: "ORD-1236", customer: "Alice Johnson", date: "2023-06-13", total: "$45.75", status: "Delivered", items: 1 },
-    { id: "ORD-1237", customer: "Robert Brown", date: "2023-06-12", total: "$210.25", status: "Processing", items: 4 },
-    { id: "ORD-1238", customer: "Emily Davis", date: "2023-06-11", total: "$95.00", status: "Shipped", items: 2 },
+    { id: "ORD-1234", customer: "Jane Smith", date: "2023-06-15", total: "₱78.50", status: "Processing", items: 3 },
+    { id: "ORD-1235", customer: "John Doe", date: "2023-06-14", total: "₱125.00", status: "Shipped", items: 2 },
+    { id: "ORD-1236", customer: "Alice Johnson", date: "2023-06-13", total: "₱45.75", status: "Delivered", items: 1 },
+    { id: "ORD-1237", customer: "Robert Brown", date: "2023-06-12", total: "₱210.25", status: "Processing", items: 4 },
+    { id: "ORD-1238", customer: "Emily Davis", date: "2023-06-11", total: "₱95.00", status: "Shipped", items: 2 },
   ];
 
   const getStatusColor = (status) => {

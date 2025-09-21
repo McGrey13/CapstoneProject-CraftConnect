@@ -32,7 +32,7 @@ const AboutPage = () => {
       <div className="w-full max-w-7xl">
         {/* Breadcrumb */}
         <div className="flex items-center mb-6 text-sm">
-          <Link to="/" className="text-gray-500 hover:text-primary">
+          <Link to="/home" className="text-gray-500 hover:text-primary">
             Home
           </Link>
           <span className="mx-2">/</span>

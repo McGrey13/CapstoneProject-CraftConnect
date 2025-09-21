@@ -2,11 +2,10 @@
 import React from "react";
 
 const variants = {
-  default: "bg-blue-600 text-white hover:bg-blue-700",
-  outline: "border border-gray-300 text-gray-700 hover:bg-gray-100",
+  default: "px-6 py-2 bg-amber-700 text-amber-700 rounded-lg hover:bg-amber-800",
+  outline: "px-6 py-2 bg-amber-700 text-amber-700 rounded-lg hover:bg-amber-800",
   ghost: "bg-transparent hover:bg-gray-100 text-gray-700",
 };
-
 const sizes = {
   sm: "px-2 py-1 text-sm",
   md: "px-4 py-2 text-base",

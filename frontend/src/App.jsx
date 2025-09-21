@@ -71,7 +71,7 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<PublicLayout />}>
-          <Route path="home" element={<ProfilePagee />} />
+          <Route path="home" element={<Home />} />
           <Route path="favorites" element={<Favorites />} />
           <Route path="/cart" element={<ShoppingCart />} />
           <Route path="/checkout" element={<Checkout />} />

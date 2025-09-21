@@ -767,11 +767,11 @@
             <div className="flex items-center justify-between h-20">
               <div className="flex items-center space-x-4">
                 {imagePreviews.logo && (
-                  <div className="p-2 bg-white rounded-full shadow-md">
+                  <div className="w-20 h-20 rounded-full overflow-hidden shadow-md">
                     <img 
                       src={imagePreviews.logo} 
                       alt="Store Logo" 
-                      className="h-10 w-10 object-contain"
+                      className="w-full h-full object-cover"
                     />
                   </div>
                 )}
@@ -781,12 +781,6 @@
                 </div>
               </div>
               <div className="flex items-center space-x-4">
-                <button className="text-gray-600 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                  About
-                </button>
-                <button className="text-gray-600 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                  Contact
-                </button>
                 <button className="btn-primary">
                   Shop Now
                 </button>

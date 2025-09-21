@@ -89,7 +89,7 @@ const SellerDashboard = () => {
           title="Total Revenue"
           value="₱24,780"
           description="Total revenue this month"
-          icon={<DollarSign className="h-4 w-4 text-primary" />}
+          icon={<span className="h-4 w-4 text-primary">₱</span>}
           trend="up"
           trendValue="12% from last month"
         />

@@ -180,7 +180,7 @@ const CreateStore = () => {
               </button>
               <button
                 onClick={handleSubmit}
-                className="px-6 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800"
+                className="px-6 py-2 bg-amber-700 text-amber-700 rounded-lg hover:bg-amber-800"
               >
                 {"Submit Store"}
               </button>

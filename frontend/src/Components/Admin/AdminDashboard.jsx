@@ -85,9 +85,9 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Revenue"
-          value="$24,780"
+          value="₱24,780"
           description="Total revenue this month"
-          icon={<DollarSign className="h-4 w-4 text-primary" />}
+          icon={<span className="h-4 w-4 text-primary">₱</span>}
           trend="up"
           trendValue="12% from last month"
         />
@@ -134,35 +134,35 @@ const Dashboard = () => {
                   id: "ORD-7652",
                   customer: "Maria Rodriguez",
                   date: "2023-06-15",
-                  amount: "$129.99",
+                  amount: "₱129.99",
                   status: "Completed",
                 },
                 {
                   id: "ORD-7651",
                   customer: "John Smith",
                   date: "2023-06-14",
-                  amount: "$85.50",
+                  amount: "₱85.50",
                   status: "Processing",
                 },
                 {
                   id: "ORD-7650",
                   customer: "Emily Johnson",
                   date: "2023-06-14",
-                  amount: "$210.75",
+                  amount: "₱210.75",
                   status: "Shipped",
                 },
                 {
                   id: "ORD-7649",
                   customer: "Michael Brown",
                   date: "2023-06-13",
-                  amount: "$45.00",
+                  amount: "₱45.00",
                   status: "Completed",
                 },
                 {
                   id: "ORD-7648",
                   customer: "Sarah Wilson",
                   date: "2023-06-12",
-                  amount: "$178.25",
+                  amount: "₱178.25",
                   status: "Completed",
                 },
               ].map((order) => (

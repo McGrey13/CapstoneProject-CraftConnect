@@ -129,7 +129,7 @@ const Artisan = () => {
         <div className="relative z-10 container mx-auto px-4 py-16">
           {/* Breadcrumb */}
           <div className="flex items-center mb-8 text-sm">
-            <Link to="/" className="text-white/80 hover:text-white transition-colors">
+            <Link to="/home" className="text-white/80 hover:text-white transition-colors">
               Home
             </Link>
             <span className="mx-2 text-white/60">/</span>

@@ -473,10 +473,13 @@ const OwnerInfo = ({ onNext, onBack, ownerData, setOwnerData }) => {
 
           {/* Navigation Buttons */}
           <div className="flex justify-between pt-4">
-            <Button onClick={onBack} variant="outline">
+            <Button onClick={onBack} variant="outline"
+            className="px-6 py-2 bg-amber-700 text-amber-700 rounded-lg hover:bg-amber-800">
               Back
             </Button>
-            <Button onClick={handleNext}>Next Step</Button>
+            <Button onClick={handleNext}
+            className="px-6 py-2 bg-amber-700 text-amber-700 rounded-lg hover:bg-amber-800"
+            >Next Step</Button>
           </div>
         </div>
       </CardContent>

@@ -112,7 +112,7 @@ const StoreDetails = ({
                 <option value="" disabled>
                   Select a category
                 </option>
-                <option value="Native Handicraft">Native Handicraft</option>
+                <option value="Native Handicraft">Beads</option>
                 <option value="Miniatures & Souvenirs">Miniatures & Souvenirs</option>
                 <option value="Rubber Stamp Engraving">Rubber Stamp Engraving</option>
                 <option value="Traditional Accessories">Traditional Accessories</option>
@@ -173,7 +173,9 @@ const StoreDetails = ({
 
           {/* Next Button */}
           <div className="flex justify-end pt-4">
-            <Button onClick={handleSubmit}>Next Step</Button>
+            <Button onClick={handleSubmit}
+            className="px-6 py-2 bg-amber-700 text-amber-700 rounded-lg hover:bg-amber-800"
+            >Next Step</Button>
           </div>
         </div>
       </CardContent>

@@ -73,7 +73,7 @@ const CategoriesPage = () => {
       <div className="container mx-auto px-4">
         {/* Breadcrumb */}
         <div className="flex items-center mb-6 text-sm">
-          <Link to="/" className="text-black">
+          <Link to="/home" className="text-black">
             Home
           </Link>
           <span className="mx-2">/</span>

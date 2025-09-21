@@ -165,13 +165,13 @@ const RulesGuidelines = ({ onNext, onBack, onAgree, agreed = false }) => {
         <Button 
           variant="outline" 
           onClick={onBack}
-          className="px-4 py-2"
+          className="px-6 py-2 bg-amber-700 text-amber-700 rounded-lg hover:bg-amber-800"
         >
           Back
         </Button>
         <Button 
           onClick={handleNext}
-          className="px-4 py-2 bg-blue-600 text-black rounded-lg shadow-md hover:bg-blue-700"
+          className="px-6 py-2 bg-amber-700 text-amber-700 rounded-lg hover:bg-amber-800"
         >
           Next
         </Button>
