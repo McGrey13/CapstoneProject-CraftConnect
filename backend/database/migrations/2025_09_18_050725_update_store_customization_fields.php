@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::table('stores', function (Blueprint $table) {
             // Add background image field
-            $table->string('background_image_path')->nullable()->after('logo_path');
             
             // Remove unwanted fields if they exist
             if (Schema::hasColumn('stores', 'banner_image_path')) {
@@ -35,7 +34,6 @@ return new class extends Migration
     {
         Schema::table('stores', function (Blueprint $table) {
             // Remove background image field
-            $table->dropColumn('background_image_path');
             
             // Add back the removed fields
             $table->string('banner_image_path')->nullable()->after('logo_path');

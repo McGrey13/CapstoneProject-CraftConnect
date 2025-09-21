@@ -463,7 +463,7 @@ const InventoryTab = () => {
                     </TableCell>
                     <TableCell>{product.productName}</TableCell>
                     <TableCell>{product.category}</TableCell>
-                    <TableCell>${product.productPrice}</TableCell>
+                    <TableCell>₱{product.productPrice}</TableCell>
                     <TableCell>{product.productQuantity}</TableCell>
                     <TableCell>
                       <Badge className={getStockColor(product.status)} variant="outline">

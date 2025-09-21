@@ -416,6 +416,7 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                       <option value="Traditional Accessories">Traditional Accessories</option>
                       <option value="Statuary & Sculpture">Statuary & Sculpture</option>
                       <option value="Basketry & Weaving">Basketry & Weaving</option>
+                      <option value="Crochet">Crochet</option>
                       {apiCategories.map(category => (
                         <option key={category.id} value={category.id}>{category.name}</option>
                       ))}

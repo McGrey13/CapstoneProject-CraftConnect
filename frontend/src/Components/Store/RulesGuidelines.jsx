@@ -162,10 +162,19 @@ const RulesGuidelines = ({ onNext, onBack, onAgree, agreed = false }) => {
 
       {/* Navigation Buttons */}
       <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={onBack}>
+        <Button 
+          variant="outline" 
+          onClick={onBack}
+          className="px-4 py-2"
+        >
           Back
         </Button>
-        <Button onClick={handleNext}>Next</Button>
+        <Button 
+          onClick={handleNext}
+          className="px-4 py-2 bg-blue-600 text-black rounded-lg shadow-md hover:bg-blue-700"
+        >
+          Next
+        </Button>
       </CardFooter>
     </Card>
   );

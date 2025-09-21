@@ -63,6 +63,7 @@ import SellerDetail from './Components/Admin/SellerDetail';
 import SellersTable from './Components/Admin/SellersTable';
 import SimplifiedCustomerDetail from './Components/Admin/SimplifiedCustomerDetail';
 import SimplifiedCustomerTable from './Components/Admin/SimplifiedCustomerTable';
+import ProfilePagee from './Components/Profile/ProfilePagee';
 
 function App() {
   return (
@@ -70,7 +71,7 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<PublicLayout />}>
-          <Route path="home" element={<Home />} />
+          <Route path="home" element={<ProfilePagee />} />
           <Route path="favorites" element={<Favorites />} />
           <Route path="/cart" element={<ShoppingCart />} />
           <Route path="/checkout" element={<Checkout />} />

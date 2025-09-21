@@ -298,27 +298,26 @@ const OwnerInfo = ({ onNext, onBack, ownerData, setOwnerData }) => {
                   console.log("📡 Manual API Response:", response.data);
                   
                   const newData = {
-                    ...ownerData, // Keep existing data first
+                    ...ownerData,
                     fullName: response.data.userName || ownerData.fullName || "",
                     email: response.data.userEmail || ownerData.email || "",
                     phone: response.data.userContactNumber || ownerData.phone || "",
-                    address: ownerData.address || "", // Keep existing address, don't auto-fill from API
+                    address: ownerData.address || "",
                   };
-                  
-                  // Update local location data separately
+
                   setLocalLocationData({
                     userCity: response.data.userCity || "",
                     userRegion: response.data.userRegion || fixedRegion,
                     userProvince: response.data.userProvince || fixedProvince,
                   });
-                  
+
                   console.log("🔧 MANUAL SET personal data:", newData);
                   console.log("🔧 MANUAL SET location data:", {
                     userCity: response.data.userCity || "",
                     userRegion: response.data.userRegion || fixedRegion,
                     userProvince: response.data.userProvince || fixedProvince,
                   });
-                  
+
                   setOwnerData(newData);
                   setIsDataLoaded(true);
                   alert("✅ Data manually set! Check the form now.");
@@ -327,17 +326,18 @@ const OwnerInfo = ({ onNext, onBack, ownerData, setOwnerData }) => {
                   alert(`❌ Error: ${error.message}`);
                 }
               }}
-              className="mt-2 px-3 py-1 bg-blue-500 text-white text-sm rounded"
+              className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-gray-700 text-sm font-medium rounded-lg shadow-md cursor-pointer"
             >
               MANUAL FIX
             </button>
+
             <button 
               onClick={() => {
                 console.log("🔄 Resetting data loaded flag...");
                 setIsDataLoaded(false);
                 alert("🔄 Reset complete. Data will be fetched again on next render.");
               }}
-              className="mt-2 ml-2 px-3 py-1 bg-red-500 text-white text-sm rounded"
+              className="mt-2 ml-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-gray-700 text-sm font-medium rounded-lg shadow-md cursor-pointer"
             >
               RESET
             </button>

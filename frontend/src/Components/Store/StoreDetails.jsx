@@ -3,13 +3,6 @@ import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { Button } from "../ui/button";
 import { Upload, ImageIcon } from "lucide-react";
 
@@ -17,7 +10,7 @@ const StoreDetails = ({
   storeData = {
     storeName: "",
     storeDescription: "",
-    category: "Native Handicraft",
+    category: "",
     logo: null,
   },
   updateStoreData = () => {},
@@ -73,7 +66,7 @@ const StoreDetails = ({
             Tell us about your handicraft store
           </p>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Store Name */}
             <div className="space-y-2">
               <Label htmlFor="store-name">Store Name</Label>
@@ -106,24 +99,28 @@ const StoreDetails = ({
             </div>
 
             {/* Store Category */}
-            <div className="space-y-2">
-              <Label htmlFor="store-category">Store Category</Label>
-              <Select
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Store Category <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={storeData.category}
-                onValueChange={(value) => updateStoreData({ category: value })}
+                onChange={(e) => updateStoreData({ category: e.target.value })}
+                required
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Native Handicraft">Native Handicraft</SelectItem>
-                  <SelectItem value="Miniatures & Souvenirs">Miniatures & Souvenirs</SelectItem>
-                  <SelectItem value="Rubber Stamp Engraving">Rubber Stamp Engraving</SelectItem>
-                  <SelectItem value="Traditional Accessories">Traditional Accessories</SelectItem>
-                  <SelectItem value="Statuary & Sculpture">Statuary & Sculpture</SelectItem>
-                  <SelectItem value="Basketry & Weaving">Basketry & Weaving</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="" disabled>
+                  Select a category
+                </option>
+                <option value="Native Handicraft">Native Handicraft</option>
+                <option value="Miniatures & Souvenirs">Miniatures & Souvenirs</option>
+                <option value="Rubber Stamp Engraving">Rubber Stamp Engraving</option>
+                <option value="Traditional Accessories">Traditional Accessories</option>
+                <option value="Statuary & Sculpture">Statuary & Sculpture</option>
+                <option value="Basketry & Weaving">Basketry & Weaving</option>
+                <option value="Crochet">Crochet</option>
+
+              </select>
             </div>
 
             {/* Store Logo */}
