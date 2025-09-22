@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useCart } from "./CartContext";
 import { Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
 const PALETTE = {
   sand: "#e5ded7",
@@ -14,64 +13,86 @@ const PALETTE = {
 };
 
 const ShoppingCart = () => {
-  const { cartItems, updateQuantity, removeItem, checkout } = useCart();
+  const { cartItems, updateQuantity, removeItem } = useCart();
   const navigate = useNavigate();
+  const [selectedItems, setSelectedItems] = useState([]); // track selected items
 
-  // Helper function to safely parse the price string into a number
-  const parsePrice = (priceString) => {
-    if (typeof priceString === 'string') {
-      // Remove the currency symbol and commas, then parse as a float
-      return parseFloat(priceString.replace("₱", "").replace(/,/g, "")) || 0;
-    }
-    return priceString 
+  // Toggle item selection
+  const handleCheck = (id) => {
+    setSelectedItems((prev) =>
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+    );
   };
 
-  // Calculate cart totals
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + (parseFloat(item.price || item.total_price || 0) * (item.quantity || 1)),
+  // Select all toggle
+  const handleSelectAll = () => {
+    if (selectedItems.length === cartItems.length) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(cartItems.map((item) => item.cartItemId));
+    }
+  };
+
+  // Compute totals only for selected items
+  const selectedCartItems = cartItems.filter((item) =>
+    selectedItems.includes(item.cartItemId)
+  );
+
+  const subtotal = selectedCartItems.reduce(
+    (sum, item) => sum + parseFloat(item.price || 0) * item.quantity,
     0
   );
-  const shipping = cartItems.length > 0 ? 9.99 : 0;
+  const shipping = selectedCartItems.length > 0 ? 9.99 : 0;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
 
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
-
-  // Proceed to checkout with cart data
+  // Proceed to checkout
   const handleProceedToCheckout = () => {
-    if (cartItems.length === 0) {
-      alert('Your cart is empty');
+    if (selectedCartItems.length === 0) {
+      alert("Please select at least one item to checkout.");
       return;
     }
 
-    // Navigate to checkout page with cart data
-    navigate('/checkout', {
+    navigate("/checkout", {
       state: {
-        cartItems,
+        cartItems: selectedCartItems,
         subtotal,
         shipping,
         tax,
-        total
-      }
+        total,
+      },
     });
   };
 
-  // Go back to products page
+  // Continue shopping
   const handleContinueShopping = () => {
-    navigate("/products"); // change to your route for product listing
+    navigate("/products");
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <div className="container mx-auto px-4 py-8 flex-grow">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 flex items-center text-[#4b3832]">
-            <ShoppingBag className="mr-3 h-8 w-8" />
-            Shopping Cart
-          </h1>
-          <p className="text-[#7a5c52]">
-            {cartItems.length} {cartItems.length === 1 ? "item" : "items"} in your cart
-          </p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold mb-2 flex items-center text-[#4b3832]">
+              <ShoppingBag className="mr-3 h-8 w-8" />
+              Shopping Cart
+            </h1>
+            <p className="text-[#7a5c52]">
+              {cartItems.length} {cartItems.length === 1 ? "item" : "items"} in your cart
+            </p>
+          </div>
+          {cartItems.length > 0 && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedItems.length === cartItems.length}
+                onChange={handleSelectAll}
+                className="h-5 w-5 accent-[#a36b4f]"
+              />
+              <span className="text-sm text-[#7a5c52]">Select All</span>
+            </label>
+          )}
         </div>
 
         {cartItems.length === 0 ? (
@@ -93,27 +114,42 @@ const ShoppingCart = () => {
             <div className="lg:col-span-2 space-y-4">
               {cartItems.map((item) => (
                 <Card
-                  key={item.id}
+                  key={item.cartItemId}
                   className="bg-white rounded-xl shadow-sm border border-[#e5ded7]"
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
+                      {/* Checkbox */}
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(item.cartItemId)}
+                        onChange={() => handleCheck(item.cartItemId)}
+                        className="h-5 w-5 mt-2 accent-[#a36b4f]"
+                      />
+
+                      {/* Product Image */}
                       <div className="w-20 h-20 flex-shrink-0">
                         <img
-                          src={item.image ? 
-                            (item.image.startsWith('http') ? item.image : `http://localhost:8000/storage/${item.image}`) 
-                            : '/placeholder-product.jpg'}
+                          src={
+                            item.image
+                              ? item.image.startsWith("http")
+                                ? item.image
+                                : `http://localhost:8000/storage/${item.image}`
+                              : "/placeholder-product.jpg"
+                          }
                           alt={item.title}
                           className="w-full h-full object-cover rounded-lg border border-[#e5ded7]"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = '/placeholder-product.jpg';
+                            e.target.src = "/placeholder-product.jpg";
                           }}
                         />
                       </div>
+
+                      {/* Product Info */}
                       <div className="flex-grow">
                         <h3 className="font-semibold text-lg text-[#4b3832] mb-1">
-                          {item.title || 'Product Name Not Available'}
+                          {item.title || "Product Name Not Available"}
                         </h3>
                         {item.seller_name && (
                           <p className="text-[#7a5c52] text-sm mb-2">
@@ -125,16 +161,22 @@ const ShoppingCart = () => {
                             ₱{parseFloat(item.price || 0).toFixed(2)}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {item.quantity} × ₱{parseFloat(item.price || 0).toFixed(2)} = ₱{(parseFloat(item.price || 0) * item.quantity).toFixed(2)}
+                            {item.quantity} × ₱
+                            {parseFloat(item.price || 0).toFixed(2)} = ₱
+                            {(parseFloat(item.price || 0) * item.quantity).toFixed(2)}
                           </p>
                         </div>
                       </div>
+
+                      {/* Quantity Controls */}
                       <div className="flex items-center space-x-2">
                         <Button
                           variant="outline"
                           size="icon"
                           className="h-8 w-8 rounded-full"
-                          onClick={() => updateQuantity(item.product_id, Math.max(1, item.quantity - 1))}
+                          onClick={() =>
+                            updateQuantity(item.product_id, Math.max(1, item.quantity - 1))
+                          }
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -148,6 +190,8 @@ const ShoppingCart = () => {
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
+
+                      {/* Remove Button */}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -177,22 +221,22 @@ const ShoppingCart = () => {
 
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span>Subtotal ({cartItems.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
+                    <span>
+                      Subtotal ({selectedCartItems.reduce((sum, item) => sum + item.quantity, 0)}{" "}
+                      items)
+                    </span>
                     <span>₱{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping</span>
-                    <span>{shipping > 0 ? `₱${shipping.toFixed(2)}` : 'Free'}</span>
+                    <span>{shipping > 0 ? `₱${shipping.toFixed(2)}` : "Free"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tax (8%)</span>
                     <span>₱{tax.toFixed(2)}</span>
                   </div>
 
-                  <div
-                    className="border-t pt-4"
-                    style={{ borderColor: PALETTE.sand }}
-                  >
+                  <div className="border-t pt-4" style={{ borderColor: PALETTE.sand }}>
                     <div className="flex justify-between items-baseline">
                       <span
                         className="text-base font-semibold"
@@ -200,10 +244,7 @@ const ShoppingCart = () => {
                       >
                         Total
                       </span>
-                      <span
-                        className="text-2xl font-bold"
-                        style={{ color: PALETTE.gold }}
-                      >
+                      <span className="text-2xl font-bold" style={{ color: PALETTE.gold }}>
                         ₱{total.toFixed(2)}
                       </span>
                     </div>
@@ -219,16 +260,9 @@ const ShoppingCart = () => {
                       fontWeight: 700,
                     }}
                     onClick={handleProceedToCheckout}
-                    disabled={isCheckingOut || cartItems.length === 0}
+                    disabled={selectedItems.length === 0}
                   >
-                    {isCheckingOut ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      'Proceed to checkout'
-                    )}
+                    Proceed to checkout
                   </Button>
 
                   <Button
