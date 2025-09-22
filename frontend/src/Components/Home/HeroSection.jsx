@@ -13,7 +13,6 @@ import {
 const HeroSection = ({
   title = "Discover Unique Handcrafted Treasures",
   subtitle = "Connect directly with skilled artisans and bring their one-of-a-kind creations into your home.",
-  ctaText = "Explore Products",
   onCtaClick = () => {},
   slides = [
     {
@@ -83,10 +82,20 @@ const HeroSection = ({
           <p className="text-lg text-gray-700 mb-8 max-w-2xl mx-auto">
             {subtitle}
           </p>
-          <Button size="lg" className="text-base font-medium bg-[#a47c68]" asChild>
-            <Link to="/products" onClick={onCtaClick}>
-              {ctaText}
-              <ArrowRight className="ml-2 h-4 w-4" />
+
+          {/* CTA Button */}
+          <Button
+            size="lg"
+            className="text-base font-medium bg-[#a47c68] hover:bg-[#8c6957] text-white"
+            asChild
+          >
+            <Link
+              to="/products"
+              onClick={onCtaClick}
+              className="flex items-center !text-white"
+            >
+              Explore Products
+              <ArrowRight className="ml-2 h-4 w-4 !text-white" />
             </Link>
           </Button>
         </div>
