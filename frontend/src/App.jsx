@@ -64,6 +64,7 @@ import SellersTable from './Components/Admin/SellersTable';
 import SimplifiedCustomerDetail from './Components/Admin/SimplifiedCustomerDetail';
 import SimplifiedCustomerTable from './Components/Admin/SimplifiedCustomerTable';
 import ProfilePagee from './Components/Profile/ProfilePagee';
+import MessagesPage from './Components/product/MessagesPage';
 
 function App() {
   return (
@@ -92,6 +93,7 @@ function App() {
           <Route path="product/:id" element={<ProductDetails />} />
           <Route path="chatbox" element={<ChatBox />} />
           <Route path="create-store" element={<CreateStore />} />
+          <Route path="/messages" element={<MessagesPage />} />
         </Route>
 
         {/* Seller Routes */}

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Heart, ShoppingCart, Star, Minus, Plus, ArrowLeft, Play } from "lucide-react";
+import { Heart, ShoppingCart, Star, Minus, Plus, ArrowLeft, Play, MessageCircle } from "lucide-react";
 import { Button } from "../ui/button";
-import { Card, CardContent } from "../ui/card";
+import { Card } from "../ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { useCart } from "../Cart/CartContext";
 import { useFavorites } from "../favorites/FavoritesContext";
@@ -19,28 +19,23 @@ const ProductDetails = () => {
   const [error, setError] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
-  const [selectedMedia, setSelectedMedia] = useState({ type: 'image', src: null });
+  const [selectedMedia, setSelectedMedia] = useState({ type: "image", src: null });
   const [addingToCart, setAddingToCart] = useState(false);
-
 
   const fetchProductAndReviews = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch product details
       const productRes = await fetch(`http://localhost:8000/api/products/${id}`);
       if (!productRes.ok) {
-        if (productRes.status === 404) {
-          throw new Error("Product not found");
-        }
+        if (productRes.status === 404) throw new Error("Product not found");
         throw new Error(`Failed to fetch product: ${productRes.status}`);
       }
       const productData = await productRes.json();
       setProduct(productData);
-      setSelectedMedia({ type: 'image', src: productData.productImage }); // Set default media
+      setSelectedMedia({ type: "image", src: productData.productImage });
 
-      // Fetch reviews
       const reviewsRes = await fetch(`http://localhost:8000/api/products/${id}/reviews`);
       if (reviewsRes.ok) {
         const reviewsData = await reviewsRes.json();
@@ -60,34 +55,22 @@ const ProductDetails = () => {
   };
 
   useEffect(() => {
-    if (id) {
-      fetchProductAndReviews();
-    }
+    if (id) fetchProductAndReviews();
   }, [id]);
 
-
-  if (loading) {
-    return <div className="text-center p-10">Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center p-10 text-red-500">Error: {error}</div>;
-  }
-
-  if (!product) {
-    return <div className="text-center p-10">Product not found.</div>;
-  }
+  if (loading) return <div className="text-center p-10">Loading...</div>;
+  if (error) return <div className="text-center p-10 text-red-500">Error: {error}</div>;
+  if (!product) return <div className="text-center p-10">Product not found.</div>;
 
   const isFavorited = favorites.some((p) => p.id === product.id);
 
   const handleQuantityChange = (change) => setQuantity(Math.max(1, quantity + change));
-  
+
   const handleAddToCart = async () => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem("auth_token");
     if (!token) {
-      // Redirect to login if not authenticated
-      alert('Please log in to add items to your cart.');
-      navigate('/login');
+      alert("Please log in to add items to your cart.");
+      navigate("/login");
       return;
     }
 
@@ -95,19 +78,19 @@ const ProductDetails = () => {
       setAddingToCart(true);
       const result = await addToCart(product, quantity);
       if (result.success) {
-        alert('Item added to cart successfully!');
+        alert("Item added to cart successfully!");
         navigate("/cart");
       } else {
-        alert(result.error || 'Failed to add item to cart');
+        alert(result.error || "Failed to add item to cart");
       }
     } catch (error) {
-      console.error('Error adding to cart:', error);
-      alert('Failed to add item to cart. Please try again.');
+      console.error("Error adding to cart:", error);
+      alert("Failed to add item to cart. Please try again.");
     } finally {
       setAddingToCart(false);
     }
   };
-  
+
   const handleFavoriteClick = () => {
     isFavorited ? removeFavorite(product.id) : addFavorite(product);
   };
@@ -123,12 +106,14 @@ const ProductDetails = () => {
       />
     ));
 
-  const productImages = [product.productImage, ...(product.additionalImages || [])].filter(Boolean);
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 mb-6">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="flex items-center text-gray-700 hover:text-primary">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="flex items-center text-gray-700 hover:text-primary"
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
@@ -139,7 +124,7 @@ const ProductDetails = () => {
         <div className="space-y-4">
           <div className="w-full md:w-2/3">
             <Card className="overflow-hidden aspect-square flex items-center justify-center">
-              {selectedMedia.type === 'image' ? (
+              {selectedMedia.type === "image" ? (
                 <img
                   src={selectedMedia.src}
                   alt={product.productName}
@@ -153,21 +138,36 @@ const ProductDetails = () => {
                 />
               )}
             </Card>
+
             {/* Thumbnails */}
             <div className="flex gap-2 mt-4 overflow-x-auto">
-              {[product.productImage, ...product.additionalImages || []].map((img, idx) => (
-                <div
-                  key={`img-${idx}`}
-                  className={`w-20 h-20 overflow-hidden rounded-md cursor-pointer border-2 ${selectedMedia.src === img ? 'border-primary' : 'border-transparent'}`}
-                  onClick={() => setSelectedMedia({ type: 'image', src: img })}
-                >
-                  <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
-                </div>
-              ))}
+              {[product.productImage, ...(product.additionalImages || [])].map(
+                (img, idx) => (
+                  <div
+                    key={`img-${idx}`}
+                    className={`w-20 h-20 overflow-hidden rounded-md cursor-pointer border-2 ${
+                      selectedMedia.src === img ? "border-primary" : "border-transparent"
+                    }`}
+                    onClick={() => setSelectedMedia({ type: "image", src: img })}
+                  >
+                    <img
+                      src={img}
+                      alt={`Thumbnail ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )
+              )}
               {product.productVideo && (
                 <div
-                  className={`w-20 h-20 overflow-hidden rounded-md cursor-pointer border-2 ${selectedMedia.src === product.productVideo ? 'border-primary' : 'border-transparent'} flex items-center justify-center bg-gray-200`}
-                  onClick={() => setSelectedMedia({ type: 'video', src: product.productVideo })}
+                  className={`w-20 h-20 overflow-hidden rounded-md cursor-pointer border-2 ${
+                    selectedMedia.src === product.productVideo
+                      ? "border-primary"
+                      : "border-transparent"
+                  } flex items-center justify-center bg-gray-200`}
+                  onClick={() =>
+                    setSelectedMedia({ type: "video", src: product.productVideo })
+                  }
                 >
                   <Play className="h-8 w-8 text-gray-600" />
                 </div>
@@ -179,31 +179,59 @@ const ProductDetails = () => {
         {/* Product Info */}
         <div className="space-y-4 flex flex-col">
           <h1 className="text-3xl font-bold">{product.productName}</h1>
-          <p className="text-gray-600 text-sm">by {product.seller?.user?.userName || "Unknown Artisan"}</p>
+          <p className="text-gray-600 text-sm">
+            by {product.seller?.user?.userName || "Unknown Artisan"}
+          </p>
 
           <div className="flex items-center gap-2">
             {renderStars(averageRating)}
-            <span className="text-gray-500 text-sm">{averageRating.toFixed(1)} ({reviews.length} reviews)</span>
+            <span className="text-gray-500 text-sm">
+              {averageRating.toFixed(1)} ({reviews.length} reviews)
+            </span>
           </div>
 
-          <p className="text-2xl font-bold text-gray-800">₱{Number(product.productPrice).toFixed(2)}</p>
+          <p className="text-2xl font-bold text-gray-800">
+            ₱{Number(product.productPrice).toFixed(2)}
+          </p>
 
           <div className="flex items-center gap-3 mt-2">
-            <Button onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1}><Minus className="w-4 h-4" /></Button>
+            <Button onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1}>
+              <Minus className="w-4 h-4" />
+            </Button>
             <span className="text-lg font-semibold">{quantity}</span>
-            <Button onClick={() => handleQuantityChange(1)}><Plus className="w-4 h-4" /></Button>
+            <Button onClick={() => handleQuantityChange(1)}>
+              <Plus className="w-4 h-4" />
+            </Button>
           </div>
 
           <div className="flex gap-3 mt-4">
-            <Button 
-              onClick={handleAddToCart} 
+            <Button
+              onClick={handleAddToCart}
               className="flex-1"
               disabled={addingToCart}
             >
-              <ShoppingCart className="w-5 h-5 mr-2" /> 
-              {addingToCart ? 'Adding...' : 'Add to Cart'}
+              <ShoppingCart className="w-5 h-5 mr-2" />
+              {addingToCart ? "Adding..." : "Add to Cart"}
             </Button>
-            <Button variant="outline" onClick={handleFavoriteClick}><Heart className={`w-5 h-5 ${isFavorited ? "text-red-500 fill-current" : ""}`} /></Button>
+            <Button variant="outline" onClick={handleFavoriteClick}>
+              <Heart
+                className={`w-5 h-5 ${
+                  isFavorited ? "text-red-500 fill-current" : ""
+                }`}
+              />
+            </Button>
+          </div>
+
+          {/* Message Seller Button */}
+          <div className="mt-3">
+            <Button
+              variant="secondary"
+              className="w-full flex items-center justify-center"
+              onClick={() => navigate("/messages")}
+            >
+              <MessageCircle className="w-5 h-5 mr-2" />
+              Got questions about this item? Message Seller
+            </Button>
           </div>
 
           <Tabs defaultValue="description" className="mt-6">
@@ -211,16 +239,19 @@ const ProductDetails = () => {
               <TabsTrigger value="description">Description</TabsTrigger>
               <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
             </TabsList>
-            <TabsContent value="description" className="mt-4"><p>{product.productDescription}</p></TabsContent>
+            <TabsContent value="description" className="mt-4">
+              <p>{product.productDescription}</p>
+            </TabsContent>
             <TabsContent value="reviews" className="mt-4 space-y-6">
-              {/* Existing Reviews */}
               <div>
                 {reviews.length > 0 ? (
                   reviews.map((review) => (
                     <div key={review.id} className="border-b pb-4 mb-4">
                       <div className="flex items-center gap-2">
                         {renderStars(review.rating)}
-                        <span className="font-semibold">{review.user?.userName || 'Anonymous'}</span>
+                        <span className="font-semibold">
+                          {review.user?.userName || "Anonymous"}
+                        </span>
                       </div>
                       <p className="text-gray-600 mt-2">{review.comment}</p>
                     </div>
@@ -229,7 +260,6 @@ const ProductDetails = () => {
                   <p>No reviews yet.</p>
                 )}
               </div>
-
             </TabsContent>
           </Tabs>
         </div>
