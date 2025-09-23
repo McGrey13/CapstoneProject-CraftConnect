@@ -95,7 +95,6 @@ const LandingPage = () => (
             <li><a href="#" className="hover:underline hover:text-[#a67c68] transition-colors duration-200">Contact Us</a></li>
           </ul>
         </div>
-        </div>
       </div>
   <div className="text-center text-xs text-black mt-8">© 2025 CraftConnect. Preserving Laguna's artisan heritage.</div>
     </footer>

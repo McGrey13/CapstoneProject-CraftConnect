@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingPage from './Components/LandingPage';
+import StoreView from './Components/storeview';
 
 
 // Layouts
@@ -71,8 +72,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Landing Page Route */}
-        <Route path="/" element={<LandingPage />} />
+  {/* Landing Page Route */}
+  <Route path="/" element={<LandingPage />} />
+  {/* Store View Route */}
+  <Route path="/storeview" element={<StoreView />} />
         {/* Public Routes */}
         <Route path="/home" element={<PublicLayout />}>
           <Route index element={<Home />} />
