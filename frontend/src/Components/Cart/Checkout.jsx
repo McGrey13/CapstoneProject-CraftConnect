@@ -34,8 +34,21 @@ const Checkout = () => {
 
     setIsProcessing(true);
     try {
+      // First, create the order using the cart checkout
+      const result = await checkout();
+      if (!result || !result.success) {
+        throw new Error(result?.error || 'Failed to create order');
+      }
+
+      // If payment method is Cash on Delivery, we're done
+      if (formData.paymentMethod === "cod") {
+        alert('Order placed successfully! Thank you for shopping with us.');
+        navigate('/orders');
+        return;
+      }
+
+      // For online payments, initiate payment with the created order
       if (formData.paymentMethod === "gcash" || formData.paymentMethod === "paymaya") {
-        // Call your backend to initiate PayMongo payment
         const token = localStorage.getItem("auth_token");
         const response = await fetch("http://localhost:8000/api/payments/initiate", {
           method: "POST",
@@ -47,26 +60,28 @@ const Checkout = () => {
           body: JSON.stringify({
             amount: total,
             payment_method: formData.paymentMethod,
-            orderID: cartItems[0]?.orderID, // Adjust this to your actual order ID logic
+            orderID: result.order?.orderID, // Use the order ID from checkout result
             shippingAddress: user.userAddress,
           }),
         });
         const data = await response.json();
         if (data.success && data.redirect_url) {
-          window.location.href = data.redirect_url; // Redirect to PayMongo checkout
+          if (data.message && data.message.includes('simulated')) {
+            // For development - show success message and redirect
+            alert('Payment completed successfully! (Simulated for development)');
+            navigate('/orders');
+          } else {
+            // For production - redirect to payment gateway
+            window.location.href = data.redirect_url;
+          }
           return;
         } else {
           throw new Error(data.message || "Failed to initiate payment");
         }
       } else {
-        // Fallback to your existing checkout for other methods
-        const result = await checkout();
-        if (result && result.success) {
-          alert('Order placed successfully! Thank you for shopping with us.');
-          navigate('/orders');
-        } else {
-          throw new Error(result?.error || 'Failed to place order');
-        }
+        // For other payment methods, order is already created
+        alert('Order placed successfully! Thank you for shopping with us.');
+        navigate('/orders');
       }
     } catch (error) {
       console.error("Checkout failed:", error);

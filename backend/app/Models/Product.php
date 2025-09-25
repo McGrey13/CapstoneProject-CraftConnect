@@ -7,13 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Seller;
 use App\Models\Review;
+use App\Models\Order;
 
 class Product extends Model
 {
     protected $table = 'products';
     protected $primaryKey = 'product_id';
-    protected $keyType = 'string';
-    public $incrementing = false;
+    protected $keyType = 'integer';
+    public $incrementing = true;
 
     protected $fillable = [
         'productName',
@@ -45,7 +46,7 @@ class Product extends Model
 
     public function getIdAttribute()
     {
-        return $this->attributes['product_id'];
+        return $this->product_id;
     }
 
     public function seller()
@@ -130,7 +131,13 @@ class Product extends Model
     {
         return $this->hasMany(Ratings::class, 'product_id', 'product_id');
     }
-    
+
+    public function orders()
+    {
+        return $this->belongsToMany(Order::class, 'order_products', 'product_id', 'order_id')
+            ->withPivot(['quantity', 'price'])
+            ->withTimestamps();
+    }
 }
 
 

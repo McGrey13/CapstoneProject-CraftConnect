@@ -324,6 +324,152 @@ Route::get('/analytics/test-controller', [AnalyticsController::class, 'getAdminA
 // Public analytics generate endpoint for testing
 Route::post('/analytics/generate-public', [AnalyticsController::class, 'generateAnalyticsData']);
 
+// Seller analytics endpoints
+Route::get('/analytics/seller/{seller_id}', function($seller_id) {
+    try {
+        // Check if seller exists
+        $seller = App\Models\Seller::where('sellerID', $seller_id)->first();
+        if (!$seller) {
+            return response()->json(['error' => 'Seller not found'], 404);
+        }
+
+        // Get seller's products with relationships
+        $products = App\Models\Product::where('seller_id', $seller_id)
+            ->with(['orders' => function($query) {
+                $query->orderBy('created_at', 'desc');
+            }, 'reviews'])
+            ->get();
+
+        // Get seller's orders
+        $orders = App\Models\Order::whereHas('products', function($query) use ($seller_id) {
+            $query->where('seller_id', $seller_id);
+        })->with('products')->get();
+
+        // Get seller's discount codes
+        $discountCodes = App\Models\DiscountCode::where('created_by', $seller->user->userID)->get();
+
+        // Calculate total revenue
+            $totalRevenue = $orders->sum(function($order) {
+            return $order->totalAmount;
+        });
+
+        // Calculate order status metrics
+        $orderStatusMetrics = [
+            'total_orders' => $orders->count(),
+            'completed' => $orders->where('status', 'delivered')->count(),
+            'pending' => $orders->where('status', 'pending')->count(),
+            'packing' => $orders->where('status', 'packing')->count(),
+            'shipped' => $orders->where('status', 'shipped')->count(),
+            'completion_rate' => $orders->count() > 0 
+                ? ($orders->where('status', 'delivered')->count() / $orders->count()) * 100 
+                : 0
+        ];
+
+        // Calculate revenue by product
+        $revenueByProduct = $products->map(function($product) {
+            $totalRevenue = $product->orders->sum(function($order) use ($product) {
+                $productOrder = $order->products->firstWhere('product_id', $product->product_id);
+                return $productOrder ? $productOrder->pivot->quantity * $productOrder->pivot->price : 0;
+            });
+            $totalUnits = $product->orders->sum('pivot.quantity');
+            $viewCount = $product->view_count ?? rand(50, 200); // Using random view count for now
+            $conversionRate = $viewCount > 0 ? ($totalUnits / $viewCount) * 100 : 0;
+            $inventoryTurnover = $product->productQuantity > 0 ? $totalUnits / $product->productQuantity : 0;
+
+            return [
+                'product_id' => $product->product_id,
+                'name' => $product->productName,
+                'revenue' => $totalRevenue,
+                'units_sold' => $totalUnits,
+                'views' => $viewCount,
+                'conversion_rate' => $conversionRate,
+                'inventory_turnover' => $inventoryTurnover
+            ];
+        });
+
+        // Calculate revenue by category
+        $revenueByCategory = $products->groupBy('category')->map(function($products) {
+            return [
+                'revenue' => $products->sum(function($product) {
+                    return $product->orders->sum(function($order) use ($product) {
+                        $productOrder = $order->products->firstWhere('product_id', $product->product_id);
+                        return $productOrder ? $productOrder->pivot->quantity * $productOrder->pivot->price : 0;
+                    });
+                }),
+                'units_sold' => $products->sum(function($product) {
+                    return $product->orders->sum('pivot.quantity');
+                })
+            ];
+        });
+
+        // Calculate monthly trends (last 12 months)
+        $monthlyTrends = collect(range(0, 11))->map(function($month) use ($orders) {
+            $date = now()->subMonths($month);
+            $monthOrders = $orders->filter(function($order) use ($date) {
+                return $order->created_at->format('Y-m') === $date->format('Y-m');
+            });
+            
+            $monthRevenue = $monthOrders->sum(function($order) {
+                return $order->totalAmount;
+            });
+            
+            return [
+                'month' => $date->format('Y-m'),
+                'revenue' => $monthRevenue,
+                'orders' => $monthOrders->count()
+            ];
+        })->reverse()->values();
+
+        // Get best-selling products
+        $bestSellers = $revenueByProduct->sortByDesc('units_sold')->take(5)->values();
+
+        // Get low-performing products (low inventory turnover)
+        $lowPerformers = $revenueByProduct->sortBy('inventory_turnover')->take(5)->values();
+
+        // Calculate discount code statistics
+        $discountStats = [
+            'total_codes' => $discountCodes->count(),
+            'codes_used' => $discountCodes->sum('times_used'),
+            'total_discount_amount' => $discountCodes->sum('value'),
+            'active_codes' => $discountCodes->filter(function($code) {
+                return (!$code->expires_at || $code->expires_at->isFuture()) &&
+                       (!$code->usage_limit || $code->times_used < $code->usage_limit);
+            })->count(),
+            'expired_codes' => $discountCodes->filter(function($code) {
+                return ($code->expires_at && $code->expires_at->isPast()) ||
+                       ($code->usage_limit && $code->times_used >= $code->usage_limit);
+            })->count()
+        ];
+
+        // Calculate peak selling periods
+        $peakPeriods = $monthlyTrends
+            ->sortByDesc('revenue')
+            ->take(3)
+            ->map(function($period) {
+                return [
+                    'month' => $period['month'],
+                    'revenue' => $period['revenue'],
+                    'orders' => $period['orders']
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'total_revenue' => $totalRevenue,
+            'revenue_by_product' => $revenueByProduct,
+            'revenue_by_category' => $revenueByCategory,
+            'monthly_trends' => $monthlyTrends,
+            'best_sellers' => $bestSellers,
+            'low_performers' => $lowPerformers,
+            'discount_stats' => $discountStats,
+            'order_metrics' => $orderStatusMetrics,
+            'peak_periods' => $peakPeriods
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});
+
 // Admin products route
 Route::middleware(['auth:sanctum'])->get('/admin/products', [ProductController::class, 'adminIndex']);
 

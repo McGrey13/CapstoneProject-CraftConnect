@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cart;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\Product;
@@ -184,13 +185,20 @@ class CartController extends Controller
                     return $item->product->productPrice * $item->quantity;
                 });
 
+                // Find or create customer record
+                $customer = Customer::where('user_id', $user->userID)->first();
+                if (!$customer) {
+                    $customer = Customer::create([
+                        'user_id' => $user->userID
+                    ]);
+                }
+
                 // Create order
                 $order = Order::create([
-                    'userID' => $user->userID,
+                    'customer_id' => $customer->customerID,
                     'status' => 'pending',
                     'totalAmount' => $totalAmount,
-                    'orderDate' => now(),
-                    'paymentStatus' => 'pending'
+                    'location' => $user->userAddress ?? 'Not specified'
                 ]);
 
                 // Create order products
@@ -204,8 +212,6 @@ class CartController extends Controller
                         'product_id' => $item->product_id,
                         'quantity' => $quantity,
                         'price' => $price,
-                        'total_amount' => $price * $quantity,
-                        'status' => 'pending',
                         'created_at' => now(),
                         'updated_at' => now()
                     ];

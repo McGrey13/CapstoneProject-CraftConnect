@@ -15,6 +15,7 @@ import {
   LogOut,
   UserCircle,
   MessageCircle,
+  TrendingUp,
 } from "lucide-react";
 import ChatBox from '../Chat/ChatBox';
 import ConversationList from '../Chat/ConversationList';
@@ -40,6 +41,7 @@ import SocialMedia from "./SocialMedia";
 import WorkshopsEvents from "./WorkshopsEvents";
 import SellerSettings from "./SellerSettings";
 import ProfilePage from "./ProfilePage";
+import SellerAnalytics from "./SellerAnalytics";
 
 const sidebarItems = [
   { key: "storefront", label: "Storefront Customizer", icon: <Palette className="h-5 w-5" /> },
@@ -51,6 +53,7 @@ const sidebarItems = [
   { key: "shipping", label: "Shipping Settings", icon: <Truck className="h-5 w-5" /> },
   { key: "workshops", label: "Workshops & Events", icon: <Calendar className="h-5 w-5" /> },
   { key: "social", label: "Social Media", icon: <Share2 className="h-5 w-5" /> },
+  { key: "analytics", label: "Analytics", icon: <TrendingUp className="h-5 w-5" /> },
   { key: "settings", label: "Settings", icon: <Settings className="h-5 w-5" /> },
 ];
 
@@ -88,7 +91,7 @@ const SellerLayout = () => {
     const fetchCurrentUser = async () => {
       try {
         const token = localStorage.getItem('auth_token');
-        const response = await fetch('http://localhost:8000/api/user', {
+        const response = await fetch('http://localhost:8000/api/sellers/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json',
@@ -96,10 +99,11 @@ const SellerLayout = () => {
         });
         
         if (response.ok) {
-          const userData = await response.json();
+          const sellerData = await response.json();
           setCurrentUser({
-            userID: userData.userID,
-            userName: userData.userName,
+            userID: sellerData.userID,
+            userName: sellerData.userName,
+            sellerId: sellerData.sellerID,
             role: 'seller'
           });
         }
@@ -135,6 +139,8 @@ const SellerLayout = () => {
         return <WorkshopsEvents />;
       case "social":
         return <SocialMedia />;
+      case "analytics":
+        return <SellerAnalytics sellerId={currentUser?.sellerId} />;
       case "settings":
         return <SellerSettings />;
       default:

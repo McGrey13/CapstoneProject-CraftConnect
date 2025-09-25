@@ -11,9 +11,12 @@ class PaymentController extends Controller
 {
     protected $payMongoService;
 
-    public function __construct(PayMongoService $payMongoService)
+    public function __construct()
     {
-        $this->payMongoService = $payMongoService;
+        // Only initialize PayMongo service if keys are configured
+        if (env('PAYMONGO_SECRET_KEY') && env('PAYMONGO_PUBLIC_KEY')) {
+            $this->payMongoService = new PayMongoService();
+        }
     }
 
     public function initiatePayment(Request $request)
@@ -22,14 +25,23 @@ class PaymentController extends Controller
             // Validate request
             $request->validate([
                 'amount' => 'required|numeric|min:100', // Minimum amount 100 PHP
-                'payment_method' => 'required|in:gcash,grab_pay,card',
-                'order_id' => 'required|exists:orders,orderID'
+                'payment_method' => 'required|in:gcash,grab_pay,card,paymaya,cod',
+                'orderID' => 'required|exists:orders,orderID'
             ]);
+
+            // Get the authenticated user
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
 
             // Create payment record
             $payment = Payment::create([
-                'userID' => auth()->id(),
-                'orderID' => $request->order_id,
+                'userID' => $user->userID,
+                'orderID' => $request->orderID,
                 'amount' => $request->amount,
                 'currency' => 'PHP',
                 'paymentMethod' => $request->payment_method,
@@ -37,25 +49,81 @@ class PaymentController extends Controller
                 'orderDate' => now(),
             ]);
 
-            // Create PayMongo source for e-wallets (GCash, GrabPay)
-            if (in_array($request->payment_method, ['gcash', 'grab_pay'])) {
-                $source = $this->payMongoService->createSource(
-                    $request->amount,
-                    $request->payment_method
-                );
+            // Handle Cash on Delivery
+            if ($request->payment_method === 'cod') {
+                $payment->update(['paymentStatus' => 'paid']);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Order placed successfully with Cash on Delivery'
+                ]);
+            }
 
+            // Create PayMongo source for e-wallets (GCash, GrabPay, PayMaya)
+            if (in_array($request->payment_method, ['gcash', 'grab_pay', 'paymaya'])) {
+                // Check if PayMongo is configured and available
+                if (!$this->payMongoService || !env('PAYMONGO_SECRET_KEY') || !env('PAYMONGO_PUBLIC_KEY')) {
+                    // For development/testing - simulate successful payment
+                    $payment->update([
+                        'paymentStatus' => 'paid',
+                        'payment_details' => json_encode([
+                            'type' => 'simulated',
+                            'method' => $request->payment_method,
+                            'amount' => $request->amount,
+                            'status' => 'paid'
+                        ])
+                    ]);
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Payment simulated successfully for development',
+                        'redirect_url' => url('/payment/success')
+                    ]);
+                }
+
+                try {
+                    $source = $this->payMongoService->createSource(
+                        $request->amount,
+                        $request->payment_method
+                    );
+
+                    $payment->update([
+                        'paymongo_source_id' => $source['data']['id'],
+                        'payment_details' => $source
+                    ]);
+
+                    return response()->json([
+                        'success' => true,
+                        'redirect_url' => $source['data']['attributes']['redirect']['checkout_url']
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('PayMongo Error: ' . $e->getMessage());
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Payment service temporarily unavailable. Please try again later.'
+                    ], 500);
+                }
+            }
+
+            // For card payments
+            if (!$this->payMongoService) {
+                // Simulate card payment for development
                 $payment->update([
-                    'paymongo_source_id' => $source['data']['id'],
-                    'payment_details' => $source
+                    'paymentStatus' => 'paid',
+                    'payment_details' => json_encode([
+                        'type' => 'simulated',
+                        'method' => $request->payment_method,
+                        'amount' => $request->amount,
+                        'status' => 'paid'
+                    ])
                 ]);
 
                 return response()->json([
                     'success' => true,
-                    'redirect_url' => $source['data']['attributes']['redirect']['checkout_url']
+                    'message' => 'Payment simulated successfully for development',
+                    'redirect_url' => url('/payment/success')
                 ]);
             }
 
-            // For card payments
             $paymentIntent = $this->payMongoService->createPaymentIntent(
                 $request->amount,
                 'PHP',
@@ -134,11 +202,19 @@ class PaymentController extends Controller
 
     public function paymentSuccess(Request $request)
     {
-        return view('payment.success');
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment completed successfully!',
+            'redirect_url' => 'http://localhost:5173/orders' // Redirect to frontend orders page
+        ]);
     }
 
     public function paymentFailed(Request $request)
     {
-        return view('payment.failed');
+        return response()->json([
+            'success' => false,
+            'message' => 'Payment failed. Please try again.',
+            'redirect_url' => 'http://localhost:5173/checkout' // Redirect back to checkout
+        ]);
     }
 }

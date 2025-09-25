@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 class ProductController extends Controller
 {
     
+    // check if the user is a seller
     private function checkSeller()
     {
         $user = Auth::user();
@@ -43,6 +44,8 @@ class ProductController extends Controller
         
         return true;
     }
+
+    // view all products
     public function index()
     {
         try {
@@ -289,6 +292,7 @@ class ProductController extends Controller
         }
     }
 
+    // update product
     public function update(Request $request, Product $product) // Changed parameter order for consistency
     {
         $ownershipCheck = $this->checkProductOwnership($product);
@@ -416,6 +420,7 @@ class ProductController extends Controller
         }
     }
 
+    // delete product
     public function destroy(Product $product)
     {
         $ownershipCheck = $this->checkProductOwnership($product);
@@ -433,6 +438,7 @@ class ProductController extends Controller
         }
     }
 
+    // search product
     public function search($name)
     {
         try {
@@ -484,6 +490,7 @@ class ProductController extends Controller
         }
     }
 
+    // get product details
     public function getProductDetails($id)
     {
         try {
@@ -557,6 +564,7 @@ class ProductController extends Controller
         }
     }
 
+    // view product
     public function show(Product $product)
     {
         try {
@@ -746,7 +754,7 @@ class ProductController extends Controller
     {
         $products = Product::where('seller_id', $sellerId) 
                            ->where('approval_status', 'approved')
-                           ->where('approval_status', '!=', 'draft')
+                           ->where('publish_status', 'published')
                            ->get();
 
         // Transform products to include full image URLs
@@ -816,7 +824,7 @@ class ProductController extends Controller
         try {
             $products = Product::with('seller.user')
                 ->where('approval_status', 'approved')
-                ->where('approval_status', '!=', 'draft')
+                ->where('publish_status', 'published')
                 ->where('is_featured', true)
                 ->get();
 
@@ -889,7 +897,7 @@ class ProductController extends Controller
         try {
             $products = Product::with(['seller.user', 'seller.store'])
                 ->where('approval_status', 'approved')
-                ->where('approval_status', '!=', 'draft')
+                ->where('publish_status', 'published')
                 ->get();
 
             // Transform products to include full image URLs
@@ -1027,7 +1035,7 @@ class ProductController extends Controller
             $products = Product::with('seller.user')
                 ->whereIn('seller_id', $followedSellerIds)
                 ->where('approval_status', 'approved')
-                ->where('approval_status', '!=', 'draft')
+                ->where('publish_status', 'published')
                 ->orderByRaw('FIELD(seller_id, ' . implode(',', $followedSellerIds->toArray()) . ') DESC')
                 ->get();
 

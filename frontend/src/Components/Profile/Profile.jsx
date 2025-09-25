@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { User, Mail, Phone, MapPin, Calendar } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Loader2 } from 'lucide-react';
 
 const Profile = () => {
   const { user, updateUser } = useUser();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     userName: '',
     userEmail: '',
@@ -43,12 +44,39 @@ const Profile = () => {
 
   const handleSave = async () => {
     try {
-      // Here you would typically make an API call to update the user profile
-      // For now, we'll just update the local state
-      updateUser({ ...user, ...formData });
-      setIsEditing(false);
+      setIsSaving(true);
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        alert('Please log in to update your profile');
+        return;
+      }
+
+      // Make API call to update the user profile
+      const response = await fetch('http://localhost:8000/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.message === 'Profile updated successfully') {
+        // Update local user state with the updated data
+        updateUser({ ...user, ...formData });
+        setIsEditing(false);
+        alert('Profile updated successfully!');
+      } else {
+        throw new Error(data.message || 'Failed to update profile');
+      }
     } catch (error) {
       console.error('Failed to update profile:', error);
+      alert(`Failed to update profile: ${error.message}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -201,8 +229,17 @@ const Profile = () => {
             <div className="flex gap-2 pt-4">
               {isEditing ? (
                 <>
-                  <Button onClick={handleSave}>Save Changes</Button>
-                  <Button variant="outline" onClick={() => setIsEditing(false)}>
+                  <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
                     Cancel
                   </Button>
                 </>

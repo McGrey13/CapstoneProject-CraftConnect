@@ -554,6 +554,58 @@ public function getSellers()
     }
 
     /**
+     * Update user profile
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $request->validate([
+            'userName' => 'nullable|string|max:100',
+            'userEmail' => 'nullable|email|max:100|unique:users,userEmail,' . $user->userID . ',userID',
+            'userContactNumber' => 'nullable|string|max:20',
+            'userAddress' => 'nullable|string|max:255',
+            'userCity' => 'nullable|string|max:100',
+            'userRegion' => 'nullable|string|max:100',
+            'userProvince' => 'nullable|string|max:100',
+            'userPostalCode' => 'nullable|string|max:20',
+        ]);
+
+        try {
+            // Prepare update data
+            $updateData = [];
+            if ($request->has('userName')) $updateData['userName'] = $request->userName;
+            if ($request->has('userEmail')) $updateData['userEmail'] = $request->userEmail;
+            if ($request->has('userContactNumber')) $updateData['userContactNumber'] = $request->userContactNumber;
+            if ($request->has('userAddress')) $updateData['userAddress'] = $request->userAddress;
+            if ($request->has('userCity')) $updateData['userCity'] = $request->userCity;
+            if ($request->has('userRegion')) $updateData['userRegion'] = $request->userRegion;
+            if ($request->has('userProvince')) $updateData['userProvince'] = $request->userProvince;
+            if ($request->has('userPostalCode')) $updateData['userPostalCode'] = $request->userPostalCode;
+
+            // Update user
+            $user->update($updateData);
+
+            return response()->json([
+                'message' => 'Profile updated successfully',
+                'user' => $user->fresh()
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to update profile',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Update user location information
      *
      * @param \Illuminate\Http\Request $request
