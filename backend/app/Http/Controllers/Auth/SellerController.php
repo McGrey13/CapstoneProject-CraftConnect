@@ -171,7 +171,7 @@ class SellerController extends AuthController
                 return response()->json(['error' => 'User not authenticated'], 401);
             }
 
-            // Load the seller relationship
+            // Load the seller relationship with store
             $seller = $user->seller;
             
             // If seller doesn't exist, create a new one
@@ -183,6 +183,9 @@ class SellerController extends AuthController
                     'website' => '',
                 ]);
             }
+
+            // Load the store relationship
+            $seller->load('store');
 
             // Get profile image URL
             $profileImageUrl = '';
@@ -202,10 +205,13 @@ class SellerController extends AuthController
                 'userBirthday' => $user->userBirthday,
                 'userContactNumber' => $user->userContactNumber,
                 'userAddress' => $user->userAddress,
+                'userCity' => $user->userCity ?? '',
+                'userProvince' => $user->userProvince ?? '',
                 'profileImage' => $profileImageUrl,
                 'story' => $seller->story ?? '',
                 'website' => $seller->website ?? '',
                 'businessName' => $seller->businessName ?? '',
+                'store' => $seller->store, // Include store information
             ]);
             
         } catch (\Exception $e) {
@@ -220,7 +226,7 @@ class SellerController extends AuthController
 
 
         // Update the seller's profile
-        public function updateProfile(Request $request, $sellerID)
+        public function updateSellerProfile(Request $request, $sellerID)
     {
         $seller = Seller::find($sellerID);
         if (!$seller) {

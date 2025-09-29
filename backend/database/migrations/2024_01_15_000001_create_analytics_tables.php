@@ -39,7 +39,7 @@ return new class extends Migration
             $table->integer('products_sold')->default(0);
             $table->timestamps();
             
-            $table->foreign('seller_id')->references('sellerID')->on('sellers')->onDelete('cascade');
+            // Don't add foreign key constraint here - add it later
             $table->index(['seller_id', 'date', 'period_type']);
         });
 

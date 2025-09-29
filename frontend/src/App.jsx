@@ -48,6 +48,7 @@ import ProfilePage from './Components/Seller/ProfilePage';
 import EditableSellerDetail from './Components/Seller/EditableSellerDetail';
 import ChatBox from './Components/Chat/ChatBox';
 import CreateStore from './Components/Store/CreateStore';
+import VerificationPendingPage from './Components/Store/VerificationPendingPage';
 import OwnerInfo from './Components/Store/OwnerInfo';
 import RulesGuidelines from './Components/Store/RulesGuidelines';
 import StoreDetails from './Components/Store/StoreDetails';
@@ -101,6 +102,7 @@ function App() {
           <Route path="product/:id" element={<ProductDetails />} />
           <Route path="chatbox" element={<ChatBox />} />
           <Route path="create-store" element={<CreateStore />} />
+          <Route path="verification-pending" element={<VerificationPendingPage />} />
         </Route>
 
         {/* Seller Routes */}
@@ -117,6 +119,7 @@ function App() {
           <Route path="editable-seller-detail" element={<EditableSellerDetail />} />
           <Route path="chatbox" element={<ChatBox/>} />
           <Route path="create-store" element={<CreateStore />} />
+          <Route path="verification-pending" element={<VerificationPendingPage />} />
           <Route path="owner-info" element={<OwnerInfo />} />
           <Route path="rules-guidelines" element={<RulesGuidelines />} />
           <Route path="store-details" element={<StoreDetails />} />

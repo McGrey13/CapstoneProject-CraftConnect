@@ -32,4 +32,5 @@ return new class extends Migration
         Schema::dropIfExists('cache');
         Schema::dropIfExists('cache_locks');
     }
+    
 };

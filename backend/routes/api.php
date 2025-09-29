@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\AdminController;
 use App\Http\Controllers\Auth\SellerController;
 use App\Http\Controllers\Auth\CustomerController;
 use App\Http\Controllers\StoreController;
@@ -16,12 +17,52 @@ use App\Http\Controllers\Api\DiscountCodeController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SellerFollowController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\Work_and_EventsController;
 
 // Public Routes
 Route::middleware([])->group(function () {
     // Test endpoint for debugging
     Route::get('/test-stores', function () {
         return response()->json(['message' => 'API is working', 'timestamp' => now()]);
+    });
+    
+    // CORS Test endpoint
+    Route::get('/test-cors', function () {
+        return response()->json([
+            'message' => 'CORS is working!',
+            'timestamp' => now(),
+            'origin' => request()->header('Origin'),
+            'headers' => request()->headers->all()
+        ]);
+    });
+    
+    // Test user data with city and province
+    Route::middleware(['auth:sanctum'])->get('/test-user-data', function () {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Not authenticated'], 401);
+        }
+        
+        return response()->json([
+            'user_data' => [
+                'userID' => $user->userID,
+                'userName' => $user->userName,
+                'userEmail' => $user->userEmail,
+                'userAddress' => $user->userAddress,
+                'userCity' => $user->userCity,
+                'userProvince' => $user->userProvince,
+                'userRegion' => $user->userRegion,
+                'role' => $user->role,
+            ]
+        ]);
+    });
+    
+    // Simple auth test endpoint
+    Route::middleware(['auth:sanctum'])->get('/test-auth', function () {
+        return response()->json([
+            'message' => 'Authenticated successfully',
+            'user' => Auth::user()->userName ?? 'Unknown'
+        ]);
     });
     
     // Auth routes
@@ -36,6 +77,10 @@ Route::middleware([])->group(function () {
     Route::get('/products/approved', [ProductController::class, 'approvedProducts']);
     Route::get('/products/featured', [ProductController::class, 'featuredProducts']);
     Route::get('/products/{id}', [ProductController::class, 'getProductDetails'])->whereNumber('id');
+    
+    // Public work and events routes (for customers to view)
+    Route::get('/work-and-events/public', [Work_and_EventsController::class, 'getPublicWorkAndEvents']);
+    Route::get('/work-and-events/public/{id}', [Work_and_EventsController::class, 'getPublicWorkAndEventById'])->whereNumber('id');
     
     // Public products endpoints for admin (without authentication)
     Route::get('/products-public', function() {
@@ -284,16 +329,27 @@ Route::middleware(['auth:sanctum'])->group(function () {
     //     Route::post('/conversations/{conversation}/messages', [ChatController::class, 'sendMessage']);
     // });
     
-    // Product management routes (for sellers)
-    Route::middleware(['role:seller'])->group(function () {
+    // Product management routes (for sellers with verified stores)
+    Route::middleware(['role:seller', 'verified.store'])->group(function () {
         Route::apiResource('products', ProductController::class)->except(['index', 'show']);
         Route::get('/seller/products', [ProductController::class, 'sellerProducts']);
     });
     
     // Admin routes
-    Route::middleware(['role:admin'])->group(function () {
+    Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/products/{id}/approve', [ProductController::class, 'approve']);
         Route::post('/products/{id}/reject', [ProductController::class, 'reject']);
+        
+        // Store verification routes
+        Route::prefix('admin')->group(function () {
+            Route::get('/stores', [AdminController::class, 'getAllStores']);
+            Route::get('/stores/{storeId}', [AdminController::class, 'getStoreDetails']);
+            Route::get('/stores/{storeId}/documents', [AdminController::class, 'getStoreDocuments']);
+            Route::post('/stores/{storeId}/approve', [AdminController::class, 'approveStore']);
+            Route::post('/stores/{storeId}/reject', [AdminController::class, 'rejectStore']);
+            Route::get('/verification-stats', [AdminController::class, 'getVerificationStats']);
+            Route::post('/sellers/{sellerId}/verify', [AdminController::class, 'verifySeller']);
+        });
         
         // Analytics routes
         Route::prefix('analytics')->group(function () {
@@ -493,7 +549,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     //Seller Routes
    Route::get('sellers/profile', [SellerController::class, 'showProfile']);
-    Route::post('sellers/{sellerID}/profile', [SellerController::class, 'updateProfile']);
+    Route::post('sellers/{sellerID}/profile', [SellerController::class, 'updateSellerProfile']);
     Route::post('/user/deactivate', [AuthController::class, 'deactivate']);
     Route::delete('/user', [AuthController::class, 'destroy']);
 
@@ -551,4 +607,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/sellers/{seller}/unfollow', [SellerFollowController::class, 'unfollow']);
     Route::get('/user/followed-sellers', [SellerFollowController::class, 'followedSellers']);
     Route::get('/products/followed-sellers', [ProductController::class, 'followedSellerProducts']);
+
+    Route::middleware(['auth:sanctum', 'role:seller', 'verified.store'])->group(function () {
+        Route::apiResource('work-and-events', Work_and_EventsController::class);
+    });
 });

@@ -31,6 +31,7 @@ class Seller extends Model
         'profile_picture_path',
         'background_picture_path',
         'promotional_video_path',
+        'is_verified',
     ];
 
     /**

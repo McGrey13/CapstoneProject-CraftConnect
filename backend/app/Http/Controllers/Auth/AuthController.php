@@ -308,7 +308,27 @@ public function getSellers()
     
             $token = $user->createToken('auth_token')->plainTextToken;
     
-            return redirect("http://localhost:5173/login?token={$token}");
+            // Check if user is a seller and has a store
+            $redirectTo = null;
+            if ($user->role === 'seller') {
+                $seller = Seller::where('user_id', $user->userID)->first();
+                if (!$seller || !$seller->store) {
+                    $redirectTo = '/create-store';
+                }
+            }
+    
+            // Determine user type for frontend routing
+            $userType = $user->role === 'administrator'
+                ? 'admin'
+                : $user->role;
+    
+            // Build redirect URL with parameters
+            $redirectUrl = "http://localhost:5173/login?token={$token}&user_type={$userType}";
+            if ($redirectTo) {
+                $redirectUrl .= "&redirect_to={$redirectTo}";
+            }
+    
+            return redirect($redirectUrl);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

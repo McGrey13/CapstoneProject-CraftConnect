@@ -200,29 +200,6 @@
       }
     };
 
-    // Not needed since we're using mock products for preview
-    // const fetchStoreProducts = async () => {
-    //   try {
-    //     setProductsLoading(true);
-    //     const response = await fetch(`http://localhost:8000/api/sellers/${storeData.seller.sellerID}/products`, {
-    //       headers: {
-    //         'Accept': 'application/json',
-    //       },
-    //     });
-
-    //     if (response.ok) {
-    //       const data = await response.json();
-    //       setStoreProducts(data.products || []);
-    //     } else {
-    //       console.error('Failed to fetch store products');
-    //       setStoreProducts([]);
-    //     }
-    //   } catch (error) {
-    //     console.error('Error fetching store products:', error);
-    //     setStoreProducts([]);
-    //   } finally {
-    //     setProductsLoading(false);
-    //   }
     // };
 
     const handleCustomizationChange = (key, value) => {
@@ -770,7 +747,13 @@
       banner: imagePreviews.background || "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80",
       rating: storeData?.seller?.average_rating || 4.8, // Real rating from database
       followers: storeData?.seller?.followers_count || 1250,
-      location: storeData?.seller?.user?.userAddress || "Location not specified",
+      location: [
+        storeData?.store?.owner_address,
+        storeData?.seller?.user?.userCity, 
+        storeData?.seller?.user?.userProvince
+      ].filter(Boolean).join(', ') || 
+      storeData?.store?.owner_address || 
+      "Location not specified",
       yearsActive: storeData?.seller?.created_at ? Math.floor((new Date() - new Date(storeData.seller.created_at)) / (1000 * 60 * 60 * 24 * 365)) : 2,
       description: storeData?.store?.store_description || "Add a description to tell your customers about your store and what makes it special...",
       categories: storeData?.store?.category ? [storeData.store.category] : ["Handcrafted", "Artisan", "Unique"],
@@ -780,10 +763,10 @@
     const mockProducts = [
       {
         id: 1,
-        name: "Handcrafted Wooden Bowl",
+        name: "Product 1",
         price: "₱299.99",
         image: null, // No image - will show placeholder
-        category: "Home Decor",
+        category: "Category 1",
         rating: 4.5,
         isNew: true,
         discount: null,
@@ -791,10 +774,10 @@
       },
       {
         id: 2,
-        name: "Artisan Ceramic Mug",
+        name: "Product 2",
         price: "₱189.99",
         image: null, // No image - will show placeholder
-        category: "Kitchenware",
+        category: "Category 2",
         rating: 4.8,
         isNew: true,
         discount: 15,
@@ -802,10 +785,10 @@
       },
       {
         id: 3,
-        name: "Woven Textile Wall Art",
+        name: "Product 3",
         price: "₱459.99",
         image: null, // No image - will show placeholder
-        category: "Art",
+        category: "Category 3",
         rating: 4.3,
         isNew: false,
         discount: null,
@@ -813,10 +796,10 @@
       },
       {
         id: 4,
-        name: "Handmade Leather Journal",
+        name: "Product 4",
         price: "₱399.99",
         image: null, // No image - will show placeholder
-        category: "Stationery",
+        category: "Category 4",
         rating: 4.7,
         isNew: false,
         discount: 20,
@@ -824,10 +807,10 @@
       },
       {
         id: 5,
-        name: "Bamboo Wind Chime",
+        name: "Product 5",
         price: "₱249.99",
         image: null, // No image - will show placeholder
-        category: "Garden",
+        category: "Category 5",
         rating: 4.4,
         isNew: false,
         discount: null,
@@ -835,14 +818,118 @@
       },
       {
         id: 6,
-        name: "Hand-painted Ceramic Plate",
+        name: "Product 6",
         price: "₱329.99",
         image: null, // No image - will show placeholder
-        category: "Dining",
+        category: "Category 6",
         rating: 4.6,
         isNew: false,
         discount: null,
         oldPrice: null,
+      },
+    ];
+
+    // Mock data for Featured Products
+    const mockFeaturedProducts = [
+      {
+        id: 1,
+        name: "Featured Product 1",
+        price: "₱1,299.00",
+        image: null,
+        category: "Category 1",
+        rating: 4.9,
+        badge: "Best Seller",
+      },
+      {
+        id: 2,
+        name: "Featured Product 2",
+        price: "₱899.00",
+        image: null,
+        category: "Category 2",
+        rating: 4.8,
+        badge: "Featured",
+      },
+      {
+        id: 3,
+        name: "Featured Product 3",
+        price: "₱1,599.00",
+        image: null,
+        category: "Category 3",
+        rating: 4.7,
+        badge: "New",
+      },
+      {
+        id: 4,
+        name: "Featured Product 4",
+        price: "₱699.00",
+        image: null,
+        category: "Category 4",
+        rating: 4.6,
+        badge: "Popular",
+      },
+    ];
+
+    // Mock data for Workshops & Events
+    const mockWorkshopsAndEvents = [
+      {
+        id: 1,
+        title: "Workshop & Event 1",
+        date: "October 15, 2023",
+        time: "2:00 PM - 5:00 PM",
+        price: "₱1,200.00",
+        image: null,
+        spots: "10 spots",
+        type: "Workshop",
+      },
+      {
+        id: 2,
+        title: "Workshop & Event 2",
+        date: "October 20, 2023",
+        time: "9:00 AM - 6:00 PM",
+        price: "Free Entry",
+        image: null,
+        spots: "Open to All",
+        type: "Event",
+      },
+      {
+        id: 3,
+        title: "Workshop & Event 3",
+        date: "November 5, 2023",
+        time: "10:00 AM - 1:00 PM",
+        price: "₱1,500.00",
+        image: null,
+        spots: "8 spots",
+        type: "Workshop",
+      },
+      {
+        id: 4,
+        title: "Workshop & Event 4",
+        date: "November 18, 2023",
+        time: "6:00 PM - 9:00 PM",
+        price: "₱200.00",
+        image: null,
+        spots: "30 attendees",
+        type: "Event",
+      },
+      {
+        id: 5,
+        title: "Workshop & Event 5",
+        date: "December 10, 2023",
+        time: "9:00 AM - 4:00 PM",
+        price: "₱2,000.00",
+        image: null,
+        spots: "6 spots",
+        type: "Workshop",
+      },
+      {
+        id: 6,
+        title: "Workshop & Event 6",
+        date: "December 15, 2023",
+        time: "10:00 AM - 8:00 PM",
+        price: "₱50.00",
+        image: null,
+        spots: "500 attendees",
+        type: "Event",
       },
     ];
 
@@ -1024,6 +1111,113 @@
                 </div>
               </div>
             </div>
+
+        {/* Featured Products Section */}
+        <div className="max-w-5xl mx-auto mt-16 mb-12">
+          <div className="text-center mb-8">
+            <h2 
+              className="text-3xl font-extrabold mb-2"
+              style={{ 
+                color: customization.primary_color,
+                fontFamily: customization.heading_font,
+                fontSize: `${customization.heading_size * 1.8}px`
+              }}
+            >
+              Featured Products
+            </h2>
+            <p 
+              className="text-lg"
+              style={{ 
+                color: customization.text_color,
+                fontFamily: customization.body_font,
+                fontSize: `${customization.body_size}px`
+              }}
+            >
+              Discover our handpicked favorites
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {mockFeaturedProducts.map((product) => (
+              <div
+                key={product.id}
+                className="rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 relative group cursor-pointer"
+                style={{ backgroundColor: customization.background_color }}
+              >
+                <div className="absolute top-3 right-3 z-10">
+                  <span 
+                    className="font-bold px-2 py-1 rounded-full text-xs shadow"
+                    style={{ 
+                      backgroundColor: customization.accent_color,
+                      color: customization.text_color
+                    }}
+                  >
+                    {product.badge}
+                  </span>
+                </div>
+                {product.image ? (
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-48 bg-gray-200 flex items-center justify-center group-hover:bg-gray-300 transition duration-300">
+                    <div className="text-center text-gray-500">
+                      <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-sm font-medium">No Image</p>
+                    </div>
+                  </div>
+                )}
+                <div className="p-4">
+                  <div 
+                    className="text-xs font-bold mb-1 uppercase tracking-wide"
+                    style={{ color: customization.primary_color }}
+                  >
+                    {product.category}
+                  </div>
+                  <h3 
+                    className="font-bold text-lg mb-2 group-hover:transition"
+                    style={{ 
+                      color: customization.text_color,
+                      fontFamily: customization.heading_font,
+                      fontSize: `${customization.heading_size}px`
+                    }}
+                  >
+                    {product.name}
+                  </h3>
+                  <div className="flex items-center gap-1 mb-2">
+                    {[...Array(Math.floor(product.rating))].map((_, i) => (
+                      <span key={i} className="text-yellow-500">★</span>
+                    ))}
+                    <span className="text-xs ml-1" style={{ color: customization.text_color }}>({product.rating})</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span 
+                      className="font-bold text-xl"
+                      style={{ 
+                        color: customization.primary_color,
+                        fontSize: `${customization.heading_size * 1.2}px`
+                      }}
+                    >
+                      {product.price}
+                    </span>
+                    <button 
+                      className="font-semibold px-3 py-1 rounded-lg hover:transition text-sm"
+                      style={{ 
+                        backgroundColor: customization.accent_color,
+                        color: customization.text_color
+                      }}
+                    >
+                      View
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Search, Filters, Sort Bar */}
         <div 
@@ -1217,6 +1411,114 @@
               </p>
           </div>
         )}
+        </div>
+
+        {/* Workshops & Events Section */}
+        <div className="max-w-5xl mx-auto mt-16 mb-12">
+          <div className="text-center mb-8">
+            <h2 
+              className="text-3xl font-extrabold mb-2"
+              style={{ 
+                color: customization.primary_color,
+                fontFamily: customization.heading_font,
+                fontSize: `${customization.heading_size * 1.8}px`
+              }}
+            >
+              Workshops & Events
+            </h2>
+            <p 
+              className="text-lg"
+              style={{ 
+                color: customization.text_color,
+                fontFamily: customization.body_font,
+                fontSize: `${customization.body_size}px`
+              }}
+            >
+              Learn hands-on crafting skills and join our community events
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {mockWorkshopsAndEvents.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 relative"
+                style={{ backgroundColor: customization.background_color }}
+              >
+                <div className="absolute top-3 right-3 z-10">
+                  <span className={`font-bold px-2 py-1 rounded-full text-xs shadow ${
+                    item.type === 'Workshop' 
+                      ? 'bg-blue-200 text-blue-800' 
+                      : 'bg-green-200 text-green-800'
+                  }`}>
+                    {item.type}
+                  </span>
+                </div>
+                {item.image ? (
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-full h-48 object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                    <div className="text-center text-gray-500">
+                      <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-sm font-medium">No Image</p>
+                    </div>
+                  </div>
+                )}
+                <div className="p-6">
+                  <h3 
+                    className="font-bold text-xl mb-2"
+                    style={{ 
+                      color: customization.text_color,
+                      fontFamily: customization.heading_font,
+                      fontSize: `${customization.heading_size * 1.1}px`
+                    }}
+                  >
+                    {item.title}
+                  </h3>
+                  <div className="flex items-center gap-2 text-sm mb-2" style={{ color: customization.text_color }}>
+                    <Calendar className="w-4 h-4" />
+                    <span>{item.date}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm mb-2" style={{ color: customization.text_color }}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12,6 12,12 16,14"></polyline>
+                    </svg>
+                    <span>{item.time}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm mb-4" style={{ color: customization.text_color }}>
+                    <Users className="w-4 h-4" />
+                    <span>{item.spots}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span 
+                      className="font-bold text-xl"
+                      style={{ 
+                        color: customization.primary_color,
+                        fontSize: `${customization.heading_size * 1.2}px`
+                      }}
+                    >
+                      {item.price}
+                    </span>
+                    <button 
+                      className="font-semibold px-4 py-2 rounded-lg hover:transition"
+                      style={{ 
+                        backgroundColor: customization.accent_color,
+                        color: customization.text_color
+                      }}
+                    >
+                      {item.type === 'Workshop' ? 'Book Now' : 'Join Event'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

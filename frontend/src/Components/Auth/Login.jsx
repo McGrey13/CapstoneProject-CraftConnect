@@ -31,8 +31,12 @@ const Login = () => {
       remember: rememberMe,
     });
     console.log("DEBUG ROLE:", result.userType);
+    console.log("DEBUG REDIRECT:", result.redirectTo);
 
-    if (result.userType === "admin") {
+    // Check if there's a specific redirect path (e.g., for sellers without stores)
+    if (result.redirectTo) {
+      navigate(result.redirectTo);
+    } else if (result.userType === "admin") {
       navigate("/admin");
     } else if (result.userType === "seller") {
       navigate("/seller");
@@ -60,13 +64,17 @@ useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token");
   const userType = params.get("user_type"); // backend returns snake_case
+  const redirectTo = params.get("redirect_to");
 
   if (token) {
     localStorage.setItem("auth_token", token);
     // eslint-disable-next-line no-undef
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-    if (userType === "admin") {
+    // Check if there's a specific redirect path (e.g., for sellers without stores)
+    if (redirectTo) {
+      navigate(redirectTo);
+    } else if (userType === "admin") {
       navigate("/admin");
     } else if (userType === "seller") {
       navigate("/seller");

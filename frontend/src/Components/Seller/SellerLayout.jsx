@@ -86,11 +86,11 @@ const SellerLayout = () => {
     }
   };
 
-  // Effect to get current user info
+  // Effect to get current user info and check for store
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('auth-token');
         const response = await fetch('http://localhost:8000/api/sellers/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -106,9 +106,27 @@ const SellerLayout = () => {
             sellerId: sellerData.sellerID,
             role: 'seller'
           });
+
+          // Check if seller has a store, if not redirect to create store
+          if (!sellerData.store) {
+            window.location.href = '/create-store';
+          } else {
+            // Check store status
+            const storeStatus = sellerData.store.status;
+            if (storeStatus === 'pending') {
+              // Store is pending verification, redirect to verification pending page
+              window.location.href = '/verification-pending';
+            } else if (storeStatus === 'rejected') {
+              // Store was rejected, redirect to create store to resubmit
+              window.location.href = '/create-store';
+            }
+            // If status is 'approved', continue with normal seller layout
+          }
         }
       } catch (error) {
         console.error('Error fetching current user:', error);
+        // If there's an error fetching seller profile, redirect to create store
+        window.location.href = '/create-store';
       }
     };
 

@@ -25,14 +25,14 @@ class UserFactory extends Factory
     {
         return [
             'userName' => fake()->userName(),
-            'userFirstName' => fake()->firstName(),
-            'userLastName' => fake()->lastName(),
             'userEmail' => fake()->unique()->safeEmail(),
             'userPassword' => static::$password ??= Hash::make('password'),
-            'userBirthDay' => fake()->date(),
+            'userAge' => fake()->numberBetween(18, 80),
+            'userBirthday' => fake()->date(),
             'userContactNumber' => fake()->phoneNumber(),
             'userAddress' => fake()->address(),
-            'type' => 0, // Default to customer
+            'role' => 'customer',
+            'is_verified' => true,
             'remember_token' => Str::random(10),
             'created_at' => now(),
             'updated_at' => now(),

@@ -27,7 +27,7 @@ class StoreController extends Controller
         }
         
         $store = Store::where('user_id', $user->userID)
-            ->with('seller')
+            ->with(['seller.user'])
             ->latest()
             ->first();
             
@@ -64,6 +64,10 @@ class StoreController extends Controller
             'category' => 'nullable|string|max:255',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:4096',
             'bir' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:8192',
+            'dti' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:8192',
+            'id_image' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:8192',
+            'id_type' => 'nullable|string|in:UMID,SSS,GSIS,LTO,Postal,Passport,PhilHealth,PhilID,PRC,Alien,Foreign_Passport',
+            'tin_number' => 'nullable|string|max:20',
             'owner_name' => 'required|string|max:255',
             'owner_email' => 'required|email|max:255',
             'owner_phone' => 'nullable|string|max:50',
@@ -74,6 +78,8 @@ class StoreController extends Controller
 
         $logoPath = null;
         $birPath = null;
+        $dtiPath = null;
+        $idImagePath = null;
 
         if ($request->hasFile('logo')) {
             $logoPath = $request->file('logo')->store('stores/logos', 'public');
@@ -81,6 +87,14 @@ class StoreController extends Controller
 
         if ($request->hasFile('bir')) {
             $birPath = $request->file('bir')->store('stores/bir', 'public');
+        }
+
+        if ($request->hasFile('dti')) {
+            $dtiPath = $request->file('dti')->store('stores/dti', 'public');
+        }
+
+        if ($request->hasFile('id_image')) {
+            $idImagePath = $request->file('id_image')->store('stores/id_images', 'public');
         }
 
         $store = Store::create([
@@ -91,6 +105,10 @@ class StoreController extends Controller
             'category' => $validated['category'] ?? null,
             'logo_path' => $logoPath,
             'bir_path' => $birPath,
+            'dti_path' => $dtiPath,
+            'id_image_path' => $idImagePath,
+            'id_type' => $validated['id_type'] ?? null,
+            'tin_number' => $validated['tin_number'] ?? null,
             'owner_name' => $validated['owner_name'],
             'owner_email' => $validated['owner_email'],
             'owner_phone' => $validated['owner_phone'] ?? null,

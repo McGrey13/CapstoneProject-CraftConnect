@@ -11,7 +11,6 @@ class Kernel extends HttpKernel
 
     protected $routeMiddleware = [
         // ... other middleware
-        'role' => RoleMiddleware::class,
         'cors' => \Illuminate\Http\Middleware\HandleCors::class,
     ];
     /**
@@ -78,5 +77,8 @@ class Kernel extends HttpKernel
         'customer' => \App\Http\Middleware\CustomerMiddleware::class,
         'is.seller' => \App\Http\Middleware\EnsureUserIsSeller::class,
         'approved.seller' => \App\Http\Middleware\ApprovedSellerMiddleware::class,
+        'has.store' => \App\Http\Middleware\HasStoreMiddleware::class,
+        'verified.store' => \App\Http\Middleware\VerifiedStoreMiddleware::class,
+        'role' => \App\Http\Middleware\RoleMiddleware::class,
     ];
 }

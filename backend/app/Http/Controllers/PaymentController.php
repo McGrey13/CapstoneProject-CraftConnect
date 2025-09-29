@@ -6,6 +6,7 @@ use App\Models\Payment;
 use App\Services\PayMongoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use function Pest\Laravel\post;
 
 class PaymentController extends Controller
 {
@@ -217,4 +218,44 @@ class PaymentController extends Controller
             'redirect_url' => 'http://localhost:5173/checkout' // Redirect back to checkout
         ]);
     }
+
+    public function paymentSession(Request $request)
+    {
+
+        $data = [
+            'data' => [
+                'attributes' => [
+                    'amount' => 1000,
+                    'currency' => 'PHP',
+                    'payment_method_types' => ['gcash', 'paymaya'],
+                    'redirect_url' => route('payment.success'),
+                    'cancel_url' => route('payment.failed'),
+                    'quantity' => 1,
+                    'name' => 'Test Payment',
+                ],
+                'payment_method_options' => [
+                    'gcash' => [
+                        'type' => 'gcash',
+                        'phone' => '09171234567'
+                    ],
+                    'paymaya' => [
+                        'type' => 'paymaya',
+                        'phone' => '09171234567'
+                    ]
+                ],  
+                'success_url' => route('payment.success'),
+                'cancel_url' => route('payment.failed'),
+            ]
+        ];
+        $response = Curl::to('https://api.paymongo.com/v1/payment_sessions')
+            ->withHeaders('content-type: application/json')
+            ->withHeaders('accept: application/json')
+            ->withAuthorization('Basic ' . base64_encode(env('PAYMONGO_SECRET_KEY')))
+            ->withData($data);
+            ->asJson();
+            ->post();
+
+            
+    }
+
 }

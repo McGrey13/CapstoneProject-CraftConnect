@@ -11,15 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('workshs_and_events', function (Blueprint $table) {
-            $table->id();
+        Schema::create('work_and_events', function (Blueprint $table) {
+            $table->id('works_and_events_id');
             $table->string('title');
+            $table->unsignedBigInteger('seller_id');
+            $table->foreign('seller_id')->references('sellerID')->on('sellers')->onDelete('cascade');
             $table->text('description');
-            $table->string('image');
+            $table->string('image')->nullable();
             $table->string('link');
             $table->string('location');
             $table->date('date');
-            $table->time('time');
+            $table->string('time');
+            $table->integer('participants');
+            $table->enum('status', ['upcoming','ongoing','completed','cancelled']);
             $table->timestamps();
         });
     }
@@ -29,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('workshs_and_events');
+        Schema::dropIfExists('work_and_events');
     }
 };

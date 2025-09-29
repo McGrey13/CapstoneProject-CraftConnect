@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -22,6 +22,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "../ui/collapsible";
+import { useUser } from "../Context/UserContext";
+import { useNavigate } from "react-router-dom";
 
 // Import Admin Pages
 import Dashboard from "./AdminDashboard";
@@ -32,6 +34,8 @@ import ArtisanTable from "./ArtisanTable";
 import AnalyticsDashboard from "./AnalyticsDashboard";
 import AdminSettings from "./AdminSettings";
 import AcceptPendingProduct from "./AcceptPendingProduct";
+import StoreVerification from "./StoreVerification";
+import api from "../../api";
 
 const SidebarItem = ({ icon, label, tabKey, activeTab, setActiveTab, badge, onItemClick }) => (
   <button
@@ -83,11 +87,60 @@ const SidebarGroup = ({ label, icon, children, isOpen, setIsOpen, onItemClick })
 );
 
 const AdminLayout = () => {
+  const { user, loading } = useUser();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [productOpen, setProductOpen] = useState(true);
   const [userOpen, setUserOpen] = useState(true);
   const [orderOpen, setOrderOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [stats, setStats] = useState({});
+
+  // Check authentication and admin role
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+      if (user.role !== 'administrator') {
+        navigate('/home');
+        return;
+      }
+    }
+  }, [user, loading, navigate]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/admin/verification-stats');
+        setStats(response.data);
+      } catch (error) {
+        console.error('Error fetching verification stats:', error);
+      }
+    };
+
+    if (user && user.role === 'administrator') {
+      fetchStats();
+    }
+  }, [user]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-amber-700 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading admin panel...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated or not admin (will redirect)
+  if (!user || user.role !== 'administrator') {
+    return null;
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -105,6 +158,8 @@ const AdminLayout = () => {
         return <CustomerTable />;
       case "artisans":
         return <ArtisanTable />;
+      case "storeVerification":
+        return <StoreVerification />;
       case "orders":
         return <OrdersOverview />;
       case "orderDetails":
@@ -120,7 +175,7 @@ const AdminLayout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminNavbar />
+      <AdminNavbar userName={user?.userName || 'Admin'} />
       <div className="flex h-[calc(100vh-4rem)]">
         {/* Mobile Menu Button */}
         <div className="lg:hidden fixed top-4 left-4 z-50">
@@ -200,7 +255,7 @@ const AdminLayout = () => {
                 tabKey="customers"
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
-                badge={843}
+                badge={stats?.total_customers || 0}
               />
               <SidebarItem
                 icon={<Palette className="h-4 w-4" />}
@@ -208,9 +263,16 @@ const AdminLayout = () => {
                 tabKey="artisans"
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
-                badge={56}
+                badge={stats?.total_artisans || 0}
               />
-
+              <SidebarItem
+                icon={<FileText className="h-4 w-4" />}
+                label="Store Verification"
+                tabKey="storeVerification"
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                badge={stats?.pending_stores || 0}
+              />
 
             </SidebarGroup>
 
@@ -260,8 +322,8 @@ const AdminLayout = () => {
           <div className="p-4 border-t border-gray-200">
             <div className="bg-gray-50 p-3 rounded-lg">
               <p className="text-xs text-gray-500 mb-2">Logged in as</p>
-              <p className="text-sm font-medium">Admin User</p>
-              <p className="text-xs text-gray-500">admin@craftconnect.com</p>
+              <p className="text-sm font-medium">{user?.userName || 'Admin'}</p>
+              <p className="text-xs text-gray-500">{user?.userEmail || 'admin@craftconnect.com'}</p>
             </div>
           </div>
         </div>
