@@ -90,7 +90,7 @@ const SellerLayout = () => {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const token = localStorage.getItem('auth-token');
+        const token = localStorage.getItem('auth_token');
         const response = await fetch('http://localhost:8000/api/sellers/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,

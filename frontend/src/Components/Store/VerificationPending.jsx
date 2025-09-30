@@ -35,7 +35,7 @@ const VerificationPending = ({ storeData, onCheckStatus }) => {
   const handleLogout = async () => {
     try {
       await api.post('/logout');
-      localStorage.removeItem('auth-token');
+      localStorage.removeItem('auth_token');
       window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);

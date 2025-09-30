@@ -18,7 +18,7 @@ const AdminNavbar = ({
 }) => {
   const handleLogout = async () => {
     try {
-      const token = localStorage.getItem("auth-token");
+      const token = localStorage.getItem("auth_token");
       await fetch("http://localhost:8000/api/logout", {
         method: "POST",
         headers: {
@@ -30,7 +30,7 @@ const AdminNavbar = ({
     } catch (error) {
       console.error("Error during logout:", error);
     } finally {
-      localStorage.removeItem("auth-token");
+      localStorage.removeItem("auth_token");
       window.location.href = "/login";
     }
   };

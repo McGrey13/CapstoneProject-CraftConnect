@@ -16,8 +16,13 @@ class SellerMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check() || Auth::user()->userType !== 'seller') {
-            return redirect('/')->with('error', 'You do not have seller access.');
+        if (!Auth::check()) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $user = Auth::user();
+        if ($user->role !== 'seller') {
+            return response()->json(['error' => 'Access denied. Seller role required.'], 403);
         }
 
         return $next($request);

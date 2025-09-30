@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Coupon;
+use App\Models\DiscountCode;
 use Illuminate\Http\Request;
 
 class CouponController extends Controller
@@ -20,7 +20,7 @@ class CouponController extends Controller
             'expires_at' => 'nullable|date',
         ]);
 
-        $coupon = Coupon::create($request->all());
+        $coupon = DiscountCode::create($request->all());
 
         return response()->json([
             'message' => 'Coupon created successfully.',
@@ -31,7 +31,7 @@ class CouponController extends Controller
     /**
      * Remove the specified coupon from storage.
      */
-    public function destroy(Coupon $coupon)
+    public function destroy(DiscountCode $coupon)
     {
         $coupon->delete();
 

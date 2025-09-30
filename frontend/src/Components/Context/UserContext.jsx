@@ -9,7 +9,7 @@ export const UserProvider = ({ children }) => {
 
   // Check if user is authenticated on app load
   const checkAuthStatus = async () => {
-    const token = localStorage.getItem('auth-token');
+    const token = localStorage.getItem('auth_token');
     if (!token) {
       setLoading(false);
       return;
@@ -25,8 +25,9 @@ export const UserProvider = ({ children }) => {
     } catch (error) {
       console.error('Authentication check failed:', error);
       // Clear invalid token
-      localStorage.removeItem('auth-token');
+      localStorage.removeItem('auth_token');
       delete api.defaults.headers.common['Authorization'];
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -38,7 +39,7 @@ const login = async (credentials) => {
     const response = await api.post('/login', credentials);
     const { token, user: userData, userType, redirectTo } = response.data;
     
-    localStorage.setItem('auth-token', token);
+    localStorage.setItem('auth_token', token);
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     setUser(userData);
     
@@ -53,7 +54,7 @@ const login = async (credentials) => {
   const logout = async () => {
     try {
       // Call logout endpoint if token exists
-      const token = localStorage.getItem('auth-token');
+      const token = localStorage.getItem('auth_token');
       if (token) {
         await api.post('/logout');
       }
@@ -61,7 +62,7 @@ const login = async (credentials) => {
       console.error('Logout error:', error);
     } finally {
       // Clear local state regardless of API call success
-      localStorage.removeItem('auth-token');
+      localStorage.removeItem('auth_token');
       delete api.defaults.headers.common['Authorization'];
       setUser(null);
     }
@@ -75,7 +76,7 @@ const login = async (credentials) => {
       // The backend returns the user data directly in the response
       // We'll store the token if it's provided, but don't expect it for OTP flow
       if (response.data.token) {
-        localStorage.setItem('auth-token', response.data.token);
+        localStorage.setItem('auth_token', response.data.token);
         api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
         setUser(response.data.user);
         return { ...response.data, success: true };

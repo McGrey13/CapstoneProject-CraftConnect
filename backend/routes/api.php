@@ -15,6 +15,7 @@ use App\http\Controllers\ChatController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\DiscountCodeController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\SellerFollowController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Work_and_EventsController;
@@ -317,8 +318,19 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Order routes
     Route::prefix('orders')->group(function () {
         Route::get('/', [OrderController::class, 'index']);
+        Route::get('/seller', [OrderController::class, 'sellerOrders']);
         Route::get('/{id}', [OrderController::class, 'show']);
         Route::post('/', [OrderController::class, 'store']);
+    });
+
+    // Payment Method routes
+    Route::prefix('payment-methods')->group(function () {
+        Route::get('/', [PaymentMethodController::class, 'index']);
+        Route::post('/', [PaymentMethodController::class, 'store']);
+        Route::get('/{id}', [PaymentMethodController::class, 'show']);
+        Route::put('/{id}', [PaymentMethodController::class, 'update']);
+        Route::delete('/{id}', [PaymentMethodController::class, 'destroy']);
+        Route::post('/{id}/set-default', [PaymentMethodController::class, 'setDefault']);
     });
     
     // Chat routes
@@ -562,12 +574,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('stores')->group(function () {
         Route::get('/me', [StoreController::class, 'me']);
         Route::post('/', [StoreController::class, 'store']);
+        Route::post('/customization', [StoreController::class, 'updateCustomization']);
+        Route::get('/dashboard', [StoreController::class, 'getDashboardData']);
         Route::get('/{store}', [StoreController::class, 'show']);
         Route::put('/{store}', [StoreController::class, 'update']);
         Route::delete('/{store}', [StoreController::class, 'destroy']);
         Route::post('/{store}/approve', [StoreController::class, 'approve']);
         Route::post('/{store}/reject', [StoreController::class, 'reject']);
-        Route::post('/customization', [StoreController::class, 'updateCustomization']);
     });
     
     // Customer Routes
@@ -595,6 +608,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/chat/{conversation}/mark-read', [ChatController::class, 'markMessagesAsRead']);
 
     Route::post('/payments/initiate', [PaymentController::class, 'initiatePayment']);
+    Route::post('/payment-session', [PaymentController::class, 'paymentSession']);
     Route::get('/payment/success/{payment_id}', [PaymentController::class, 'paymentSuccess'])->name('payment.success');
     Route::get('/payment/failed/{payment_id}', [PaymentController::class, 'paymentFailed'])->name('payment.failed');
 
@@ -608,7 +622,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user/followed-sellers', [SellerFollowController::class, 'followedSellers']);
     Route::get('/products/followed-sellers', [ProductController::class, 'followedSellerProducts']);
 
-    Route::middleware(['auth:sanctum', 'role:seller', 'verified.store'])->group(function () {
+    Route::middleware(['auth:sanctum'])->group(function () {
         Route::apiResource('work-and-events', Work_and_EventsController::class);
     });
 });

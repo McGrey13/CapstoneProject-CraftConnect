@@ -15,6 +15,9 @@ import { Calendar, Clock, Users, MapPin, Plus, Upload, X } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { useWorkAndEvents } from "../../hooks/useWorkAndEvents";
 import { toast } from "sonner"; // You might need to install sonner for notifications
+import LoadingSpinner from "../ui/LoadingSpinner";
+import ErrorState from "../ui/ErrorState";
+import EmptyState from "../ui/EmptyState";
 
 // Status badge styling
 const statusStyles = {
@@ -188,16 +191,19 @@ const WorkshopsEvents = () => {
 
   if (loading && workAndEvents.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading workshops...</div>
+      <div className="w-full pt-4">
+        <LoadingSpinner message="Loading workshops..." />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-red-500">Error loading workshops: {error.message}</div>
+      <div className="w-full pt-4">
+        <ErrorState 
+          message={`Error loading workshops: ${error.message}`} 
+          onRetry={() => window.location.reload()} 
+        />
       </div>
     );
   }
@@ -215,21 +221,35 @@ const WorkshopsEvents = () => {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {workAndEvents.map((workshop) => (
-        <WorkshopCard
-            key={workshop.works_and_events_id}
-            title={workshop.title}
-            date={workshop.date}
-            time={workshop.time}
-            location={workshop.location}
-            participants={workshop.participants}
-            status={workshop.status}
-            image={workshop.image_url}
-            onDelete={() => handleDelete(workshop.works_and_events_id)}
-          />
-        ))}
-      </div>
+      {workAndEvents.length === 0 ? (
+        <EmptyState
+          icon="🎨"
+          title="No Workshops Yet"
+          description="Create your first workshop or event to start engaging with customers"
+          action={
+            <Button onClick={() => setShowCreateForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Your First Workshop
+            </Button>
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {workAndEvents.map((workshop) => (
+          <WorkshopCard
+              key={workshop.works_and_events_id}
+              title={workshop.title}
+              date={workshop.date}
+              time={workshop.time}
+              location={workshop.location}
+              participants={workshop.participants}
+              status={workshop.status}
+              image={workshop.image_url}
+              onDelete={() => handleDelete(workshop.works_and_events_id)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Create Form */}
       {showCreateForm && (
@@ -422,7 +442,12 @@ const WorkshopsEvents = () => {
                 className="w-full rounded-full bg-teal-600 text-white hover:bg-teal-700 transition-all duration-200 hover:scale-105"
                 disabled={loading}
               >
-                {loading ? 'Creating...' : 'Create Workshop'}
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Creating...
+                  </div>
+                ) : 'Create Workshop'}
           </Button>
         </CardFooter>
           </form>

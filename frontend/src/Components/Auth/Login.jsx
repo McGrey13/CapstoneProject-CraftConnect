@@ -47,7 +47,7 @@ const Login = () => {
       // ✅ OTP handling
       if (
         err.response?.status === 403 &&
-        err.response?.data?.message === "Please verify your account"
+        err.response?.data?.message === "Please verify your account before logging in."
       ) {
         navigate("/verify-otp", { state: { email } });
       } else {

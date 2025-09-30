@@ -20,6 +20,8 @@ import {
 } from "recharts";
 import { RefreshCw, TrendingUp, Package, AlertTriangle, Tag } from "lucide-react";
 import { Button } from "../ui/button";
+import LoadingSpinner from "../ui/LoadingSpinner";
+import ErrorState from "../ui/ErrorState";
 
 const SellerAnalytics = ({ sellerId }) => {
   const [analytics, setAnalytics] = useState(null);
@@ -60,20 +62,16 @@ const SellerAnalytics = ({ sellerId }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading analytics...</span>
+      <div className="w-full pt-4">
+        <LoadingSpinner message="Loading analytics..." />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 text-red-600 bg-red-50 rounded-lg">
-        <p>Error loading analytics: {error}</p>
-        <Button onClick={fetchAnalytics} className="mt-2">
-          <RefreshCw className="h-4 w-4 mr-2" /> Retry
-        </Button>
+      <div className="w-full pt-4">
+        <ErrorState message={`Error loading analytics: ${error}`} onRetry={fetchAnalytics} />
       </div>
     );
   }

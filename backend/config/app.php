@@ -129,6 +129,7 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         // App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
+        Ixudra\Curl\CurlServiceProvider::class,
     ])->toArray(),
 
     /*
@@ -144,5 +145,6 @@ return [
 
     'aliases' => Facade::defaultAliases()->merge([
         'Socialite' => Laravel\Socialite\Facades\Socialite::class, // <-- ADDED FOR SOCIALITE
-    ])->toArray(),
+        'Curl' => Ixudra\Curl\Facades\Curl::class,
+        ])->toArray(),
 ];

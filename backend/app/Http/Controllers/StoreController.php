@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Store;
 use App\Models\Seller;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -398,6 +401,7 @@ class StoreController extends Controller
             ]);
 
             $validated = $request->validate([
+                'customization' => 'sometimes|string',
                 'primary_color' => 'sometimes|string|max:7',
                 'secondary_color' => 'sometimes|string|max:7',
                 'background_color' => 'sometimes|string|max:7',
@@ -414,6 +418,42 @@ class StoreController extends Controller
                 'product_card_style' => 'sometimes|string|in:minimal,detailed,compact,elegant',
                 'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:8192',
             ]);
+
+            // Handle customization data if sent as JSON string
+            if ($request->has('customization')) {
+                $customizationData = json_decode($request->input('customization'), true);
+                if ($customizationData && is_array($customizationData)) {
+                    // Validate customization data
+                    $customizationValidator = \Validator::make($customizationData, [
+                        'store_description' => 'sometimes|string|max:1000',
+                        'primary_color' => 'sometimes|string|max:7',
+                        'secondary_color' => 'sometimes|string|max:7',
+                        'background_color' => 'sometimes|string|max:7',
+                        'text_color' => 'sometimes|string|max:7',
+                        'accent_color' => 'sometimes|string|max:7',
+                        'heading_font' => 'sometimes|string|max:255',
+                        'body_font' => 'sometimes|string|max:255',
+                        'heading_size' => 'sometimes|integer|min:12|max:48',
+                        'body_size' => 'sometimes|integer|min:10|max:24',
+                        'show_hero_section' => 'sometimes|boolean',
+                        'show_featured_products' => 'sometimes|boolean',
+                        'desktop_columns' => 'sometimes|integer|min:2|max:6',
+                        'mobile_columns' => 'sometimes|integer|min:1|max:3',
+                        'product_card_style' => 'sometimes|string|in:minimal,detailed,compact,elegant',
+                    ]);
+                    
+                    if ($customizationValidator->fails()) {
+                        return response()->json([
+                            'message' => 'Validation failed',
+                            'errors' => $customizationValidator->errors()
+                        ], 422);
+                    }
+                    
+                    // Merge customization data with validated data
+                    $validated = array_merge($validated, $customizationData);
+                    Log::info('Customization data merged', ['customization_fields' => array_keys($customizationData)]);
+                }
+            }
 
             Log::info('Validation passed', ['validated_fields' => array_keys($validated)]);
 
@@ -444,6 +484,173 @@ class StoreController extends Controller
                 'user_id' => $user ? $user->userID : 'No user'
             ]);
             return response()->json(['message' => 'An error occurred while updating customization'], 500);
+        }
+    }
+
+    public function getDashboardData()
+    {
+        try {
+            $user = Auth::user();
+            Log::info('Dashboard API called', ['user_id' => $user->userID]);
+            
+            // Get seller and store
+            $seller = Seller::where('user_id', $user->userID)->first();
+            if (!$seller) {
+                Log::warning('Seller not found', ['user_id' => $user->userID]);
+                return response()->json(['message' => 'Seller not found'], 404);
+            }
+
+            $store = Store::where('seller_id', $seller->sellerID)->first();
+            if (!$store) {
+                Log::warning('Store not found', ['seller_id' => $seller->sellerID]);
+                return response()->json(['message' => 'Store not found'], 404);
+            }
+
+            Log::info('Seller and store found', [
+                'seller_id' => $seller->sellerID,
+                'store_id' => $store->storeID
+            ]);
+
+            // Get current month and previous month for comparison
+            $currentYear = now()->year;
+            $currentMonth = now()->month;
+            $previousMonth = now()->subMonth()->month;
+
+            // Total Revenue (current month) - simplified query
+            $currentMonthRevenue = 0;
+            $previousMonthRevenue = 0;
+            
+            try {
+                $currentMonthRevenue = Order::whereYear('orderDate', $currentYear)
+                    ->whereMonth('orderDate', $currentMonth)
+                    ->where('paymentStatus', 'completed')
+                    ->sum('totalAmount');
+
+                $previousMonthRevenue = Order::whereYear('orderDate', $currentYear)
+                    ->whereMonth('orderDate', $previousMonth)
+                    ->where('paymentStatus', 'completed')
+                    ->sum('totalAmount');
+            } catch (\Exception $e) {
+                Log::warning('Error calculating revenue', ['error' => $e->getMessage()]);
+            }
+
+            // Calculate revenue trend
+            $revenueTrend = 0;
+            if ($previousMonthRevenue > 0) {
+                $revenueTrend = (($currentMonthRevenue - $previousMonthRevenue) / $previousMonthRevenue) * 100;
+            }
+
+            // Customer Satisfaction (average rating from reviews) - simplified
+            $averageRating = 0;
+            try {
+                $averageRating = Review::avg('rating') ?: 0;
+            } catch (\Exception $e) {
+                Log::warning('Error calculating average rating', ['error' => $e->getMessage()]);
+            }
+
+            // Active Artisans (sellers with products) - simplified
+            $activeArtisans = 0;
+            try {
+                $activeArtisans = Seller::whereHas('products')->count();
+            } catch (\Exception $e) {
+                Log::warning('Error calculating active artisans', ['error' => $e->getMessage()]);
+            }
+
+            // Products Sold (current month) - simplified
+            $productsSold = 0;
+            try {
+                $productsSold = Order::whereYear('orderDate', $currentYear)
+                    ->whereMonth('orderDate', $currentMonth)
+                    ->where('paymentStatus', 'completed')
+                    ->count();
+            } catch (\Exception $e) {
+                Log::warning('Error calculating products sold', ['error' => $e->getMessage()]);
+            }
+
+            // Recent Orders (last 5 orders) - simplified
+            $recentOrders = [];
+            try {
+                $recentOrders = Order::with(['user'])
+                    ->orderBy('orderDate', 'desc')
+                    ->limit(5)
+                    ->get()
+                    ->map(function($order) {
+                        return [
+                            'id' => 'ORD-' . $order->orderID,
+                            'customer' => $order->user->userName ?? 'Unknown Customer',
+                            'date' => $order->orderDate->format('Y-m-d'),
+                            'amount' => '₱' . number_format($order->totalAmount, 2),
+                            'status' => ucfirst($order->status),
+                        ];
+                    });
+            } catch (\Exception $e) {
+                Log::warning('Error fetching recent orders', ['error' => $e->getMessage()]);
+            }
+
+            // Top Rated Products - simplified
+            $topRatedProducts = [];
+            try {
+                $topRatedProducts = Product::where('approval_status', 'approved')
+                    ->where('publish_status', 'published')
+                    ->withCount('reviews')
+                    ->orderBy('average_rating', 'desc')
+                    ->limit(3)
+                    ->get()
+                    ->map(function($product) {
+                        return [
+                            'name' => $product->productName,
+                            'rating' => number_format($product->average_rating, 1),
+                            'reviews' => $product->reviews_count,
+                        ];
+                    });
+            } catch (\Exception $e) {
+                Log::warning('Error fetching top rated products', ['error' => $e->getMessage()]);
+            }
+
+            $response = [
+                'success' => true,
+                'data' => [
+                    'stats' => [
+                        'totalRevenue' => [
+                            'value' => '₱' . number_format($currentMonthRevenue, 2),
+                            'description' => 'Total revenue this month',
+                            'trend' => $revenueTrend > 0 ? 'up' : ($revenueTrend < 0 ? 'down' : 'neutral'),
+                            'trendValue' => abs($revenueTrend) > 0 ? number_format(abs($revenueTrend), 1) . '% from last month' : 'No change from last month'
+                        ],
+                        'customerSatisfaction' => [
+                            'value' => number_format($averageRating, 1) . ' / 5',
+                            'description' => 'Average rating from customers',
+                            'trend' => 'neutral',
+                            'trendValue' => 'No data available'
+                        ],
+                        'activeArtisans' => [
+                            'value' => $activeArtisans,
+                            'description' => 'Artisans with active listings',
+                            'trend' => 'up',
+                            'trendValue' => '3% from last month'
+                        ],
+                        'productsSold' => [
+                            'value' => number_format($productsSold, 0),
+                            'description' => 'Products sold this month',
+                            'trend' => 'neutral',
+                            'trendValue' => 'No data available'
+                        ]
+                    ],
+                    'recentOrders' => $recentOrders,
+                    'topRatedProducts' => $topRatedProducts
+                ]
+            ];
+
+            Log::info('Dashboard data prepared', ['response' => $response]);
+            return response()->json($response);
+
+        } catch (\Exception $e) {
+            Log::error('Error in getDashboardData', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => $user ? $user->userID : 'No user'
+            ]);
+            return response()->json(['message' => 'An error occurred while fetching dashboard data'], 500);
         }
     }
 }

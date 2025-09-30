@@ -193,10 +193,10 @@ class CartController extends Controller
                     ]);
                 }
 
-                // Create order
+                // Create order with pending status (will be confirmed after payment)
                 $order = Order::create([
                     'customer_id' => $customer->customerID,
-                    'status' => 'pending',
+                    'status' => 'pending_payment', // Changed to pending_payment
                     'totalAmount' => $totalAmount,
                     'location' => $user->userAddress ?? 'Not specified'
                 ]);
@@ -216,15 +216,19 @@ class CartController extends Controller
                         'updated_at' => now()
                     ];
 
-                    // Update product quantity (if needed)
-                    $item->product->decrement('productQuantity', $quantity);
+                    // Update product quantity (if needed) - check if enough stock
+                    if ($item->product->productQuantity >= $quantity) {
+                        $item->product->decrement('productQuantity', $quantity);
+                    } else {
+                        throw new \Exception("Insufficient stock for product: {$item->product->productName}. Available: {$item->product->productQuantity}, Requested: {$quantity}");
+                    }
                 }
 
                 // Bulk insert order products
                 OrderProduct::insert($orderProducts);
 
-                // Clear cart
-                Cart::where('userID', $user->userID)->delete();
+                // DON'T clear cart here - only clear after successful payment
+                // Cart will be cleared by the frontend after successful payment
 
                 // Load relationships for response
                 $order->load('orderProducts.product');

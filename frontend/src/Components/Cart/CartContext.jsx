@@ -341,7 +341,7 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const checkout = async () => {
+  const checkout = async (paymentMethod = 'cod') => {
     const token = localStorage.getItem("auth_token");
     if (!token || !isAuthenticated) {
       const errorMsg = "Please log in to proceed to checkout.";
@@ -350,8 +350,10 @@ export const CartProvider = ({ children }) => {
     }
 
     try {
-      console.log('Initiating checkout...');
-      const response = await fetch("http://localhost:8000/api/cart/checkout", {
+      console.log('Initiating checkout with payment method:', paymentMethod);
+      
+      // First, create the order
+      const orderResponse = await fetch("http://localhost:8000/api/cart/checkout", {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
@@ -360,20 +362,20 @@ export const CartProvider = ({ children }) => {
         },
       });
 
-      const responseText = await response.text();
-      let responseData;
+      const orderResponseText = await orderResponse.text();
+      let orderData;
       
       try {
-        responseData = responseText ? JSON.parse(responseText) : {};
+        orderData = orderResponseText ? JSON.parse(orderResponseText) : {};
       } catch (e) {
-        console.error('Failed to parse checkout response:', e, 'Response:', responseText);
-        throw new Error('Invalid response from server during checkout');
+        console.error('Failed to parse order response:', e, 'Response:', orderResponseText);
+        throw new Error('Invalid response from server during order creation');
       }
 
-      if (!response.ok) {
-        console.error('Checkout failed:', response.status, responseData);
+      if (!orderResponse.ok) {
+        console.error('Order creation failed:', orderResponse.status, orderData);
         
-        if (response.status === 401) {
+        if (orderResponse.status === 401) {
           localStorage.removeItem('auth_token');
           window.location.href = '/login';
           return { 
@@ -383,22 +385,87 @@ export const CartProvider = ({ children }) => {
           };
         }
         
-        throw new Error(responseData.message || `Checkout failed (${response.status})`);
+        throw new Error(orderData.message || `Order creation failed (${orderResponse.status})`);
       }
 
-      console.log('Checkout successful:', responseData);
+      console.log('Order created successfully:', orderData);
       
-      // Clear the cart after successful checkout
-      setCartItems([]);
+      // If payment method is GCash or PayMaya, use payment session
+      if (paymentMethod === 'gcash' || paymentMethod === 'paymaya') {
+        try {
+          console.log(`Initiating ${paymentMethod} payment session...`);
+          console.log('Order data:', orderData);
+          
+          const sessionPayload = {
+            amount: orderData.totalAmount || orderData.total || 0,
+            payment_method: paymentMethod,
+            orderID: orderData.orderID || orderData.id
+          };
+          console.log('Payment session payload:', sessionPayload);
+          
+          // Call the payment session endpoint
+          const paymentSessionResponse = await fetch("http://localhost:8000/api/payment-session", {
+            method: "POST",
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(sessionPayload)
+          });
+
+          if (paymentSessionResponse.ok) {
+            const paymentData = await paymentSessionResponse.json();
+            console.log('Payment session data:', paymentData);
+            
+            if (paymentData.success && paymentData.checkout_url) {
+              console.log(`Redirecting to ${paymentMethod} checkout:`, paymentData.checkout_url);
+              
+              // DON'T clear the cart yet - wait for payment success
+              // The cart will be cleared by the backend after successful payment
+              
+              // Use a more reliable redirect method
+              setTimeout(() => {
+                window.location.replace(paymentData.checkout_url);
+              }, 100);
+              
+              return {
+                success: true,
+                message: `Redirecting to ${paymentMethod} payment...`,
+                redirect: true,
+                checkout_url: paymentData.checkout_url
+              };
+            } else {
+              console.error('Invalid payment session response:', paymentData);
+              throw new Error(paymentData.message || 'Invalid payment session response');
+            }
+          } else {
+            const errorData = await paymentSessionResponse.json().catch(() => ({}));
+            throw new Error(errorData.message || `Payment session failed (${paymentSessionResponse.status})`);
+          }
+        } catch (paymentError) {
+          console.error(`Error with ${paymentMethod} payment session:`, paymentError);
+          
+          // Payment failed - don't clear cart, show error
+          return {
+            success: false,
+            error: paymentError.message || `Failed to process ${paymentMethod} payment`,
+            requiresRetry: true
+          };
+        }
+      }
       
-      // Show success message
-      alert('Order placed successfully!');
+      // For COD, clear the cart after successful checkout
+      if (paymentMethod === 'cod') {
+        setCartItems([]);
+        alert('Order placed successfully!');
+      }
 
       return {
         success: true,
-        order: responseData.order || responseData,
-        message: responseData.message || "Order placed successfully!",
-        data: responseData
+        order: orderData.order || orderData,
+        message: orderData.message || "Order placed successfully!",
+        data: orderData
       };
     } catch (error) {
       console.error("Error during checkout:", error);
@@ -442,6 +509,20 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  // Clear cart after successful payment
+  const clearCartAfterPayment = () => {
+    setCartItems([]);
+    console.log('Cart cleared after successful payment');
+  };
+
+  // Debug function to test payment methods
+  const testPayment = async (paymentMethod) => {
+    console.log(`🧪 Testing ${paymentMethod} payment...`);
+    const result = await checkout(paymentMethod);
+    console.log(`🧪 ${paymentMethod} result:`, result);
+    return result;
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -450,7 +531,9 @@ export const CartProvider = ({ children }) => {
         updateQuantity,
         removeItem,   // ✅ matches ShoppingCart
         clearCart,
+        clearCartAfterPayment, // Clear cart after successful payment
         checkout,
+        testPayment,  // Debug function
       }}
     >
       {children}

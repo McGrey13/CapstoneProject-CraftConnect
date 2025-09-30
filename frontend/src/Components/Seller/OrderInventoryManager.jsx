@@ -15,37 +15,66 @@ import { Input } from "../ui/input";
 import { Search, Filter, Plus, Download, RefreshCw, Edit, Trash2, Image as ImageIcon } from "lucide-react";
 import { AddProductModal } from "./AddProductModal";
 import EditProductModal from "./EditProductModal";
+import { useOrdersData } from "../../hooks/useOrdersData";
+import LoadingSpinner from "../ui/LoadingSpinner";
+import ErrorState from "../ui/ErrorState";
+import EmptyState from "../ui/EmptyState";
 
 const OrdersTab = () => {
-  const orders = [
-    { id: "ORD-1234", customer: "Jane Smith", date: "2023-06-15", total: "$78.50", status: "Processing", items: 3 },
-    { id: "ORD-1235", customer: "John Doe", date: "2023-06-14", total: "$125.00", status: "Shipped", items: 2 },
-    { id: "ORD-1236", customer: "Alice Johnson", date: "2023-06-13", total: "$45.75", status: "Delivered", items: 1 },
-    { id: "ORD-1237", customer: "Robert Brown", date: "2023-06-12", total: "$210.25", status: "Processing", items: 4 },
-    { id: "ORD-1238", customer: "Emily Davis", date: "2023-06-11", total: "$95.00", status: "Shipped", items: 2 },
-  ];
+  const { ordersData, loading, error, refetch } = useOrdersData();
+  const [searchTerm, setSearchTerm] = useState("");
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "Processing": return "bg-yellow-100 text-yellow-800";
-      case "Shipped": return "bg-blue-100 text-blue-800";
-      case "Delivered": return "bg-green-100 text-green-800";
-      case "Cancelled": return "bg-red-100 text-red-800";
+    switch (status.toLowerCase()) {
+      case "processing": return "bg-yellow-100 text-yellow-800";
+      case "shipped": return "bg-blue-100 text-blue-800";
+      case "delivered": return "bg-green-100 text-green-800";
+      case "cancelled": return "bg-red-100 text-red-800";
+      case "pending": return "bg-yellow-100 text-yellow-800";
+      case "packing": return "bg-orange-100 text-orange-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
+
+  // Filter orders based on search term
+  const filteredOrders = ordersData ? ordersData.filter(order =>
+    order.customer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.status?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
+
+  if (loading) {
+    return (
+      <div className="w-full pt-4">
+        <LoadingSpinner message="Loading orders..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full pt-4">
+        <ErrorState message={error} onRetry={refetch} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="relative w-64">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search orders..." className="pl-8" />
+          <Input 
+            placeholder="Search orders..." 
+            className="pl-8" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4" />Filter</Button>
           <Button variant="outline" size="sm"><Download className="mr-2 h-4 w-4" />Export</Button>
-          <Button variant="outline" size="sm"><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>
+          <Button variant="outline" size="sm" onClick={refetch}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>
         </div>
       </div>
 
@@ -68,28 +97,35 @@ const OrdersTab = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.id}</TableCell>
-                  <TableCell>{order.customer}</TableCell>
-                  <TableCell>{order.date}</TableCell>
-                  <TableCell>{order.items}</TableCell>
-                  <TableCell>{order.total}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(order.status)} variant="outline">
-                      {order.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(order.approval_status)} variant="outline">
-                      {order.approval_status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">View</Button>
+              {filteredOrders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <EmptyState
+                      icon="📦"
+                      title="No Orders Found"
+                      description={searchTerm ? "No orders match your search criteria" : "You haven't received any orders yet"}
+                    />
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredOrders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">{order.id}</TableCell>
+                    <TableCell>{order.customer}</TableCell>
+                    <TableCell>{order.date}</TableCell>
+                    <TableCell>{order.items}</TableCell>
+                    <TableCell>{order.total}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(order.status)} variant="outline">
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm">View</Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -101,6 +137,7 @@ const OrdersTab = () => {
 const InventoryTab = () => {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
@@ -124,6 +161,7 @@ const InventoryTab = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      setError(null);
       const token = localStorage.getItem("auth_token");
       console.log("Fetching products with token:", token ? "Token exists" : "No token");
 
@@ -156,7 +194,7 @@ const InventoryTab = () => {
       }
     } catch (error) {
       console.error("Error fetching products:", error);
-      // Set empty array to prevent undefined errors
+      setError(`Failed to fetch products: ${error.message}`);
       setInventory([]);
     } finally {
       setLoading(false);
@@ -438,6 +476,14 @@ const InventoryTab = () => {
     }
   };
 
+  if (error) {
+    return (
+      <div className="w-full pt-4">
+        <ErrorState message={error} onRetry={fetchProducts} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -500,14 +546,18 @@ const InventoryTab = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    Loading products...
+                  <TableCell colSpan={9} className="text-center py-8">
+                    <LoadingSpinner message="Loading products..." size="small" />
                   </TableCell>
                 </TableRow>
               ) : filteredInventory.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    No products found
+                  <TableCell colSpan={9} className="text-center py-8">
+                    <EmptyState
+                      icon="📦"
+                      title="No Products Found"
+                      description={searchTerm ? "No products match your search criteria" : "You haven't added any products yet"}
+                    />
                   </TableCell>
                 </TableRow>
               ) : (

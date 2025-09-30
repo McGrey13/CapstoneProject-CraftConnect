@@ -100,6 +100,7 @@ function App() {
           <Route path="verify-otp" element={<OtpVerification />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="product/:id" element={<ProductDetails />} />
+          <Route path="store/:id" element={<StoreView />} />
           <Route path="chatbox" element={<ChatBox />} />
           <Route path="create-store" element={<CreateStore />} />
           <Route path="verification-pending" element={<VerificationPendingPage />} />

@@ -31,6 +31,9 @@
     Calendar,
     Users,
   } from "lucide-react";
+import LoadingSpinner from "../ui/LoadingSpinner";
+import ErrorState from "../ui/ErrorState";
+import EmptyState from "../ui/EmptyState";
 
   const ColorPicker = ({ label, value, onChange }) => (
     <div className="space-y-2">
@@ -321,11 +324,23 @@
 
     if (loading) {
       return (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading store data...</p>
-          </div>
+        <div className="w-full pt-4">
+          <LoadingSpinner message="Loading store data..." />
+        </div>
+      );
+    }
+
+    // Show error state for critical errors (authentication, network issues)
+    if (error && (error.includes("authentication") || error.includes("HTML") || error.includes("network"))) {
+      return (
+        <div className="w-full pt-4">
+          <ErrorState 
+            message={error} 
+            onRetry={() => {
+              setError(null);
+              fetchStoreData();
+            }} 
+          />
         </div>
       );
     }
@@ -333,26 +348,16 @@
     if (!storeData) {
       return (
         <div className="space-y-6 p-6">
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">🏪</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">No Store Found</h2>
-            <p className="text-gray-600 mb-6">
-              You need to create a store first before you can customize it.
-            </p>
-            
-            {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 max-w-2xl mx-auto">
-                <strong className="font-bold">Error:</strong>
-                <span className="block sm:inline"> {error}</span>
-              </div>
-            )}
-            
-            <div className="space-y-4">
+          <EmptyState
+            icon="🏪"
+            title="No Store Found"
+            description="You need to create a store first before you can customize it."
+            action={
               <p className="text-sm text-gray-500">
                 If you've already created a store, please check your authentication or contact support.
               </p>
-            </div>
-          </div>
+            }
+          />
         </div>
       );
     }
@@ -525,14 +530,17 @@
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Background Image</Label>
+                    <Label className="text-lg font-semibold">Store Banner Background</Label>
+                    <p className="text-sm text-gray-600 mb-3">
+                      This image will appear behind your store name and create the main visual impact of your storefront.
+                    </p>
                     <div className="space-y-3">
                       {imagePreviews.background ? (
                         <div className="relative group">
                           <img 
                             src={imagePreviews.background} 
                             alt="Background preview" 
-                            className="w-full h-32 object-cover border rounded-lg shadow-sm"
+                            className="w-full h-40 object-cover border rounded-lg shadow-sm"
                           />
                           <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                             <Button
@@ -549,9 +557,9 @@
                         </div>
                       ) : (
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-                          <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <p className="text-sm text-gray-600 mb-2">No background image selected</p>
-                          <p className="text-xs text-gray-500">Upload a background image for your store</p>
+                          <ImageIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                          <p className="text-lg font-medium text-gray-600 mb-2">No banner background selected</p>
+                          <p className="text-sm text-gray-500">Upload a stunning background image that represents your store</p>
                         </div>
                       )}
                       
@@ -564,16 +572,63 @@
                           id="background-upload"
                         />
                         <Label htmlFor="background-upload" className="cursor-pointer flex-1">
-                          <Button variant="outline" size="sm" asChild className="w-full">
-                            <span><Upload className="h-4 w-4 mr-2" />{imagePreviews.background ? 'Change Background' : 'Upload Background'}</span>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            asChild 
+                            className="w-full h-12 text-base font-medium"
+                          >
+                            <span><Upload className="h-5 w-5 mr-2" />{imagePreviews.background ? 'Change Banner Background' : 'Upload Banner Background'}</span>
                           </Button>
                         </Label>
                       </div>
                       
+                      {/* Live Preview of Banner */}
+                      {imagePreviews.background && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Live Preview:</Label>
+                          <div className="relative w-full h-24 overflow-hidden rounded-lg border shadow-sm">
+                            <img 
+                              src={imagePreviews.background} 
+                              alt="Banner preview" 
+                              className="w-full h-full object-cover"
+                              style={{ filter: 'brightness(0.7)' }}
+                            />
+                            <div 
+                              className="absolute inset-0" 
+                              style={{ 
+                                background: `linear-gradient(to bottom, ${customization.primary_color}40, ${customization.background_color}60)` 
+                              }} 
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <h3 
+                                className="text-lg font-bold text-white drop-shadow-lg"
+                                style={{ 
+                                  fontFamily: customization.heading_font,
+                                  textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                                }}
+                              >
+                                {storeData?.store?.store_name || "Your Store"}
+                              </h3>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="text-sm text-blue-800 space-y-1">
+                          <p className="font-medium">💡 Pro Tips for Great Banner Images:</p>
+                          <p>• Use high-resolution images (1920x1080px or larger)</p>
+                          <p>• Choose images that complement your brand colors</p>
+                          <p>• Ensure text remains readable over the background</p>
+                          <p>• Consider using images that represent your products or craft</p>
+                        </div>
+                      </div>
+                      
                       <div className="text-xs text-gray-500 space-y-1">
-                        <p>• Recommended size: 1920x1080px or larger</p>
                         <p>• Supported formats: JPG, PNG, GIF, SVG</p>
                         <p>• Maximum file size: 8MB</p>
+                        <p>• Image will be automatically cropped to fit banner dimensions</p>
                       </div>
                     </div>
                   </div>
@@ -965,11 +1020,19 @@
 
         {/* Banner with overlay */}
         <div className="relative w-full h-60 md:h-72 lg:h-80 overflow-hidden">
-          <img src={store.banner} alt="Store Banner" className="w-full h-full object-cover" />
+          <img 
+            src={store.banner} 
+            alt="Store Banner" 
+            className="w-full h-full object-cover" 
+            style={{ 
+              filter: 'brightness(0.7)',
+              objectPosition: 'center center'
+            }}
+          />
           <div 
             className="absolute inset-0" 
             style={{ 
-              background: `linear-gradient(to bottom, ${customization.primary_color}cc, ${customization.background_color}cc)` 
+              background: `linear-gradient(to bottom, ${customization.primary_color}40, ${customization.background_color}60)` 
             }} 
           />
           <div className="absolute left-8 bottom-8 flex items-center gap-6">
@@ -983,10 +1046,12 @@
             </div>
                 <div>
               <h1 
-                className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg mb-4"
+                className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-2xl mb-4"
                 style={{ 
                   fontFamily: customization.heading_font,
-                  fontSize: `${customization.heading_size * 2.5}px`
+                  fontSize: `${customization.heading_size * 2.5}px`,
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5)',
+                  letterSpacing: '0.05em'
                 }}
               >
                 {store.name}

@@ -3,10 +3,11 @@ import React from "react";
 import {
   ArrowUpRight,
   ArrowDownRight,
-
   Users,
   ShoppingBag,
   Star,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import {
   Card,
@@ -15,6 +16,10 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
+import { useDashboardData } from "../../hooks/useDashboardData";
+import LoadingSpinner from "../ui/LoadingSpinner";
+import ErrorState from "../ui/ErrorState";
+import EmptyState from "../ui/EmptyState";
 
 // Reusable stat card component
 const StatCard = ({ title, value, description, icon, trend, trendValue }) => (
@@ -66,7 +71,24 @@ const getStatusStyle = (status) => {
 };
 
 const SellerDashboard = () => {
+  const { dashboardData, loading, error, refetch } = useDashboardData();
   const now = new Date();
+
+  if (loading) {
+    return (
+      <div className="w-full pt-4">
+        <LoadingSpinner message="Loading dashboard data..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full pt-4">
+        <ErrorState message={error} onRetry={refetch} />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full pt-4"> {/* Top spacing handled here */}
@@ -75,11 +97,20 @@ const SellerDashboard = () => {
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <p className="text-gray-500 mt-1">
-            Welcome back, Seller User! Here's what's happening today.
+            Welcome back! Here's what's happening today.
           </p>
         </div>
-        <div className="text-sm text-gray-500">
-          Last updated: {now.toLocaleDateString()} {now.toLocaleTimeString()}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={refetch}
+            className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
+            title="Refresh data"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <div className="text-sm text-gray-500">
+            Last updated: {now.toLocaleDateString()} {now.toLocaleTimeString()}
+          </div>
         </div>
       </div>
 
@@ -87,37 +118,37 @@ const SellerDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
         <StatCard
           title="Total Revenue"
-          value="₱24,780"
-          description="Total revenue this month"
+          value={dashboardData?.stats?.totalRevenue?.value || "₱0.00"}
+          description={dashboardData?.stats?.totalRevenue?.description || "Total revenue this month"}
           icon={  
             <span className="h-8 w-8 text-2xl">₱</span>
           }
-          trend="up"
-          trendValue="12% from last month"
+          trend={dashboardData?.stats?.totalRevenue?.trend || "neutral"}
+          trendValue={dashboardData?.stats?.totalRevenue?.trendValue || "No data available"}
         />
         <StatCard
           title="Customer Satisfaction"
-          value="4.8 / 5"
-          description="Average rating from customers"
+          value={dashboardData?.stats?.customerSatisfaction?.value || "0.0 / 5"}
+          description={dashboardData?.stats?.customerSatisfaction?.description || "Average rating from customers"}
           icon={<Star className="h-4 w-4 text-primary" />}
-          trend="up"
-          trendValue="0.3 from last month"
+          trend={dashboardData?.stats?.customerSatisfaction?.trend || "neutral"}
+          trendValue={dashboardData?.stats?.customerSatisfaction?.trendValue || "No data available"}
         />
         <StatCard
           title="Active Artisans"
-          value="56"
-          description="Artisans with active listings"
+          value={dashboardData?.stats?.activeArtisans?.value || "0"}
+          description={dashboardData?.stats?.activeArtisans?.description || "Artisans with active listings"}
           icon={<Users className="h-4 w-4 text-primary" />}
-          trend="up"
-          trendValue="3% from last month"
+          trend={dashboardData?.stats?.activeArtisans?.trend || "neutral"}
+          trendValue={dashboardData?.stats?.activeArtisans?.trendValue || "No data available"}
         />
         <StatCard
           title="Products Sold"
-          value="1,234"
-          description="Products sold this month"
+          value={dashboardData?.stats?.productsSold?.value || "0"}
+          description={dashboardData?.stats?.productsSold?.description || "Products sold this month"}
           icon={<ShoppingBag className="h-4 w-4 text-primary" />}
-          trend="down"
-          trendValue="2% from last month"
+          trend={dashboardData?.stats?.productsSold?.trend || "neutral"}
+          trendValue={dashboardData?.stats?.productsSold?.trendValue || "No data available"}
         />
       </div>
 
@@ -133,66 +164,38 @@ const SellerDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                {
-                  id: "ORD-7652",
-                  customer: "Maria Rodriguez",
-                  date: "2023-06-15",
-                  amount: "₱129.99",
-                  status: "Completed",
-                },
-                {
-                  id: "ORD-7651",
-                  customer: "John Smith",
-                  date: "2023-06-14",
-                  amount: "₱85.50",
-                  status: "Processing",
-                },
-                {
-                  id: "ORD-7650",
-                  customer: "Emily Johnson",
-                  date: "2023-06-14",
-                  amount: "₱210.75",
-                  status: "Shipped",
-                },
-                {
-                  id: "ORD-7649",
-                  customer: "Michael Brown",
-                  date: "2023-06-13",
-                  amount: "₱45.00",
-                  status: "Completed",
-                },
-                {
-                  id: "ORD-7648",
-                  customer: "Sarah Wilson",
-                  date: "2023-06-12",
-                  amount: "₱178.25",
-                  status: "Completed",
-                },
-              ].map((order) => (
-                <div
-                  key={order.id}
-                  className="flex items-center justify-between border-b pb-2 pt-2"
-                >
-                  <div>
-                    <div className="font-medium">{order.id}</div>
-                    <div className="text-sm text-gray-500">
-                      {order.customer}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-medium">{order.amount}</div>
-                    <div className="text-sm text-gray-500">{order.date}</div>
-                  </div>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${getStatusStyle(
-                      order.status
-                    )}`}
+              {dashboardData?.recentOrders && dashboardData.recentOrders.length > 0 ? (
+                dashboardData.recentOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="flex items-center justify-between border-b pb-2 pt-2"
                   >
-                    {order.status}
-                  </span>
-                </div>
-              ))}
+                    <div>
+                      <div className="font-medium">{order.id}</div>
+                      <div className="text-sm text-gray-500">
+                        {order.customer}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">{order.amount}</div>
+                      <div className="text-sm text-gray-500">{order.date}</div>
+                    </div>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${getStatusStyle(
+                        order.status
+                      )}`}
+                    >
+                      {order.status}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <EmptyState
+                  icon="🛍️"
+                  title="No Recent Orders"
+                  description="Orders will appear here once customers start purchasing your products"
+                />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -207,31 +210,31 @@ const SellerDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                {
-                  name: "Handcrafted Wooden Bowl",
-                  rating: "4.9",
-                  reviews: 120,
-                },
-                { name: "Ceramic Vase", rating: "4.8", reviews: 85 },
-                { name: "Macrame Wall Hanging", rating: "4.8", reviews: 78 },
-              ].map((product, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between items-center border-b pb-2 pt-2"
-                >
-                  <div>
-                    <div className="font-medium">{product.name}</div>
-                    <div className="text-sm text-gray-500">
-                      {product.reviews} reviews
+              {dashboardData?.topRatedProducts && dashboardData.topRatedProducts.length > 0 ? (
+                dashboardData.topRatedProducts.map((product, i) => (
+                  <div
+                    key={i}
+                    className="flex justify-between items-center border-b pb-2 pt-2"
+                  >
+                    <div>
+                      <div className="font-medium">{product.name}</div>
+                      <div className="text-sm text-gray-500">
+                        {product.reviews} reviews
+                      </div>
+                    </div>
+                    <div className="flex items-center text-yellow-500">
+                      <Star className="h-4 w-4 fill-current mr-1" />
+                      {product.rating}
                     </div>
                   </div>
-                  <div className="flex items-center text-yellow-500">
-                    <Star className="h-4 w-4 fill-current mr-1" />
-                    {product.rating}
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <EmptyState
+                  icon="⭐"
+                  title="No Rated Products"
+                  description="Product ratings will appear here once customers start reviewing your products"
+                />
+              )}
             </div>
           </CardContent>
         </Card>
