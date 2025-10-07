@@ -711,8 +711,10 @@ const StoreVerification = () => {
 
       {/* Document Viewer Dialog */}
       <Dialog open={showDocuments} onOpenChange={setShowDocuments}>
-        <DialogContent className="max-w-[98vw] w-full max-h-[90vh] overflow-y-auto mt-16 mb-8 mx-2" style={{ marginTop: '4rem' }}>
-          <DialogHeader className="pb-6 pt-4">
+        <DialogContent
+          className="w-[95vw] h-[90vh] max-w-none overflow-y-auto p-6 mt-10 bg-white rounded-xl shadow-lg"
+        >
+          <DialogHeader className="pb-6 pt-2 sticky top-0 bg-white z-10 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-blue-100 rounded-full">
                 <Store className="h-6 w-6 text-blue-600" />
@@ -720,24 +722,30 @@ const StoreVerification = () => {
               <div>
                 <DialogTitle className="text-2xl font-bold text-gray-800">
                   Store Verification - {selectedStore?.store_name}
-            </DialogTitle>
-                <p className="text-gray-600 mt-1">Review seller information and documents</p>
+                </DialogTitle>
+                <p className="text-gray-600 mt-1">
+                  Review seller information and documents
+                </p>
               </div>
             </div>
           </DialogHeader>
+
           {selectedStore?.documents && (
-            <DocumentViewer 
-              documents={selectedStore.documents} 
-              sellerDetails={sellerDetails}
-              loading={loadingSellerDetails}
-              onReject={(store) => {
-                setSelectedStore(store);
-                setShowRejectDialog(true);
-              }}
-            />
+            <div className="mt-4">
+              <DocumentViewer
+                documents={selectedStore.documents}
+                sellerDetails={sellerDetails}
+                loading={loadingSellerDetails}
+                onReject={(store) => {
+                  setSelectedStore(store);
+                  setShowRejectDialog(true);
+                }}
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>
+
 
       {/* Reject Dialog */}
       <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
