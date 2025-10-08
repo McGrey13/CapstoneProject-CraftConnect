@@ -216,35 +216,62 @@ const fetchProducts = async () => {
     }
   };
   return (
-    <div className="space-y-6 bg-white p-6 rounded-lg">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Marketing Tools</h1>
+    <div className="space-y-6">
+      {/* Header with craft theme */}
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
+        <h1 className="text-3xl font-bold text-white flex items-center">
+          <Megaphone className="h-8 w-8 mr-3" />
+          Marketing Tools
+        </h1>
+        <p className="text-white/90 mt-2 text-lg">
+          Promote your products and grow your sales with powerful marketing features
+        </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="promotions">Promotions</TabsTrigger>
-          <TabsTrigger value="discounts">Discount Codes</TabsTrigger>
-          <TabsTrigger value="featured">Featured Products</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-[#faf9f8] border-2 border-[#e5ded7] p-1 rounded-xl shadow-md">
+          <TabsTrigger 
+            value="promotions"
+            className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
+          >
+            Promotions
+          </TabsTrigger>
+          <TabsTrigger 
+            value="discounts"
+            className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
+          >
+            Discount Codes
+          </TabsTrigger>
+          <TabsTrigger 
+            value="featured"
+            className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
+          >
+            Featured Products
+          </TabsTrigger>
+          <TabsTrigger 
+            value="analytics"
+            className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
+          >
+            Analytics
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="promotions" className="space-y-4 pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center">
-                  <Megaphone className="h-5 w-5 mr-2 text-primary" />
-                  Featured Product
-                </CardTitle>
-                <CardDescription>
+        <TabsContent value="promotions" className="space-y-4 pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card className="border-[#e5ded7] bg-gradient-to-br from-white to-[#faf9f8] hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <CardHeader className="pb-4">
+                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-lg mb-3">
+                  <Megaphone className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-[#5c3d28]">Featured Product</CardTitle>
+                <CardDescription className="text-[#7b5a3b]">
                   Highlight a product on your storefront
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button 
                   variant="outline" 
-                  className="w-full"
+                  className="w-full border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"
                   onClick={() => setActiveTab('featured')}
                 >
                   Manage Featured Products
@@ -252,16 +279,19 @@ const fetchProducts = async () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center">
-                  <Tag className="h-5 w-5 mr-2 text-primary" />
-                  Flash Sale
-                </CardTitle>
-                <CardDescription>Create a limited-time offer</CardDescription>
+            <Card className="border-[#e5ded7] bg-gradient-to-br from-white to-[#faf9f8] hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <CardHeader className="pb-4">
+                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg mb-3">
+                  <Tag className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-[#5c3d28]">Flash Sale</CardTitle>
+                <CardDescription className="text-[#7b5a3b]">Create a limited-time offer</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"
+                >
                   Create Flash Sale
                 </Button>
               </CardContent>
@@ -270,46 +300,53 @@ const fetchProducts = async () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="featured" className="space-y-4 pt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Featured Products</CardTitle>
-              <CardDescription>
+        <TabsContent value="featured" className="space-y-6 pt-6">
+          <Card className="border-[#e5ded7] shadow-xl">
+            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+              <CardTitle className="text-[#5c3d28] flex items-center">
+                <Star className="h-5 w-5 mr-2 text-[#a4785a]" />
+                Featured Products
+              </CardTitle>
+              <CardDescription className="text-[#7b5a3b]">
                 Select products to feature on your storefront
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {isLoadingProducts ? (
                 <div className="flex justify-center items-center h-32">
                   <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
                 </div>
               ) : products.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No products found. Please add some products first.
+                <div className="text-center py-12 px-4">
+                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#a4785a]/10 to-[#7b5a3b]/10 flex items-center justify-center mx-auto mb-4">
+                    <Star className="h-8 w-8 text-[#a4785a]" />
+                  </div>
+                  <p className="text-[#5c3d28] font-semibold text-lg">No products found</p>
+                  <p className="text-sm text-[#7b5a3b] mt-2">Please add some products first</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {products.map((product) => (
                     <div
                       key={product.id || product.product_id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
+                      className="flex items-center justify-between p-5 border-2 border-[#e5ded7] rounded-xl hover:border-[#a4785a] hover:shadow-md transition-all duration-200 bg-gradient-to-r from-white to-[#faf9f8]"
                     >
                       <div className="flex items-center space-x-4">
                         {product.productImage ? (
                           <img 
                             src={product.productImage} 
                             alt={product.productName}
-                            className="h-16 w-16 object-cover rounded-md"
+                            className="h-16 w-16 object-cover rounded-xl border-2 border-[#e5ded7] shadow-sm"
                           />
                         ) : (
-                          <div className="h-16 w-16 bg-gray-100 rounded-md flex items-center justify-center">
-                            <div className="h-8 w-8 text-gray-400" />
+                          <div className="h-16 w-16 bg-gradient-to-br from-[#faf9f8] to-[#e5ded7] rounded-xl flex items-center justify-center border-2 border-[#e5ded7]">
+                            <Star className="h-6 w-6 text-[#a4785a]" />
                           </div>
                         )}
                         <div>
-                          <div className="font-medium">{product.productName}</div>
-                          <div className="text-sm text-gray-500">
-                            {product.category} • ${product.productPrice}
+                          <div className="font-semibold text-[#5c3d28]">{product.productName}</div>
+                          <div className="text-sm text-[#7b5a3b] mt-1">
+                            {product.category} • <span className="font-semibold">₱{product.productPrice}</span>
                           </div>
                         </div>
                       </div>
@@ -318,10 +355,13 @@ const fetchProducts = async () => {
                         size="sm"
                         onClick={() => toggleFeatured(product.id || product.product_id, product.is_featured)}
                         disabled={isLoadingProducts}
+                        className={product.is_featured 
+                          ? "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-md hover:shadow-lg transition-all duration-200" 
+                          : "border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"}
                       >
                         {product.is_featured ? (
                           <>
-                            <Star className={`h-4 w-4 mr-2 ${product.is_featured ? "text-yellow-500 fill-yellow-500" : ""}`}/>
+                            <Star className="h-4 w-4 mr-2 fill-white"/>
                             Featured
                           </>
                         ) : (
@@ -339,19 +379,19 @@ const fetchProducts = async () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="discounts" className="space-y-4 pt-4">
+        <TabsContent value="discounts" className="space-y-6 pt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Gift className="h-5 w-5 mr-2 text-primary" />
+            <Card className="border-2 border-[#e5ded7] shadow-xl">
+              <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+                <CardTitle className="flex items-center text-[#5c3d28]">
+                  <Gift className="h-5 w-5 mr-2 text-[#a4785a]" />
                   Create Discount Code
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-[#7b5a3b]">
                   Create a new discount code for your customers
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-6">
                 <form onSubmit={handleCreateDiscount} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="code">Discount Code</Label>
@@ -419,7 +459,7 @@ const fetchProducts = async () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full mt-2"
+                    className="w-full mt-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -433,12 +473,15 @@ const fetchProducts = async () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
+            <Card className="border-2 border-[#e5ded7] shadow-xl">
+              <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle>Active Discounts</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-[#5c3d28] flex items-center">
+                      <Tag className="h-5 w-5 mr-2 text-[#a4785a]" />
+                      Active Discounts
+                    </CardTitle>
+                    <CardDescription className="text-[#7b5a3b]">
                       {discounts.length} active code{discounts.length !== 1 ? 's' : ''}
                     </CardDescription>
                   </div>
@@ -447,13 +490,14 @@ const fetchProducts = async () => {
                     size="sm" 
                     onClick={fetchDiscounts}
                     disabled={isLoading}
+                    className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                     Refresh
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 {isLoading && discounts.length === 0 ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -464,50 +508,55 @@ const fetchProducts = async () => {
                     {discounts.map((discount) => (
                       <div 
                         key={discount.id}
-                        className={`flex items-center justify-between p-4 border rounded-md transition-colors ${
-                          discount.is_active ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 opacity-75'
+                        className={`flex items-center justify-between p-5 border-2 rounded-xl transition-all duration-200 ${
+                          discount.is_active 
+                            ? 'border-[#e5ded7] bg-gradient-to-r from-white to-[#faf9f8] hover:border-[#a4785a] hover:shadow-md' 
+                            : 'border-gray-200 bg-gray-50 opacity-75'
                         }`}
                       >
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <p className="font-mono font-bold text-lg">{discount.code}</p>
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              discount.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                            <p className="font-mono font-bold text-lg text-[#5c3d28]">{discount.code}</p>
+                            <span className={`px-3 py-1.5 text-xs font-semibold rounded-full shadow-sm ${
+                              discount.is_active ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800' : 'bg-gray-100 text-gray-600'
                             }`}>
-                              {discount.is_active ? 'Active' : 'Expired'}
+                              {discount.is_active ? '✓ Active' : '✕ Expired'}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-sm text-[#7b5a3b] mt-2 font-medium">
                             {discount.value}% off {discount.type === 'fixed' ? 'fixed' : ''}
                           </p>
                           
                           {discount.expires_at && (
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-[#7b5a3b] mt-2 flex items-center">
+                              <span className="mr-1">📅</span>
                               Expires: {new Date(discount.expires_at).toLocaleDateString()}
                             </p>
                           )}
                           
                           {discount.usage_limit ? (
-                            <div className="mt-2">
-                              <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="mt-3">
+                              <div className="w-full bg-[#e5ded7] rounded-full h-2.5 overflow-hidden">
                                 <div 
-                                  className={`h-2 rounded-full ${
-                                    discount.is_active ? 'bg-green-500' : 'bg-gray-400'
+                                  className={`h-2.5 rounded-full transition-all duration-300 ${
+                                    discount.is_active ? 'bg-gradient-to-r from-[#a4785a] to-[#7b5a3b]' : 'bg-gray-400'
                                   }`}
                                   style={{ 
                                     width: `${Math.max(5, (discount.remaining_uses / discount.usage_limit) * 100)}%`
                                   }}
                                 />
                               </div>
-                              <p className="text-xs text-gray-500 mt-1">
+                              <p className="text-xs text-[#7b5a3b] mt-1.5 font-medium">
                                 {discount.remaining_uses} of {discount.usage_limit} uses remaining
                               </p>
                             </div>
                           ) : (
-                            <p className="text-xs text-green-600 mt-1">Unlimited uses</p>
+                            <p className="text-xs text-green-600 mt-2 font-semibold flex items-center">
+                              <span className="mr-1">∞</span> Unlimited uses
+                            </p>
                           )}
                           
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-[#7b5a3b]/70 mt-2">
                             Created: {new Date(discount.created_at).toLocaleDateString()}
                           </p>
                         </div>
@@ -518,7 +567,7 @@ const fetchProducts = async () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 p-0"
+                                  className="h-9 w-9 p-0 hover:bg-[#f8f1ec] text-[#a4785a] hover:text-[#5c3d28] transition-all duration-200 rounded-lg"
                                   onClick={() => {
                                     navigator.clipboard.writeText(discount.code);
                                     // Could add a toast notification here
@@ -539,7 +588,7 @@ const fetchProducts = async () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                                  className="h-9 w-9 p-0 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                                   onClick={async () => {
                                     if (window.confirm(`Are you sure you want to delete discount code ${discount.code}? This action cannot be undone.`)) {
                                       setIsLoading(true);
@@ -583,7 +632,7 @@ const fetchProducts = async () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="text-xs h-7"
+                                  className="text-xs h-8 border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200 shadow-sm"
                                   onClick={() => {
                                     // Handle share functionality
                                     const shareUrl = `${window.location.origin}/checkout?discount=${encodeURIComponent(discount.code)}`;
@@ -605,10 +654,12 @@ const fetchProducts = async () => {
                     </div>
                   </TooltipProvider>
                 ) : (
-                  <div className="text-center py-8">
-                    <Gift className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-                    <p className="text-gray-500">No active discount codes</p>
-                    <p className="text-sm text-gray-400 mt-1">Create your first discount code to get started</p>
+                  <div className="text-center py-12 px-4">
+                    <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#a4785a]/10 to-[#7b5a3b]/10 flex items-center justify-center mx-auto mb-4">
+                      <Gift className="h-8 w-8 text-[#a4785a]" />
+                    </div>
+                    <p className="text-[#5c3d28] font-semibold text-lg">No active discount codes</p>
+                    <p className="text-sm text-[#7b5a3b] mt-2">Create your first discount code to get started</p>
                   </div>
                 )}
               </CardContent>

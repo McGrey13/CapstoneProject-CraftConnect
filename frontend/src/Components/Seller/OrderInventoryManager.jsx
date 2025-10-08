@@ -12,7 +12,7 @@ import { Button } from "../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
-import { Search, Filter, Plus, Download, RefreshCw, Edit, Trash2, Image as ImageIcon } from "lucide-react";
+import { Search, Filter, Plus, Download, RefreshCw, Edit, Trash2, Image as ImageIcon, ShoppingBag } from "lucide-react";
 import { AddProductModal } from "./AddProductModal";
 import EditProductModal from "./EditProductModal";
 import { useOrdersData } from "../../hooks/useOrdersData";
@@ -61,30 +61,47 @@ const OrdersTab = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="relative w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-3 h-5 w-5 text-[#a4785a]" />
           <Input 
-            placeholder="Search orders..." 
-            className="pl-8" 
+            placeholder="Search orders by customer, ID, or status..." 
+            className="pl-10 pr-4 py-2.5 border-2 border-[#d5bfae] rounded-lg focus:border-[#a4785a] focus:ring-2 focus:ring-[#a4785a]/20 transition-all" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4" />Filter</Button>
-          <Button variant="outline" size="sm"><Download className="mr-2 h-4 w-4" />Export</Button>
-          <Button variant="outline" size="sm" onClick={refetch}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"
+          >
+            <Filter className="mr-2 h-4 w-4" />Filter
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"
+          >
+            <Download className="mr-2 h-4 w-4" />Export
+          </Button>
+          <Button 
+            onClick={refetch}
+            className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />Refresh
+          </Button>
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle>Recent Orders</CardTitle>
-          <CardDescription>Manage your customer orders</CardDescription>
+      <Card className="border-[#e5ded7] shadow-xl">
+        <CardHeader className="pb-4 border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+          <CardTitle className="text-[#5c3d28] text-xl">Recent Orders</CardTitle>
+          <CardDescription className="text-[#7b5a3b]">Manage your customer orders and track their status</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Table>
             <TableHeader>
               <TableRow>
@@ -122,7 +139,13 @@ const OrdersTab = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">View</Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="text-[#a4785a] hover:bg-[#f8f1ec] hover:text-[#5c3d28] transition-all duration-200"
+                      >
+                        View
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -398,29 +421,38 @@ const InventoryTab = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="relative w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-3 h-5 w-5 text-[#a4785a]" />
           <Input
-            placeholder="Search products..."
+            placeholder="Search products by name, category..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
+            className="pl-10 pr-4 py-2.5 border-2 border-[#d5bfae] rounded-lg focus:border-[#a4785a] focus:ring-2 focus:ring-[#a4785a]/20 transition-all"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"
+          >
             <Filter className="mr-2 h-4 w-4" />
             Filter
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchProducts}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={fetchProducts}
+            className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"
+          >
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
           
           {/* Add Product Button */}
           <Button 
-            className="ml-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800"
+            className="ml-auto bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
             onClick={() => setIsAddDialogOpen(true)}
           >
             <Plus className="mr-2 h-4 w-4" /> Add Product
@@ -435,12 +467,12 @@ const InventoryTab = () => {
         </div>
       </div>
       
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle>Inventory</CardTitle>
-          <CardDescription>Manage your product inventory</CardDescription>
+      <Card className="border-[#e5ded7] shadow-xl">
+        <CardHeader className="pb-4 border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+          <CardTitle className="text-[#5c3d28] text-xl">Product Inventory</CardTitle>
+          <CardDescription className="text-[#7b5a3b]">Manage your product inventory and stock levels</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Table>
             <TableHeader>
               <TableRow>
@@ -573,18 +605,33 @@ const InventoryTab = () => {
 
 const OrderInventoryManager = () => {
   return (
-    <div className="space-y-6 bg-white p-6 rounded-lg">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Orders & Inventory</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-6">
+      {/* Header Section with Craft Theme */}
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
+        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center">
+          <ShoppingBag className="h-8 w-8 mr-3" />
+          Orders & Inventory
+        </h1>
+        <p className="text-white/90 mt-2 text-lg">
           Manage your orders and product inventory in one place.
         </p>
       </div>
 
+      {/* Tabs with Craft Theme */}
       <Tabs defaultValue="orders" className="w-full">
-        <TabsList className="grid w-full md:w-[400px] grid-cols-2">
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="inventory">Inventory</TabsTrigger>
+        <TabsList className="grid w-full md:w-[400px] grid-cols-2 bg-[#faf9f8] border-2 border-[#e5ded7] p-1 rounded-xl shadow-md">
+          <TabsTrigger 
+            value="orders" 
+            className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
+          >
+            Orders
+          </TabsTrigger>
+          <TabsTrigger 
+            value="inventory"
+            className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
+          >
+            Inventory
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders" className="mt-6">

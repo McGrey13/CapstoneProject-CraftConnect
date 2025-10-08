@@ -133,17 +133,17 @@ class Work_and_EventsController extends Controller
                         'participants' => $item->participants,
                         'status' => $item->status,
                         'seller_id' => $item->seller_id,
-                        'seller' => [
+                        'seller' => $item->seller ? [
                             'sellerID' => $item->seller->sellerID ?? null,
                             'businessName' => $item->seller->businessName ?? null,
-                            'user' => [
+                            'user' => $item->seller->user ? [
                                 'userID' => $item->seller->user->userID ?? null,
                                 'userName' => $item->seller->user->userName ?? null,
                                 'userEmail' => $item->seller->user->userEmail ?? null,
                                 'userCity' => $item->seller->user->userCity ?? null,
                                 'userProvince' => $item->seller->user->userProvince ?? null,
-                            ]
-                        ],
+                            ] : null
+                        ] : null,
                         'created_at' => $item->created_at,
                         'updated_at' => $item->updated_at
                     ];
@@ -156,7 +156,8 @@ class Work_and_EventsController extends Controller
         } catch (\Exception $e) {
             Log::error('Error fetching work and events:', [
                 'error' => $e->getMessage(),
-                'seller_id' => $seller->sellerID
+                'trace' => $e->getTraceAsString(),
+                'seller_id' => $seller->sellerID ?? 'unknown'
             ]);
 
             return response()->json([

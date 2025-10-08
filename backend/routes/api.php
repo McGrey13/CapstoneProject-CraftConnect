@@ -416,6 +416,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/seller', [OrderController::class, 'sellerOrders']);
         Route::get('/{id}', [OrderController::class, 'show']);
         Route::post('/', [OrderController::class, 'store']);
+        Route::post('/{orderId}/mark-received', [OrderController::class, 'markAsReceived']);
     });
 
     // Payment Method routes
@@ -459,7 +460,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/sellers/{sellerId}/verify', [AdminController::class, 'verifySeller']);
         });
         
-        // Analytics routes
+        // Analytics routes (admin only - but endpoints are public for easier access)
         Route::prefix('analytics')->group(function () {
             Route::get('/admin', [AnalyticsController::class, 'getAdminAnalytics']);
             Route::post('/generate', [AnalyticsController::class, 'generateAnalyticsData']);
@@ -488,16 +489,19 @@ Route::get('/analytics/test-controller', [AnalyticsController::class, 'getAdminA
 // Public analytics generate endpoint for testing
 Route::post('/analytics/generate-public', [AnalyticsController::class, 'generateAnalyticsData']);
 
-// Micro analytics endpoints
-Route::get('/analytics/micro/rating-breakdown', [AnalyticsController::class, 'getDetailedRatingBreakdown']);
-Route::get('/analytics/micro/product-comparison', [AnalyticsController::class, 'getProductSellerComparison']);
-Route::get('/analytics/micro/competitive-analysis', [AnalyticsController::class, 'getCompetitiveAnalysis']);
+// NOTE: Micro analytics tab has been removed - all revenue-related analytics are now under /analytics/revenue/*
+// The micro analytics were merged into the Revenue tab in Analytics section
 
-// New micro analytics endpoints
-Route::get('/analytics/micro/most-selling-products', [AnalyticsController::class, 'getMostSellingProducts']);
-Route::get('/analytics/micro/highest-sales-sellers', [AnalyticsController::class, 'getHighestSalesSellers']);
-Route::get('/analytics/micro/product-trend/{productId}', [AnalyticsController::class, 'getProductSellingTrend']);
-Route::get('/analytics/micro/seller-trend/{sellerId}', [AnalyticsController::class, 'getSellerSalesTrend']);
+// Analytics Revenue Tab - Public endpoints for micro analytics (no auth required for analytics viewing)
+Route::prefix('analytics/revenue')->group(function () {
+    Route::get('/rating-breakdown', [AnalyticsController::class, 'getDetailedRatingBreakdown']);
+    Route::get('/product-comparison', [AnalyticsController::class, 'getProductSellerComparison']);
+    Route::get('/competitive-analysis', [AnalyticsController::class, 'getCompetitiveAnalysis']);
+    Route::get('/most-selling-products', [AnalyticsController::class, 'getMostSellingProducts']);
+    Route::get('/highest-sales-sellers', [AnalyticsController::class, 'getHighestSalesSellers']);
+    Route::get('/product-trend/{productId}', [AnalyticsController::class, 'getProductSellingTrend']);
+    Route::get('/seller-trend/{sellerId}', [AnalyticsController::class, 'getSellerSalesTrend']);
+});
 
 // Seller analytics endpoints
 Route::get('/analytics/seller/{seller_id}', function($seller_id) {
@@ -648,48 +652,6 @@ Route::get('/analytics/seller/{seller_id}', function($seller_id) {
 // Admin products route
 Route::middleware(['auth:sanctum'])->get('/admin/products', [ProductController::class, 'adminIndex']);
 
-// Protected Routes
-Route::middleware(['auth:sanctum'])->group(function () {
-    // Product Routes 
-    Route::get('products/search/{name}', [ProductController::class, 'search']);
-    Route::resource('/products', ProductController::class);
-
-    //Toggle Featured Product
-    Route::post('/products/{id}/toggle-featured', [ProductController::class, 'toggleFeatured']);
-    //Toggle Publish Status
-    Route::post('/products/{id}/toggle-publish', [ProductController::class, 'togglePublishStatus']);
-     Route::get('/seller/products', [ProductController::class, 'index']);
-
-    //Discount Code Routes
-    Route::resource('/discount-codes', DiscountCodeController::class);
-        Route::get('/discount-codes', [DiscountCodeController::class, 'index']);
-        Route::post('/discount-codes', [DiscountCodeController::class, 'store']);
-        Route::delete('/discount-codes/{id}', [DiscountCodeController::class, 'destroy']);
-    
-    //Seller Routes
-   Route::get('sellers/profile', [SellerController::class, 'showProfile']);
-    Route::post('sellers/{sellerID}/profile', [SellerController::class, 'updateSellerProfile']);
-    Route::post('/user/deactivate', [AuthController::class, 'deactivate']);
-    Route::delete('/user', [AuthController::class, 'destroy']);
-
-    //Products Routes in Admin Side
-    Route::post('/products/{id}/approve', [ProductController::class, 'approve']);
-    Route::post('/products/{id}/reject', [ProductController::class, 'reject']);
-    Route::put('/products/{id}/update', [ProductController::class, 'update']);
-    
-    // Store Routes
-    Route::prefix('stores')->group(function () {
-        Route::get('/me', [StoreController::class, 'me']);
-        Route::post('/', [StoreController::class, 'store']);
-        Route::post('/customization', [StoreController::class, 'updateCustomization']);
-        Route::get('/dashboard', [StoreController::class, 'getDashboardData']);
-        Route::get('/{store}', [StoreController::class, 'show']);
-        Route::put('/{store}', [StoreController::class, 'update']);
-        Route::delete('/{store}', [StoreController::class, 'destroy']);
-        Route::post('/{store}/approve', [StoreController::class, 'approve']);
-        Route::post('/{store}/reject', [StoreController::class, 'reject']);
-    });
-    
     // Customer Routes
     Route::resource('/customers', CustomerController::class);
     
@@ -700,19 +662,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/admins', [AuthController::class, 'getAdmins']);
     Route::get('/sellers', [AuthController::class, 'getSellers']);
 
-    // Order Routes
-    Route::get('/orders', [OrderController::class, 'index']);
+    // NOTE: Order routes are defined in the protected middleware group above (lines 414-419)
+    // The /orders endpoint is at line 415 with proper auth:sanctum protection
 
-    //Chat Routes 
+    //Customer Chat Routes 
     Route::post('/conversations', [ChatController::class, 'createConversation']);
     Route::get('/conversations/with-seller/{sellerId}', [ChatController::class, 'getConversationWithSeller']);
     Route::post('/chat/{conversation}/send', [ChatController::class, 'sendMessage']);
     Route::get('/chat/{conversation}/messages', [ChatController::class, 'getMessages']);
-    
-    // Seller Chat Routes
-    Route::get('/chat/seller/conversations', [ChatController::class, 'getSellerConversations']);
-    Route::get('/chat/seller/conversation/{customerId}', [ChatController::class, 'getConversationWithCustomer']);
-    Route::post('/chat/{conversation}/mark-read', [ChatController::class, 'markMessagesAsRead']);
 
     Route::post('/payments/initiate', [PaymentController::class, 'initiatePayment']);
     Route::post('/payments/confirm', [PaymentController::class, 'confirmPayment']);
@@ -722,13 +679,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // New revenue sharing payment routes
     Route::post('/payments/create-intent', [PaymentController::class, 'createPaymentIntent']);
-    
-    // Seller dashboard routes
-    Route::prefix('seller')->group(function () {
-        Route::get('/{sellerId}/transactions', [App\Http\Controllers\SellerDashboardController::class, 'getTransactions']);
-        Route::get('/{sellerId}/balance', [App\Http\Controllers\SellerDashboardController::class, 'getBalance']);
-        Route::get('/{sellerId}/dashboard', [App\Http\Controllers\SellerDashboardController::class, 'getDashboardSummary']);
-    });
+
+     //Products Routes in Admin Side
+     Route::post('/products/{id}/approve', [ProductController::class, 'approve']);
+     Route::post('/products/{id}/reject', [ProductController::class, 'reject']);
+     Route::put('/products/{id}/update', [ProductController::class, 'update']);
+     
     
     // Admin reporting routes
     Route::prefix('admin/reports')->group(function () {
@@ -752,7 +708,66 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user/followed-sellers', [SellerFollowController::class, 'followedSellers']);
     Route::get('/products/followed-sellers', [ProductController::class, 'followedSellerProducts']);
 
-    Route::middleware(['auth:sanctum'])->group(function () {
+    // Seller dashboard routes
+    Route::prefix('seller')->group(function () {
+        Route::get('/{sellerId}/transactions', [App\Http\Controllers\SellerDashboardController::class, 'getTransactions']);
+        Route::get('/{sellerId}/balance', [App\Http\Controllers\SellerDashboardController::class, 'getBalance']);
+        Route::get('/{sellerId}/dashboard', [App\Http\Controllers\SellerDashboardController::class, 'getDashboardSummary']);
+    });
+
+    // Protected Routes
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Product Routes 
+    Route::get('products/search/{name}', [ProductController::class, 'search']);
+    Route::resource('/products', ProductController::class);
+
+    //Toggle Featured Product
+    Route::post('/products/{id}/toggle-featured', [ProductController::class, 'toggleFeatured']);
+    //Toggle Publish Status
+    Route::post('/products/{id}/toggle-publish', [ProductController::class, 'togglePublishStatus']);
+     Route::get('/seller/products', [ProductController::class, 'index']);
+
+    //Discount Code Routes
+    Route::resource('/discount-codes', DiscountCodeController::class);
+        Route::get('/discount-codes', [DiscountCodeController::class, 'index']);
+        Route::post('/discount-codes', [DiscountCodeController::class, 'store']);
+        Route::delete('/discount-codes/{id}', [DiscountCodeController::class, 'destroy']);
+    
+    //Seller Routes
+   Route::get('sellers/profile', [SellerController::class, 'showProfile']);
+    Route::post('sellers/{sellerID}/profile', [SellerController::class, 'updateSellerProfile']);
+    Route::post('/user/deactivate', [AuthController::class, 'deactivate']);
+    Route::delete('/user', [AuthController::class, 'destroy']);
+
+    // Store Routes
+    Route::prefix('stores')->group(function () {
+        Route::get('/me', [StoreController::class, 'me']);
+        Route::post('/', [StoreController::class, 'store']);
+        Route::post('/customization', [StoreController::class, 'updateCustomization']);
+        Route::get('/dashboard', [StoreController::class, 'getDashboardData']);
+        Route::get('/{store}', [StoreController::class, 'show']);
+        Route::put('/{store}', [StoreController::class, 'update']);
+        Route::delete('/{store}', [StoreController::class, 'destroy']);
+        Route::post('/{store}/approve', [StoreController::class, 'approve']);
+        Route::post('/{store}/reject', [StoreController::class, 'reject']);
+    });   
+
+      // Seller Chat Routes
+    Route::get('/chat/seller/conversations', [ChatController::class, 'getSellerConversations']);
+    Route::get('/chat/seller/conversation/{customerId}', [ChatController::class, 'getConversationWithCustomer']);
+    Route::post('/chat/{conversation}/mark-read', [ChatController::class, 'markMessagesAsRead']);
+
+    // Work and Events Routes (already inside auth:sanctum group from line 718)
+    Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('work-and-events', Work_and_EventsController::class);
+    });
+
+    // Shipping Routes
+    Route::prefix('shipping')->group(function () {
+        Route::post('/assign', [App\Http\Controllers\ShippingController::class, 'assignRider']);
+        Route::put('/{id}/status', [App\Http\Controllers\ShippingController::class, 'updateStatus']);
+        Route::get('/tracking/{trackingNumber}', [App\Http\Controllers\ShippingController::class, 'getByTrackingNumber']);
+        Route::get('/seller', [App\Http\Controllers\ShippingController::class, 'getSellerShippings']);
+        Route::get('/generate-tracking', [App\Http\Controllers\ShippingController::class, 'generateTrackingNumber']);
     });
 });

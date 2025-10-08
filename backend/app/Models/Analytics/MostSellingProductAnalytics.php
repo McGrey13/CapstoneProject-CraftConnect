@@ -52,10 +52,35 @@ class MostSellingProductAnalytics extends Model
             $query->where('date', '<=', $endDate);
         }
         
-        return $query->orderBy('total_quantity_sold', 'desc')
+        $results = $query->orderBy('total_quantity_sold', 'desc')
                     ->orderBy('total_revenue', 'desc')
                     ->limit($limit)
                     ->get();
+
+        // If no data found and not daily, fallback to daily aggregation
+        if ($results->isEmpty() && $periodType !== 'daily') {
+            return self::where('period_type', 'daily')
+                ->whereBetween('date', [$startDate, $endDate])
+                ->selectRaw('
+                    product_id,
+                    product_name,
+                    seller_id,
+                    seller_name,
+                    category,
+                    SUM(total_orders) as total_orders,
+                    SUM(total_quantity_sold) as total_quantity_sold,
+                    SUM(total_revenue) as total_revenue,
+                    AVG(average_rating) as average_rating,
+                    SUM(total_reviews) as total_reviews
+                ')
+                ->groupBy('product_id', 'product_name', 'seller_id', 'seller_name', 'category')
+                ->orderBy('total_quantity_sold', 'desc')
+                ->orderBy('total_revenue', 'desc')
+                ->limit($limit)
+                ->get();
+        }
+        
+        return $results;
     }
 
     /**
@@ -73,7 +98,8 @@ class MostSellingProductAnalytics extends Model
             $query->where('date', '<=', $endDate);
         }
         
-        return $query->selectRaw('
+        // If no data found for the requested period, fallback to daily
+        $results = $query->selectRaw('
                 date,
                 product_name,
                 seller_name,
@@ -86,6 +112,27 @@ class MostSellingProductAnalytics extends Model
             ->groupBy('date', 'product_name', 'seller_name', 'category')
             ->orderBy('date', 'asc')
             ->get();
+
+        // If empty and not daily, try daily data
+        if ($results->isEmpty() && $periodType !== 'daily') {
+            return self::where('period_type', 'daily')
+                ->whereBetween('date', [$startDate, $endDate])
+                ->selectRaw('
+                    date,
+                    product_name,
+                    seller_name,
+                    category,
+                    SUM(total_quantity_sold) as total_quantity,
+                    SUM(total_revenue) as total_revenue,
+                    SUM(total_orders) as total_orders,
+                    AVG(average_rating) as avg_rating
+                ')
+                ->groupBy('date', 'product_name', 'seller_name', 'category')
+                ->orderBy('date', 'asc')
+                ->get();
+        }
+        
+        return $results;
     }
 
     /**

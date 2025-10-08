@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('most_selling_product_analytics', function (Blueprint $table) {
             $table->id();
             $table->date('date');
-            $table->string('period_type'); // daily, monthly, yearly
+            $table->string('period_type'); // daily, monthly, quarterly, yearly
             $table->unsignedBigInteger('product_id');
             $table->string('product_name');
             $table->unsignedBigInteger('seller_id');

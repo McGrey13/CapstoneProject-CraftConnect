@@ -26,23 +26,33 @@ class PaymentController extends Controller
     {
         $request->validate([
             'amount' => 'required|numeric|min:1',
-            'payment_method' => 'required|string|in:gcash,paymaya,cod'
+            'payment_method' => 'required|string|in:gcash,paymaya,cod',
+            'orderID' => 'nullable|integer|exists:orders,orderID'
         ]);
 
         $user = $request->user(); // assuming you use Laravel Auth
         $amount = $request->amount * 100; // PayMongo uses cents
         $method = strtolower($request->payment_method);
+        $orderID = $request->orderID;
 
         if ($method === 'cod') {
             return $this->handleCODPayment($amount, $user);
         }
 
         // GCash / PayMaya (via Sources API)
-        return $this->handleEwalletPayment($amount, $method, $user);
+        return $this->handleEwalletPayment($amount, $method, $user, $orderID);
     }
 
-    private function handleEwalletPayment($amount, $method, $user)
+    private function handleEwalletPayment($amount, $method, $user, $orderID = null)
     {
+        // PayMongo requires minimum amount of 10000 centavos (100 PHP)
+        if ($amount < 10000) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Minimum payment amount is ₱100. Your current total is ₱' . ($amount / 100) . '. Please add more items to your cart.'
+            ], 400);
+        }
+
         $sourceData = [
             "data" => [
                 "attributes" => [
@@ -62,24 +72,67 @@ class PaymentController extends Controller
             ]
         ];
 
-        $response = Curl::to('https://api.paymongo.com/v1/sources')
-            ->withHeaders([
-                'Content-Type: application/json',
-                'Accept: application/json',
-                'Authorization: Basic ' . base64_encode(env('PAYMONGO_SECRET_KEY') . ':')
-            ])
-            ->withData($sourceData)
-            ->asJson()
-            ->post();
-
-        if (!isset($response->data->attributes->redirect->checkout_url)) {
-            return response()->json(['success' => false, 'message' => 'Unable to create source'], 500);
+        // Add metadata if order ID is provided
+        // PayMongo metadata must be simple strings, not nested objects
+        if ($orderID) {
+            $sourceData['data']['attributes']['metadata'] = [
+                'orderID' => (string) $orderID,
+                'order_id' => (string) $orderID,
+                'user_id' => (string) ($user->userID ?? ''),
+                'user_name' => (string) ($user->userName ?? '')
+            ];
         }
 
-        return response()->json([
-            'success' => true,
-            'redirect_url' => $response->data->attributes->redirect->checkout_url
-        ]);
+        try {
+            $response = Curl::to('https://api.paymongo.com/v1/sources')
+                ->withHeaders([
+                    'Content-Type: application/json',
+                    'Accept: application/json',
+                    'Authorization: Basic ' . base64_encode(env('PAYMONGO_SECRET_KEY') . ':')
+                ])
+                ->withData($sourceData)
+                ->asJson()
+                ->post();
+
+            \Log::info('PayMongo Source API Response', [
+                'response' => $response,
+                'sourceData' => $sourceData
+            ]);
+
+            if (!isset($response->data->attributes->redirect->checkout_url)) {
+                \Log::error('PayMongo Source Creation Failed', [
+                    'response' => $response,
+                    'sourceData' => $sourceData
+                ]);
+                
+                $errorMessage = 'Unable to create source';
+                if (isset($response->errors)) {
+                    $errorMessage = json_encode($response->errors);
+                }
+                
+                return response()->json([
+                    'success' => false, 
+                    'message' => $errorMessage,
+                    'debug_response' => $response
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'checkout_url' => $response->data->attributes->redirect->checkout_url,
+                'redirect_url' => $response->data->attributes->redirect->checkout_url
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('PayMongo Source Creation Exception', [
+                'error' => $e->getMessage(),
+                'sourceData' => $sourceData
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment service error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     private function handleCardPayment($amount, $user)
@@ -130,35 +183,164 @@ class PaymentController extends Controller
     // ✅ Handle success callback
     public function success(Request $request)
     {
-        $paymentId = $request->get('payment_id', 'N/A');
-        
-        // Log the successful payment
-        \Log::info('Payment Success', [
-            'payment_id' => $paymentId,
-            'request_data' => $request->all(),
-            'timestamp' => now()
-        ]);
+        try {
+            // Extract payment source ID from the request
+            $sourceId = $request->get('source_id') ?? $request->get('payment_id');
+            
+            // Log the successful payment
+            \Log::info('Payment Success Callback', [
+                'source_id' => $sourceId,
+                'request_data' => $request->all(),
+                'timestamp' => now()
+            ]);
 
-        // Redirect to frontend payment success page
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
-        return redirect($frontendUrl . '/payment-success?payment_id=' . $paymentId);
+            // Try to retrieve the payment source from PayMongo to verify
+            if ($sourceId) {
+                try {
+                    $response = Curl::to("https://api.paymongo.com/v1/sources/{$sourceId}")
+                        ->withHeaders([
+                            'Accept: application/json',
+                            'Authorization: Basic ' . base64_encode(env('PAYMONGO_SECRET_KEY') . ':')
+                        ])
+                        ->asJson()
+                        ->get();
+
+                    \Log::info('Payment Source Retrieved', [
+                        'source_id' => $sourceId,
+                        'status' => $response->data->attributes->status ?? 'unknown'
+                    ]);
+
+                    // Check if payment was successful
+                    if (isset($response->data->attributes->status) && 
+                        ($response->data->attributes->status === 'chargeable' || 
+                         $response->data->attributes->status === 'paid')) {
+                        
+                        // Extract order ID from metadata
+                        $metadata = $response->data->attributes->metadata ?? [];
+                        $orderID = $metadata['orderID'] ?? $metadata['order_id'] ?? null;
+                        
+                        // Update order and payment status if order ID is found
+                        if ($orderID) {
+                            $order = Order::find($orderID);
+                            if ($order) {
+                                // Generate tracking number for the order
+                                $trackingNumber = $this->generateTrackingNumber();
+                                
+                                // For online payments (GCash/PayMaya), set to "processing" since payment is already done
+                                // This moves the order to "To Ship" tab - ready for seller to package
+                                $order->update([
+                                    'status' => 'processing', // Ready to package/ship since payment is confirmed
+                                    'paymentStatus' => 'paid',
+                                    'tracking_number' => $trackingNumber // Assign tracking immediately
+                                ]);
+
+                                // Update or create payment record
+                                $payment = Payment::updateOrCreate(
+                                    ['orderID' => $orderID],
+                                    [
+                                        'userID' => $order->userID,
+                                        'amount' => $response->data->attributes->amount / 100, // Convert from centavos
+                                        'currency' => 'PHP',
+                                        'paymentMethod' => $response->data->attributes->type,
+                                        'paymentStatus' => 'paid',
+                                        'payment_type' => 'online',
+                                        'paymongo_source_id' => $sourceId,
+                                        'payment_details' => $response->data
+                                    ]
+                                );
+
+                                \Log::info('Order and payment updated successfully', [
+                                    'order_id' => $orderID,
+                                    'order_status' => 'processing',
+                                    'payment_status' => 'paid',
+                                    'payment_id' => $payment->payment_id ?? 'N/A'
+                                ]);
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Error verifying payment source', [
+                        'source_id' => $sourceId,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            // Redirect to frontend orders page (my orders)
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            return redirect($frontendUrl . '/orders?payment=success&source_id=' . $sourceId);
+            
+        } catch (\Exception $e) {
+            \Log::error('Payment Success Callback Error', [
+                'error' => $e->getMessage(),
+                'request' => $request->all()
+            ]);
+            
+            // Redirect to orders page with error parameter
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            return redirect($frontendUrl . '/orders?payment=error');
+        }
     }
 
     // ✅ Handle failed callback
     public function failed(Request $request)
     {
-        $paymentId = $request->get('payment_id', 'N/A');
-        
-        // Log the failed payment
-        \Log::info('Payment Failed', [
-            'payment_id' => $paymentId,
-            'request_data' => $request->all(),
-            'timestamp' => now()
-        ]);
+        try {
+            $sourceId = $request->get('source_id') ?? $request->get('payment_id');
+            
+            // Log the failed payment
+            \Log::info('Payment Failed Callback', [
+                'source_id' => $sourceId,
+                'request_data' => $request->all(),
+                'timestamp' => now()
+            ]);
 
-        // Redirect to frontend payment failed page
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
-        return redirect($frontendUrl . '/payment-failed?payment_id=' . $paymentId);
+            // Try to extract order ID from the source if available
+            if ($sourceId) {
+                try {
+                    $response = Curl::to("https://api.paymongo.com/v1/sources/{$sourceId}")
+                        ->withHeaders([
+                            'Accept: application/json',
+                            'Authorization: Basic ' . base64_encode(env('PAYMONGO_SECRET_KEY') . ':')
+                        ])
+                        ->asJson()
+                        ->get();
+
+                    $metadata = $response->data->attributes->metadata ?? [];
+                    $orderID = $metadata['orderID'] ?? $metadata['order_id'] ?? null;
+                    
+                    // Update order status to failed if order ID is found
+                    if ($orderID) {
+                        $order = Order::find($orderID);
+                        if ($order) {
+                            $order->update([
+                                'status' => 'payment_failed',
+                                'paymentStatus' => 'failed'
+                            ]);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Error processing failed payment', [
+                        'source_id' => $sourceId,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            // Redirect to frontend orders page with error
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            return redirect($frontendUrl . '/orders?payment=failed&source_id=' . $sourceId);
+            
+        } catch (\Exception $e) {
+            \Log::error('Payment Failed Callback Error', [
+                'error' => $e->getMessage(),
+                'request' => $request->all()
+            ]);
+            
+            // Redirect to orders page with error parameter
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            return redirect($frontendUrl . '/orders?payment=failed');
+        }
     }
 
     // ✅ Handle payment success with payment ID
@@ -556,6 +738,19 @@ class PaymentController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Generate unique tracking number
+     */
+    private function generateTrackingNumber()
+    {
+        do {
+            $trackingNumber = 'CC' . date('Ymd') . strtoupper(substr(md5(uniqid()), 0, 6));
+        } while (Order::where('tracking_number', $trackingNumber)->exists() || 
+                 \App\Models\Shipping::where('tracking_number', $trackingNumber)->exists());
+
+        return $trackingNumber;
     }
 
 }

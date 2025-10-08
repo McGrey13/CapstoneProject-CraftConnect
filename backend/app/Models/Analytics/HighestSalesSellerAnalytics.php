@@ -57,10 +57,37 @@ class HighestSalesSellerAnalytics extends Model
             $query->where('date', '<=', $endDate);
         }
         
-        return $query->orderBy('total_revenue', 'desc')
+        $results = $query->orderBy('total_revenue', 'desc')
                     ->orderBy('total_orders', 'desc')
                     ->limit($limit)
                     ->get();
+
+        // If no data found and not daily, fallback to daily aggregation
+        if ($results->isEmpty() && $periodType !== 'daily') {
+            return self::where('period_type', 'daily')
+                ->whereBetween('date', [$startDate, $endDate])
+                ->selectRaw('
+                    seller_id,
+                    seller_name,
+                    business_name,
+                    SUM(total_revenue) as total_revenue,
+                    SUM(total_orders) as total_orders,
+                    SUM(total_products_sold) as total_products_sold,
+                    AVG(unique_products) as unique_products,
+                    AVG(average_order_value) as average_order_value,
+                    AVG(completion_rate) as completion_rate,
+                    AVG(average_rating) as average_rating,
+                    SUM(total_reviews) as total_reviews,
+                    MAX(top_category) as top_category
+                ')
+                ->groupBy('seller_id', 'seller_name', 'business_name')
+                ->orderBy('total_revenue', 'desc')
+                ->orderBy('total_orders', 'desc')
+                ->limit($limit)
+                ->get();
+        }
+        
+        return $results;
     }
 
     /**
@@ -78,7 +105,8 @@ class HighestSalesSellerAnalytics extends Model
             $query->where('date', '<=', $endDate);
         }
         
-        return $query->selectRaw('
+        // If no data found for the requested period, fallback to daily
+        $results = $query->selectRaw('
                 date,
                 seller_name,
                 business_name,
@@ -92,6 +120,28 @@ class HighestSalesSellerAnalytics extends Model
             ->groupBy('date', 'seller_name', 'business_name')
             ->orderBy('date', 'asc')
             ->get();
+
+        // If empty and not daily, try daily data
+        if ($results->isEmpty() && $periodType !== 'daily') {
+            return self::where('period_type', 'daily')
+                ->whereBetween('date', [$startDate, $endDate])
+                ->selectRaw('
+                    date,
+                    seller_name,
+                    business_name,
+                    SUM(total_revenue) as total_revenue,
+                    SUM(total_orders) as total_orders,
+                    SUM(total_products_sold) as total_products,
+                    AVG(average_order_value) as avg_order_value,
+                    AVG(completion_rate) as avg_completion_rate,
+                    AVG(average_rating) as avg_rating
+                ')
+                ->groupBy('date', 'seller_name', 'business_name')
+                ->orderBy('date', 'asc')
+                ->get();
+        }
+        
+        return $results;
     }
 
     /**

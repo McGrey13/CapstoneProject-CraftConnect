@@ -399,9 +399,10 @@ export const CartProvider = ({ children }) => {
           const sessionPayload = {
             amount: amount,
             payment_method: paymentMethod,
-            orderID: orderID
+            orderID: orderID  // Include order ID so PayMongo metadata contains it
           };
           console.log('Payment session payload:', sessionPayload);
+          console.log('OrderID being sent to PayMongo:', orderID);
           
           // Call the payment initiate endpoint (which handles PayMongo)
           const paymentSessionResponse = await fetch("http://localhost:8000/api/payments/initiate", {

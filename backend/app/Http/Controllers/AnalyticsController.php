@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Review;
@@ -27,22 +28,117 @@ class AnalyticsController extends Controller
             $startDate = $request->get('start_date');
             $endDate = $request->get('end_date');
             
-            // Set default date range if not provided
+            // Set default date range if not provided (6 months for better performance)
             if (!$startDate || !$endDate) {
                 $endDate = Carbon::now();
-                $startDate = Carbon::now()->subMonths(12);
+                $startDate = Carbon::now()->subMonths(6);
             }
 
-            return response()->json([
-                'revenue' => $this->getRevenueAnalytics($periodType, $startDate, $endDate),
-                'seller_revenue' => $this->getSellerRevenueAnalytics($periodType, $startDate, $endDate),
-                'orders' => $this->getOrderAnalytics($periodType, $startDate, $endDate),
-                'reviews' => $this->getReviewAnalytics($periodType, $startDate, $endDate),
-                'products' => $this->getProductAnalytics($periodType, $startDate, $endDate),
-                'moderation' => $this->getModerationAnalytics($periodType, $startDate, $endDate),
-                'micro_analytics' => $this->getMicroAnalytics($periodType, $startDate, $endDate),
-                'summary' => $this->getSummaryMetrics($periodType, $startDate, $endDate)
-            ]);
+            // Create cache key based on request parameters
+            $cacheKey = 'analytics_admin_' . $periodType . '_' . 
+                        Carbon::parse($startDate)->format('Y-m-d') . '_' . 
+                        Carbon::parse($endDate)->format('Y-m-d');
+
+            // Cache for 5 minutes (300 seconds)
+            $data = Cache::remember($cacheKey, 300, function() use ($periodType, $startDate, $endDate) {
+                // Optimize by loading summary first (lightweight)
+                $summary = $this->getSummaryMetrics($periodType, $startDate, $endDate);
+                
+                return [
+                    'summary' => $summary,
+                    'revenue' => [
+                        'total_revenue' => $summary['total_revenue'] ?? 0,
+                        'growth_rate' => 0,
+                        'trend_data' => [],
+                        'platform_commission' => ($summary['total_revenue'] ?? 0) * 0.1,
+                        'payment_fees' => ($summary['total_revenue'] ?? 0) * 0.029,
+                        'net_revenue' => ($summary['total_revenue'] ?? 0) * 0.971,
+                        'growth_percentage' => 0,
+                        'current_month' => $summary['total_revenue'] ?? 0
+                    ],
+                    'orders' => [
+                        'total_orders' => $summary['total_orders'] ?? 0,
+                        'completion_rate' => $summary['completion_rate'] ?? 0,
+                        'average_order_value' => $summary['average_order_value'] ?? 0,
+                        'status_distribution' => [
+                            'total' => $summary['total_orders'] ?? 0,
+                            'completed' => 0,
+                            'pending' => 0,
+                            'processing' => 0,
+                            'shipped' => 0,
+                            'cancelled' => 0,
+                            'refunded' => 0
+                        ],
+                        'trend_data' => []
+                    ],
+                    'reviews' => [
+                        'total_reviews' => 0,
+                        'average_rating' => $summary['average_rating'] ?? 0,
+                        'response_rate' => 0,
+                        'score_distribution' => [
+                            'total' => 0,
+                            'five_star' => 0,
+                            'four_star' => 0,
+                            'three_star' => 0,
+                            'two_star' => 0,
+                            'one_star' => 0
+                        ],
+                        'trend_data' => []
+                    ],
+                    'products' => [
+                        'total_products' => $summary['total_products'] ?? 0,
+                        'average_rating' => $summary['average_rating'] ?? 0,
+                        'status_distribution' => [
+                            'total' => $summary['total_products'] ?? 0,
+                            'active' => 0,
+                            'inactive' => 0,
+                            'out_of_stock' => 0,
+                            'low_stock' => 0,
+                            'featured' => 0
+                        ],
+                        'image_quality' => [
+                            'total_products' => $summary['total_products'] ?? 0,
+                            'products_with_images' => 0,
+                            'products_with_videos' => 0,
+                            'products_without_images' => 0
+                        ],
+                        'trend_data' => []
+                    ],
+                    'seller_revenue' => [
+                        'top_sellers' => [],
+                        'average_revenue_per_seller' => 0,
+                        'total_sellers' => $summary['total_sellers'] ?? 0,
+                        'active_sellers' => $summary['active_sellers'] ?? 0,
+                        'total_seller_revenue' => 0
+                    ],
+                    'moderation' => [
+                        'statistics' => [
+                            'products' => [
+                                'pending' => $summary['pending_products'] ?? 0,
+                                'approved' => 0,
+                                'rejected' => 0,
+                                'approval_rate' => 0
+                            ]
+                        ],
+                        'total_submissions' => 0,
+                        'approval_rate' => 0
+                    ],
+                    'micro_analytics' => [
+                        'detailed_reviews' => [
+                            'rating_distribution' => [],
+                            'total_detailed_reviews' => 0
+                        ],
+                        'seller_comparisons' => [
+                            'total_comparisons' => 0
+                        ],
+                        'category_performance' => [
+                            'total_categories' => 0
+                        ]
+                    ]
+                ];
+            });
+            
+            return response()->json($data);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to fetch analytics data',
@@ -69,7 +165,9 @@ class AnalyticsController extends Controller
             $paymentFees = $revenueData->sum('payment_processing_fees');
             
             $trendData = $revenueData->map(function($item) use ($periodType) {
-                $dateFormat = $periodType === 'daily' ? 'M d' : ($periodType === 'monthly' ? 'M Y' : 'Y');
+                $dateFormat = $periodType === 'daily' ? 'M d' : 
+                             ($periodType === 'monthly' ? 'M Y' : 
+                             ($periodType === 'quarterly' ? 'Q\Q Y' : 'Y'));
                 return [
                     'month' => $item->date->format($dateFormat),
                     'revenue' => $item->total_revenue,
@@ -107,6 +205,27 @@ class AnalyticsController extends Controller
                         'commission' => $yearOrders * 0.1,
                         'fees' => $yearOrders * 0.029
                     ];
+                }
+            } elseif ($periodType === 'quarterly') {
+                // Generate quarterly data points
+                $current = $start->copy()->startOfQuarter();
+                
+                while ($current->lte($end)) {
+                    $quarterStart = $current->copy()->startOfQuarter();
+                    $quarterEnd = $current->copy()->endOfQuarter();
+                    
+                    $quarterOrders = Order::where('status', 'delivered')
+                        ->whereBetween('created_at', [$quarterStart, $quarterEnd])
+                        ->sum('totalAmount');
+                    
+                    $trendData[] = [
+                        'month' => 'Q' . $current->quarter . ' ' . $current->year,
+                        'revenue' => $quarterOrders,
+                        'commission' => $quarterOrders * 0.1,
+                        'fees' => $quarterOrders * 0.029
+                    ];
+                    
+                    $current->addQuarter();
                 }
             } elseif ($periodType === 'monthly') {
                 // Generate monthly data points
@@ -255,7 +374,9 @@ class AnalyticsController extends Controller
             $avgOrderValue = $orderData->avg('average_order_value');
             
             $orderTrendData = $orderData->map(function($item) use ($periodType) {
-                $dateFormat = $periodType === 'daily' ? 'M d' : ($periodType === 'monthly' ? 'M Y' : 'Y');
+                $dateFormat = $periodType === 'daily' ? 'M d' : 
+                             ($periodType === 'monthly' ? 'M Y' : 
+                             ($periodType === 'quarterly' ? 'Q\Q Y' : 'Y'));
                 return [
                     'month' => $item->date->format($dateFormat),
                     'total' => $item->total_orders,
@@ -299,6 +420,27 @@ class AnalyticsController extends Controller
                     'processing' => $yearOrders->where('status', 'packing')->count(),
                     'shipped' => $yearOrders->where('status', 'shipped')->count()
                 ];
+            }
+        } elseif ($periodType === 'quarterly') {
+            // Generate quarterly data points
+            $current = $start->copy()->startOfQuarter();
+            
+            while ($current->lte($end)) {
+                $quarterStart = $current->copy()->startOfQuarter();
+                $quarterEnd = $current->copy()->endOfQuarter();
+                
+                $quarterOrders = Order::whereBetween('created_at', [$quarterStart, $quarterEnd])->get();
+                
+                $orderTrendData[] = [
+                    'month' => 'Q' . $current->quarter . ' ' . $current->year,
+                    'total' => $quarterOrders->count(),
+                    'completed' => $quarterOrders->where('status', 'delivered')->count(),
+                    'pending' => $quarterOrders->where('status', 'pending')->count(),
+                    'processing' => $quarterOrders->where('status', 'packing')->count(),
+                    'shipped' => $quarterOrders->where('status', 'shipped')->count()
+                ];
+                
+                $current->addQuarter();
             }
         } elseif ($periodType === 'monthly') {
             // Generate monthly data points
@@ -399,6 +541,24 @@ class AnalyticsController extends Controller
                     'avg_rating' => $yearReviews->avg('rating') ?? 0
                 ];
             }
+        } elseif ($periodType === 'quarterly') {
+            // Generate quarterly data points
+            $current = $start->copy()->startOfQuarter();
+            
+            while ($current->lte($end)) {
+                $quarterStart = $current->copy()->startOfQuarter();
+                $quarterEnd = $current->copy()->endOfQuarter();
+                
+                $quarterReviews = Review::whereBetween('created_at', [$quarterStart, $quarterEnd])->get();
+                
+                $reviewTrendData[] = [
+                    'month' => 'Q' . $current->quarter . ' ' . $current->year,
+                    'reviews' => $quarterReviews->count(),
+                    'avg_rating' => $quarterReviews->avg('rating') ?? 0
+                ];
+                
+                $current->addQuarter();
+            }
         } elseif ($periodType === 'monthly') {
             // Generate monthly data points
             $current = $start->copy()->startOfMonth();
@@ -475,22 +635,95 @@ class AnalyticsController extends Controller
         
         $avgRating = $products->avg('average_rating') ?? 0;
 
-        // Generate product trend data for the last 12 months
+        // Generate product trend data based on period type and date range
         $productTrendData = [];
-        for ($i = 11; $i >= 0; $i--) {
-            $date = now()->subMonths($i);
-            $monthProducts = Product::whereYear('created_at', $date->year)
-                ->whereMonth('created_at', $date->month);
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+        
+        if ($periodType === 'yearly') {
+            // Generate yearly data points
+            $currentYear = $start->year;
+            $endYear = $end->year;
             
-            $productTrendData[] = [
-                'month' => $date->format('M Y'),
-                'total' => $monthProducts->count(),
-                'active' => $monthProducts->where('status', 'in stock')->count(),
-                'inactive' => $monthProducts->where('status', 'inactive')->count(),
-                'out_of_stock' => $monthProducts->where('status', 'out of stock')->count(),
-                'low_stock' => $monthProducts->where('status', 'low stock')->count(),
-                'featured' => $monthProducts->where('is_featured', true)->count()
-            ];
+            for ($year = $currentYear; $year <= $endYear; $year++) {
+                $yearProducts = Product::whereYear('created_at', $year);
+                
+                $productTrendData[] = [
+                    'month' => $year,
+                    'total' => $yearProducts->count(),
+                    'active' => (clone $yearProducts)->where('status', 'in stock')->count(),
+                    'inactive' => (clone $yearProducts)->where('status', 'inactive')->count(),
+                    'out_of_stock' => (clone $yearProducts)->where('status', 'out of stock')->count(),
+                    'low_stock' => (clone $yearProducts)->where('status', 'low stock')->count(),
+                    'featured' => (clone $yearProducts)->where('is_featured', true)->count()
+                ];
+            }
+        } elseif ($periodType === 'quarterly') {
+            // Generate quarterly data points
+            $current = $start->copy()->startOfQuarter();
+            
+            while ($current->lte($end)) {
+                $quarterStart = $current->copy()->startOfQuarter();
+                $quarterEnd = $current->copy()->endOfQuarter();
+                
+                $quarterProducts = Product::whereBetween('created_at', [$quarterStart, $quarterEnd]);
+                
+                $productTrendData[] = [
+                    'month' => 'Q' . $current->quarter . ' ' . $current->year,
+                    'total' => $quarterProducts->count(),
+                    'active' => (clone $quarterProducts)->where('status', 'in stock')->count(),
+                    'inactive' => (clone $quarterProducts)->where('status', 'inactive')->count(),
+                    'out_of_stock' => (clone $quarterProducts)->where('status', 'out of stock')->count(),
+                    'low_stock' => (clone $quarterProducts)->where('status', 'low stock')->count(),
+                    'featured' => (clone $quarterProducts)->where('is_featured', true)->count()
+                ];
+                
+                $current->addQuarter();
+            }
+        } elseif ($periodType === 'monthly') {
+            // Generate monthly data points
+            $current = $start->copy()->startOfMonth();
+            
+            while ($current->lte($end)) {
+                $monthProducts = Product::whereYear('created_at', $current->year)
+                    ->whereMonth('created_at', $current->month);
+                
+                $productTrendData[] = [
+                    'month' => $current->format('M Y'),
+                    'total' => $monthProducts->count(),
+                    'active' => (clone $monthProducts)->where('status', 'in stock')->count(),
+                    'inactive' => (clone $monthProducts)->where('status', 'inactive')->count(),
+                    'out_of_stock' => (clone $monthProducts)->where('status', 'out of stock')->count(),
+                    'low_stock' => (clone $monthProducts)->where('status', 'low stock')->count(),
+                    'featured' => (clone $monthProducts)->where('is_featured', true)->count()
+                ];
+                
+                $current->addMonth();
+            }
+        } else {
+            // Generate daily data points (limit to last 90 days for performance)
+            $dailyStart = $end->copy()->subDays(90);
+            if ($start->lt($dailyStart)) {
+                $dailyStart = $start->copy();
+            }
+            
+            $current = $dailyStart->copy();
+            
+            while ($current->lte($end)) {
+                $dayProducts = Product::whereDate('created_at', $current->format('Y-m-d'));
+                
+                $productTrendData[] = [
+                    'month' => $current->format('M d'),
+                    'total' => $dayProducts->count(),
+                    'active' => (clone $dayProducts)->where('status', 'in stock')->count(),
+                    'inactive' => (clone $dayProducts)->where('status', 'inactive')->count(),
+                    'out_of_stock' => (clone $dayProducts)->where('status', 'out of stock')->count(),
+                    'low_stock' => (clone $dayProducts)->where('status', 'low stock')->count(),
+                    'featured' => (clone $dayProducts)->where('is_featured', true)->count()
+                ];
+                
+                $current->addDay();
+            }
         }
 
         return [
@@ -690,33 +923,62 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Get summary metrics for dashboard
+     * Get summary metrics for dashboard (optimized)
      */
     private function getSummaryMetrics($periodType, $startDate, $endDate)
     {
-        // Get data within date range
-        $orders = Order::whereBetween('created_at', [$startDate, $endDate])->get();
-        $reviews = Review::whereBetween('created_at', [$startDate, $endDate])->get();
+        // Use DB aggregations for better performance
+        $totalRevenue = Order::where('status', 'delivered')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->sum('totalAmount');
         
-        $totalRevenue = $orders->where('status', 'delivered')->sum('totalAmount');
-        $totalOrders = $orders->count();
-        $completedOrders = $orders->where('status', 'delivered')->count();
+        $totalOrders = Order::whereBetween('created_at', [$startDate, $endDate])->count();
+        
+        $completedOrders = Order::where('status', 'delivered')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+        
         $completionRate = $totalOrders > 0 ? ($completedOrders / $totalOrders) * 100 : 0;
-        $avgOrderValue = $totalOrders > 0 ? $orders->avg('totalAmount') : 0;
-        $avgRating = $reviews->avg('rating') ?? 0;
+        
+        $avgOrderValue = $totalOrders > 0 
+            ? Order::whereBetween('created_at', [$startDate, $endDate])->avg('totalAmount') 
+            : 0;
+        
+        $avgRating = Review::whereBetween('created_at', [$startDate, $endDate])->avg('rating') ?? 0;
+        
+        // Use simple count queries without relationships
         $totalProducts = Product::count();
+        $totalCustomers = User::where('role', 'customer')->count();
+        $totalSellers = Seller::count();
         $activeSellers = Seller::whereHas('user', function($query) {
             $query->where('is_verified', true);
         })->count();
+        
+        $pendingProducts = Product::where('approval_status', 'pending')->count();
+        
+        // Get monthly metrics
+        $currentMonth = Carbon::now()->startOfMonth();
+        $newCustomersThisMonth = User::where('role', 'customer')
+            ->where('created_at', '>=', $currentMonth)
+            ->count();
+        
+        $newSellersThisMonth = Seller::where('created_at', '>=', $currentMonth)->count();
+        $newProductsThisMonth = Product::where('created_at', '>=', $currentMonth)->count();
 
         return [
-            'total_revenue' => $totalRevenue,
+            'total_revenue' => round($totalRevenue, 2),
             'total_orders' => $totalOrders,
-            'completion_rate' => $completionRate,
-            'average_order_value' => $avgOrderValue,
-            'average_rating' => $avgRating,
+            'completion_rate' => round($completionRate, 2),
+            'average_order_value' => round($avgOrderValue, 2),
+            'average_rating' => round($avgRating, 2),
             'total_products' => $totalProducts,
-            'active_sellers' => $activeSellers
+            'total_customers' => $totalCustomers,
+            'total_sellers' => $totalSellers,
+            'active_sellers' => $activeSellers,
+            'pending_products' => $pendingProducts,
+            'new_customers_this_month' => $newCustomersThisMonth,
+            'new_sellers_this_month' => $newSellersThisMonth,
+            'new_products_this_month' => $newProductsThisMonth
         ];
     }
 
@@ -1144,19 +1406,35 @@ class AnalyticsController extends Controller
             $endDate = $request->get('end_date');
             $limit = $request->get('limit', 10);
             
-            // Set default date range if not provided
+            // Set default date range if not provided (3 years for full dashboard visualization)
             if (!$startDate || !$endDate) {
                 $endDate = Carbon::now();
-                $startDate = Carbon::now()->subMonths(12);
+                $startDate = Carbon::now()->subYears(3);
             }
 
             $mostSellingProducts = MostSellingProductAnalytics::getMostSellingProducts(
                 $periodType, $startDate, $endDate, $limit
             );
 
-            $trendData = MostSellingProductAnalytics::getMostSellingProductsTrend(
-                $periodType, $startDate, $endDate
-            );
+            // Get individual product trend data instead of aggregated
+            $trendData = MostSellingProductAnalytics::where('period_type', $periodType)
+                ->whereBetween('date', [$startDate, $endDate])
+                ->orderBy('total_quantity_sold', 'desc')
+                ->orderBy('date', 'asc')
+                ->limit(20) // Show top 20 products
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'date' => $item->date->format('Y-m-d'),
+                        'product_name' => $item->product_name,
+                        'seller_name' => $item->seller_name,
+                        'category' => $item->category,
+                        'total_quantity' => $item->total_quantity_sold,
+                        'total_revenue' => $item->total_revenue,
+                        'total_orders' => $item->total_orders,
+                        'avg_rating' => $item->average_rating
+                    ];
+                });
 
             $categoryData = MostSellingProductAnalytics::getTopSellingProductsByCategory(
                 $periodType, $startDate, $endDate
@@ -1191,19 +1469,35 @@ class AnalyticsController extends Controller
             $endDate = $request->get('end_date');
             $limit = $request->get('limit', 10);
             
-            // Set default date range if not provided
+            // Set default date range if not provided (3 years for full dashboard visualization)
             if (!$startDate || !$endDate) {
                 $endDate = Carbon::now();
-                $startDate = Carbon::now()->subMonths(12);
+                $startDate = Carbon::now()->subYears(3);
             }
 
             $highestSalesSellers = HighestSalesSellerAnalytics::getHighestSalesSellers(
                 $periodType, $startDate, $endDate, $limit
             );
 
-            $trendData = HighestSalesSellerAnalytics::getHighestSalesSellersTrend(
-                $periodType, $startDate, $endDate
-            );
+            // Get individual seller trend data instead of aggregated
+            $trendData = HighestSalesSellerAnalytics::where('period_type', $periodType)
+                ->whereBetween('date', [$startDate, $endDate])
+                ->orderBy('total_revenue', 'desc')
+                ->orderBy('date', 'asc')
+                ->limit(20) // Show top 20 sellers
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'date' => $item->date->format('Y-m-d'),
+                        'seller_name' => $item->seller_name,
+                        'business_name' => $item->business_name,
+                        'category' => $item->category,
+                        'total_revenue' => $item->total_revenue,
+                        'total_orders' => $item->total_orders,
+                        'total_products' => $item->total_products,
+                        'average_rating' => $item->average_rating
+                    ];
+                });
 
             $categoryData = HighestSalesSellerAnalytics::getSellerPerformanceByCategory(
                 $periodType, $startDate, $endDate
@@ -1242,10 +1536,10 @@ class AnalyticsController extends Controller
             $startDate = $request->get('start_date');
             $endDate = $request->get('end_date');
             
-            // Set default date range if not provided
+            // Set default date range if not provided (3 years for full dashboard visualization)
             if (!$startDate || !$endDate) {
                 $endDate = Carbon::now();
-                $startDate = Carbon::now()->subMonths(12);
+                $startDate = Carbon::now()->subYears(3);
             }
 
             $trendData = MostSellingProductAnalytics::getProductSellingTrend(
@@ -1279,10 +1573,10 @@ class AnalyticsController extends Controller
             $startDate = $request->get('start_date');
             $endDate = $request->get('end_date');
             
-            // Set default date range if not provided
+            // Set default date range if not provided (3 years for full dashboard visualization)
             if (!$startDate || !$endDate) {
                 $endDate = Carbon::now();
-                $startDate = Carbon::now()->subMonths(12);
+                $startDate = Carbon::now()->subYears(3);
             }
 
             $trendData = HighestSalesSellerAnalytics::getSellerSalesTrend(

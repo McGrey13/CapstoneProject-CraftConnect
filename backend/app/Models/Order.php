@@ -30,6 +30,7 @@ class Order extends Model
      */
     protected $fillable = [
         'customer_id',
+        'sellerID',
         'userID',
         'status',
         'totalAmount',
@@ -40,7 +41,9 @@ class Order extends Model
         'shippingDate',
         'deliveryDate',
         'notes',
-        'location'
+        'location',
+        'order_number',
+        'tracking_number'
     ];
 
     protected $dates = [
@@ -81,6 +84,11 @@ class Order extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'customerID');
+    }
+
+    public function shipping()
+    {
+        return $this->hasOne(Shipping::class, 'order_id', 'orderID');
     }
 
     public function transactions()

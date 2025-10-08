@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('highest_sales_seller_analytics', function (Blueprint $table) {
             $table->id();
             $table->date('date');
-            $table->string('period_type'); // daily, monthly, yearly
+            $table->string('period_type'); // daily, monthly, quarterly, yearly
             $table->unsignedBigInteger('seller_id');
             $table->string('seller_name');
             $table->string('business_name');

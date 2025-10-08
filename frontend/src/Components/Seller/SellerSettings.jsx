@@ -10,7 +10,7 @@ import { Textarea } from "../ui/textarea";
 import { Switch } from "../ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
-  User, Mail, Phone, Shield, Bell, CreditCard,
+  User, Mail, Phone, Shield, Bell, CreditCard, Settings, AlertTriangle,
 } from "lucide-react";
 import api from "../../api";
 
@@ -392,74 +392,107 @@ const handleSave = async () => {
   }
 
   return (
-    <div className="space-y-6 bg-white p-6 rounded-lg">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">Seller Settings</h1>
-          {hasUnsavedChanges() && (
-            <span className="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
-              Unsaved Changes
-            </span>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => {
-              // Reset to original state
-              setProfileImagePreview(seller?.profileImage || "");
-              setProfileImageFile(null);
-              setStory(seller?.story || "");
-              setError(null);
-              setSuccessMessage("");
-            }}
-            disabled={isSaving}
-            className={hasUnsavedChanges() ? "" : "hidden"}
-          >
-            Cancel Changes
-          </Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={isSaving || !hasUnsavedChanges()}
-            className="min-w-[120px]"
-          >
-            {isSaving ? "Saving..." : "Save Changes"}
-          </Button>
+    <div className="space-y-6">
+      {/* Header with craft theme */}
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+              <Settings className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white">Seller Settings</h1>
+              {hasUnsavedChanges() && (
+                <span className="text-sm text-yellow-200 bg-yellow-500/30 px-3 py-1 rounded-full inline-block mt-1">
+                  ⚠️ Unsaved Changes
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                // Reset to original state
+                setProfileImagePreview(seller?.profileImage || "");
+                setProfileImageFile(null);
+                setStory(seller?.story || "");
+                setError(null);
+                setSuccessMessage("");
+              }}
+              disabled={isSaving}
+              className={hasUnsavedChanges() ? "bg-white/20 text-white border-white/50 hover:bg-white/30 transition-all duration-200" : "hidden"}
+            >
+              Cancel Changes
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              disabled={isSaving || !hasUnsavedChanges()}
+              className="min-w-[120px] bg-white text-[#5c3d28] hover:bg-[#faf9f8] shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
+            >
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Success Message */}
       {successMessage && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
-          <span className="block sm:inline">{successMessage}</span>
+        <div className="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-500 text-green-800 px-6 py-4 rounded-xl shadow-md">
+          <span className="block sm:inline font-medium">✓ {successMessage}</span>
         </div>
       )}
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-          <span className="block sm:inline">Error: {error}</span>
+        <div className="bg-gradient-to-r from-red-50 to-red-100 border-2 border-red-500 text-red-800 px-6 py-4 rounded-xl shadow-md">
+          <span className="block sm:inline font-medium">✗ Error: {error}</span>
         </div>
       )}
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="billing">Billing</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-[#faf9f8] border-2 border-[#e5ded7] p-1 rounded-xl shadow-md">
+          <TabsTrigger 
+            value="profile"
+            className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
+          >
+            Profile
+          </TabsTrigger>
+          <TabsTrigger 
+            value="account"
+            className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
+          >
+            Account
+          </TabsTrigger>
+          {/* <TabsTrigger 
+            value="notifications"
+            className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
+          >
+            Notifications
+          </TabsTrigger>
+          <TabsTrigger 
+            value="billing"
+            className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
+          >
+            Billing
+          </TabsTrigger> */}
         </TabsList>
 
         {/* Profile */}
-        <TabsContent value="profile" className="space-y-4 pt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
-                Update your admin profile information
+        <TabsContent value="profile" className="space-y-6 pt-6">
+          <Card className="border-2 border-[#e5ded7] shadow-xl hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+              <CardTitle className="text-[#5c3d28] flex items-center text-xl">
+                <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                Profile Information
+              </CardTitle>
+              <CardDescription className="text-[#7b5a3b] ml-11">
+                Update your seller profile information
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pt-6">
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex flex-col items-center space-y-2">
                   <Avatar className="h-24 w-24" key={getCurrentImageUrl()}>
@@ -486,6 +519,7 @@ const handleSave = async () => {
                     variant="outline"
                     size="sm"
                     onClick={() => fileInputRef.current.click()}
+                    className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white border-0 hover:from-[#8a6b4a] hover:to-[#6b4a2f] shadow-md hover:shadow-lg transition-all duration-200"
                   >
                     Change Photo
                   </Button>
@@ -494,7 +528,7 @@ const handleSave = async () => {
                       variant="outline"
                       size="sm"
                       onClick={clearImageSelection}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 bg-red-50 hover:bg-red-100 transition-all duration-200"
                     >
                       Clear Selection
                     </Button>
@@ -504,33 +538,55 @@ const handleSave = async () => {
                 <div className="flex-1 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="display-name">Display Name</Label>
-                      <Input id="display-name" defaultValue={seller.userName || ""} readOnly />
+                      <Label htmlFor="display-name" className="text-[#5c3d28] font-medium">Display Name</Label>
+                      <Input 
+                        id="display-name" 
+                        defaultValue={seller.userName || ""} 
+                        readOnly 
+                        className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28]"
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="role">Role</Label>
-                      <Input id="role" defaultValue={seller.role || "Admin"} readOnly />
+                      <Label htmlFor="role" className="text-[#5c3d28] font-medium">Role</Label>
+                      <Input 
+                        id="role" 
+                        defaultValue={seller.role || "Admin"} 
+                        readOnly 
+                        className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28]"
+                      />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="story">Story</Label>
+                    <Label htmlFor="story" className="text-[#5c3d28] font-medium">Story</Label>
                     <Textarea
                       id="story"
                       value={story}
                       onChange={(e) => setStory(e.target.value)}
                       rows={4}
+                      className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28] resize-none"
+                      placeholder="Tell your story to customers..."
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="location">Location</Label>
-                      <Input id="location" defaultValue={seller.userAddress || ""} readOnly />
+                      <Label htmlFor="location" className="text-[#5c3d28] font-medium">Location</Label>
+                      <Input 
+                        id="location" 
+                        defaultValue={seller.userAddress || ""} 
+                        readOnly 
+                        className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28]"
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="website">Website</Label>
-                      <Input id="website" defaultValue={seller.website || ""} readOnly />
+                      <Label htmlFor="website" className="text-[#5c3d28] font-medium">Website</Label>
+                      <Input 
+                        id="website" 
+                        defaultValue={seller.website || ""} 
+                        readOnly 
+                        className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28]"
+                      />
                     </div>
                   </div>
                 </div>
@@ -540,38 +596,54 @@ const handleSave = async () => {
         </TabsContent>
 
         {/* Account */}
-        <TabsContent value="account" className="space-y-4 pt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <User className="h-5 w-5 mr-2 text-primary" />
+        <TabsContent value="account" className="space-y-6 pt-6">
+          <Card className="border-2 border-[#e5ded7] shadow-xl hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+              <CardTitle className="text-[#5c3d28] flex items-center text-xl">
+                <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
+                  <Shield className="h-5 w-5 text-white" />
+                </div>
                 Account Information
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-[#7b5a3b] ml-11">
                 Manage your account details and security
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6 pt-6">
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email" className="text-[#5c3d28] font-medium">Email Address</Label>
                 <div className="flex items-center">
-                  <Mail className="h-4 w-4 mr-2 text-gray-500" />
-                  <Input id="email" defaultValue={seller.userEmail || ""} readOnly />
+                  <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
+                    <Mail className="h-4 w-4 text-white" />
+                  </div>
+                  <Input 
+                    id="email" 
+                    defaultValue={seller.userEmail || ""} 
+                    readOnly 
+                    className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28]"
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone" className="text-[#5c3d28] font-medium">Phone Number</Label>
                 <div className="flex items-center">
-                  <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                  <Input id="phone" defaultValue={seller.userContactNumber || ""} readOnly />
+                  <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
+                    <Phone className="h-4 w-4 text-white" />
+                  </div>
+                  <Input 
+                    id="phone" 
+                    defaultValue={seller.userContactNumber || ""} 
+                    readOnly 
+                    className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28]"
+                  />
                 </div>
               </div>
 
               <div className="pt-2">
                 <Button 
                   variant="outline" 
-                  className="flex items-center"
+                  className="flex items-center bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white border-0 hover:from-[#8a6b4a] hover:to-[#6b4a2f] shadow-md hover:shadow-lg transition-all duration-200"
                   onClick={() => setShowChangePassword(!showChangePassword)}
                 >
                   <Shield className="h-4 w-4 mr-2" />
@@ -581,11 +653,16 @@ const handleSave = async () => {
 
               {/* Change Password Form */}
               {showChangePassword && (
-                <div className="mt-6 p-4 border rounded-lg bg-gray-50">
-                  <h3 className="text-lg font-semibold mb-4">Change Password</h3>
+                <div className="mt-6 p-6 border-2 border-[#e5ded7] rounded-xl bg-gradient-to-r from-[#faf9f8] to-white shadow-lg">
+                  <h3 className="text-lg font-semibold mb-4 text-[#5c3d28] flex items-center">
+                    <div className="p-1.5 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
+                      <Shield className="h-4 w-4 text-white" />
+                    </div>
+                    Change Password
+                  </h3>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="currentPassword">Current Password</Label>
+                      <Label htmlFor="currentPassword" className="text-[#5c3d28] font-medium">Current Password</Label>
                       <Input
                         id="currentPassword"
                         name="currentPassword"
@@ -593,14 +670,18 @@ const handleSave = async () => {
                         value={passwordData.currentPassword}
                         onChange={handlePasswordChange}
                         placeholder="Enter your current password"
+                        className="border-[#e5ded7] focus:border-[#a4785a] bg-white text-[#5c3d28]"
                       />
                       {passwordErrors.currentPassword && (
-                        <p className="text-sm text-red-500">{passwordErrors.currentPassword}</p>
+                        <p className="text-sm text-red-500 flex items-center">
+                          <AlertTriangle className="h-4 w-4 mr-1" />
+                          {passwordErrors.currentPassword}
+                        </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password</Label>
+                      <Label htmlFor="newPassword" className="text-[#5c3d28] font-medium">New Password</Label>
                       <Input
                         id="newPassword"
                         name="newPassword"
@@ -608,14 +689,18 @@ const handleSave = async () => {
                         value={passwordData.newPassword}
                         onChange={handlePasswordChange}
                         placeholder="Enter your new password"
+                        className="border-[#e5ded7] focus:border-[#a4785a] bg-white text-[#5c3d28]"
                       />
                       {passwordErrors.newPassword && (
-                        <p className="text-sm text-red-500">{passwordErrors.newPassword}</p>
+                        <p className="text-sm text-red-500 flex items-center">
+                          <AlertTriangle className="h-4 w-4 mr-1" />
+                          {passwordErrors.newPassword}
+                        </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                      <Label htmlFor="confirmPassword" className="text-[#5c3d28] font-medium">Confirm New Password</Label>
                       <Input
                         id="confirmPassword"
                         name="confirmPassword"
@@ -623,9 +708,13 @@ const handleSave = async () => {
                         value={passwordData.confirmPassword}
                         onChange={handlePasswordChange}
                         placeholder="Confirm your new password"
+                        className="border-[#e5ded7] focus:border-[#a4785a] bg-white text-[#5c3d28]"
                       />
                       {passwordErrors.confirmPassword && (
-                        <p className="text-sm text-red-500">{passwordErrors.confirmPassword}</p>
+                        <p className="text-sm text-red-500 flex items-center">
+                          <AlertTriangle className="h-4 w-4 mr-1" />
+                          {passwordErrors.confirmPassword}
+                        </p>
                       )}
                     </div>
 
@@ -633,7 +722,7 @@ const handleSave = async () => {
                       <Button
                         onClick={handleChangePassword}
                         disabled={isChangingPassword}
-                        className="min-w-[120px]"
+                        className="min-w-[120px] bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white hover:from-[#8a6b4a] hover:to-[#6b4a2f] shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50"
                       >
                         {isChangingPassword ? "Changing..." : "Change Password"}
                       </Button>
@@ -641,6 +730,7 @@ const handleSave = async () => {
                         variant="outline"
                         onClick={cancelPasswordChange}
                         disabled={isChangingPassword}
+                        className="border-[#e5ded7] text-[#5c3d28] hover:bg-[#faf9f8] hover:border-[#a4785a] transition-all duration-200"
                       >
                         Cancel
                       </Button>
@@ -651,23 +741,30 @@ const handleSave = async () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Danger Zone</CardTitle>
-              <CardDescription>Irreversible account actions</CardDescription>
+          <Card className="border-2 border-red-200 shadow-xl hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="border-b border-red-200 bg-gradient-to-r from-red-50 to-white">
+              <CardTitle className="text-red-700 flex items-center text-xl">
+                <div className="p-2 bg-gradient-to-r from-red-500 to-red-600 rounded-lg mr-3">
+                  <AlertTriangle className="h-5 w-5 text-white" />
+                </div>
+                Danger Zone
+              </CardTitle>
+              <CardDescription className="text-red-600 ml-11">
+                Irreversible account actions
+              </CardDescription>
             </CardHeader>
-            <CardContent className="flex gap-4" >
+            <CardContent className="flex gap-4 pt-6" >
             <Button 
               variant="outline" 
               onClick={handleDeactivate} 
-              className="min-w-[120px] text-black bg-red-500 hover:bg-red-600 border-red-500 hover:border-red-600 hover:text-white"
+              className="min-w-[120px] bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200"
             >
               Deactivate Account
             </Button>
             <Button 
               variant="outline" 
               onClick={handleDelete} 
-              className="min-w-[120px] text-black bg-red-500 hover:bg-red-600 border-red-500 hover:border-red-600 hover:text-white"
+              className="min-w-[120px] bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200"
             >
               Delete Account
             </Button>
@@ -676,58 +773,74 @@ const handleSave = async () => {
         </TabsContent>
 
         {/* Notifications */}
-        <TabsContent value="notifications" className="space-y-4 pt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Bell className="h-5 w-5 mr-2 text-primary" />
+        {/* <TabsContent value="notifications" className="space-y-6 pt-6">
+          <Card className="border-2 border-[#e5ded7] shadow-xl hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+              <CardTitle className="text-[#5c3d28] flex items-center text-xl">
+                <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
+                  <Bell className="h-5 w-5 text-white" />
+                </div>
                 Notification Preferences
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-[#7b5a3b] ml-11">
                 Manage how you receive notifications
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+            <CardContent className="space-y-6 pt-6">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-white to-[#faf9f8] border-2 border-[#e5ded7] hover:border-[#a4785a] transition-all duration-200">
                 <div>
-                  <Label>Email Notifications</Label>
-                  <p className="text-sm text-gray-500">Receive updates via email</p>
+                  <Label className="text-[#5c3d28] font-semibold">Email Notifications</Label>
+                  <p className="text-sm text-[#7b5a3b]">Receive updates via email</p>
                 </div>
                 <Switch defaultChecked />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-white to-[#faf9f8] border-2 border-[#e5ded7] hover:border-[#a4785a] transition-all duration-200">
                 <div>
-                  <Label>Push Notifications</Label>
-                  <p className="text-sm text-gray-500">Receive push notifications</p>
+                  <Label className="text-[#5c3d28] font-semibold">Push Notifications</Label>
+                  <p className="text-sm text-[#7b5a3b]">Receive push notifications</p>
                 </div>
                 <Switch defaultChecked />
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
 
         {/* Billing */}
-        <TabsContent value="billing" className="space-y-4 pt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <CreditCard className="h-5 w-5 mr-2 text-primary" />
+        {/* <TabsContent value="billing" className="space-y-6 pt-6">
+          <Card className="border-2 border-[#e5ded7] shadow-xl hover:shadow-2xl transition-all duration-300">
+            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+              <CardTitle className="text-[#5c3d28] flex items-center text-xl">
+                <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
+                  <CreditCard className="h-5 w-5 text-white" />
+                </div>
                 Payment Methods
               </CardTitle>
-              <CardDescription>Manage your saved payment details</CardDescription>
+              <CardDescription className="text-[#7b5a3b] ml-11">
+                Manage your saved payment details
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border p-4 rounded-md flex justify-between items-center">
+            <CardContent className="space-y-6 pt-6">
+              <div className="border-2 border-[#e5ded7] p-6 rounded-xl bg-gradient-to-r from-white to-[#faf9f8] hover:border-[#a4785a] transition-all duration-200 flex justify-between items-center">
                 <div>
-                  <p className="font-medium">Visa ending in 1234</p>
-                  <p className="text-sm text-gray-500">Expires 08/27</p>
+                  <p className="font-medium text-[#5c3d28]">Visa ending in 1234</p>
+                  <p className="text-sm text-[#7b5a3b]">Expires 08/27</p>
                 </div>
-                <Button variant="outline" size="sm">Edit</Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="border-[#e5ded7] text-[#5c3d28] hover:bg-[#faf9f8] hover:border-[#a4785a] transition-all duration-200"
+                >
+                  Edit
+                </Button>
               </div>
-              <Button>Add Payment Method</Button>
+              <Button 
+                className="w-full bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white hover:from-[#8a6b4a] hover:to-[#6b4a2f] shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                Add Payment Method
+              </Button>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
     </div>
   );

@@ -193,12 +193,30 @@ class CartController extends Controller
                     ]);
                 }
 
+                // Generate unique tracking number and order number
+                $trackingNumber = $this->generateTrackingNumber();
+                $orderNumber = $this->generateOrderNumber();
+                
+                // Get seller ID from first cart item (assuming single seller per order)
+                $firstProduct = $cartItems->first()->product;
+                $sellerID = $firstProduct->seller_id ?? null;
+                
+                // Build complete customer address
+                $fullAddress = implode(', ', array_filter([
+                    $user->userAddress,
+                    $user->userCity,
+                    $user->userProvince
+                ])) ?: 'Not specified';
+
                 // Create order with pending status (will be confirmed after payment)
                 $order = Order::create([
                     'customer_id' => $customer->customerID,
+                    'sellerID' => $sellerID,
                     'status' => 'pending', // Set to pending for COD orders
                     'totalAmount' => $totalAmount,
-                    'location' => $user->userAddress ?? 'Not specified'
+                    'location' => $fullAddress,
+                    'tracking_number' => $trackingNumber, // Assign tracking immediately
+                    'order_number' => $orderNumber // Assign unique order number
                 ]);
 
                 // Create order products
@@ -246,6 +264,31 @@ class CartController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Generate unique tracking number
+     */
+    private function generateTrackingNumber()
+    {
+        do {
+            $trackingNumber = 'CC' . date('Ymd') . strtoupper(substr(md5(uniqid()), 0, 6));
+        } while (Order::where('tracking_number', $trackingNumber)->exists() || 
+                 \App\Models\Shipping::where('tracking_number', $trackingNumber)->exists());
+
+        return $trackingNumber;
+    }
+
+    /**
+     * Generate unique order number
+     */
+    private function generateOrderNumber()
+    {
+        do {
+            $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(substr(md5(uniqid()), 0, 6));
+        } while (Order::where('order_number', $orderNumber)->exists());
+
+        return $orderNumber;
     }
 }
 

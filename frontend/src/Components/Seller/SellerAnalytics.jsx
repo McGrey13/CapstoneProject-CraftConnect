@@ -90,72 +90,93 @@ const SellerAnalytics = ({ sellerId }) => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Sales Analytics</h1>
-          <p className="text-gray-500">Track your store's performance and sales metrics</p>
+    <div className="space-y-6">
+      {/* Header with craft theme */}
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white flex items-center">
+              <TrendingUp className="h-8 w-8 mr-3" />
+              Sales Analytics
+            </h1>
+            <p className="text-white/90 mt-2 text-lg">
+              Track your store's performance and sales metrics
+            </p>
+          </div>
+          <Button 
+            onClick={fetchAnalytics}
+            className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-2 border-white/30 shadow-lg transition-all duration-200"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+          </Button>
         </div>
-        <Button onClick={fetchAnalytics} variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" /> Refresh
-        </Button>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="border-[#e5ded7] bg-gradient-to-br from-white to-[#faf9f8] hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-500" />
+            <CardTitle className="text-sm font-semibold text-[#5c3d28]">Total Revenue</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg">
+              <TrendingUp className="h-5 w-5 text-white" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(analytics.total_revenue)}</div>
-            <p className="text-xs text-gray-500">
+            <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
+              {formatCurrency(analytics.total_revenue)}
+            </div>
+            <p className="text-xs text-[#7b5a3b] mt-1">
               {analytics.order_metrics.total_orders} total orders
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-[#e5ded7] bg-gradient-to-br from-white to-[#faf9f8] hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Best Selling Product</CardTitle>
-            <Package className="h-4 w-4 text-gray-500" />
+            <CardTitle className="text-sm font-semibold text-[#5c3d28]">Best Selling Product</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-lg">
+              <Package className="h-5 w-5 text-white" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-3xl font-bold bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] bg-clip-text text-transparent">
               {analytics.best_sellers[0]?.units_sold || 0} units
             </div>
-            <p className="text-xs text-gray-500 truncate">
+            <p className="text-xs text-[#7b5a3b] mt-1 truncate">
               {analytics.best_sellers[0]?.name || 'No data'}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-[#e5ded7] bg-gradient-to-br from-white to-[#faf9f8] hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Order Completion</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-gray-500" />
+            <CardTitle className="text-sm font-semibold text-[#5c3d28]">Order Completion</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+              <AlertTriangle className="h-5 w-5 text-white" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
               {analytics.order_metrics.completion_rate.toFixed(1)}%
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[#7b5a3b] mt-1">
               {analytics.order_metrics.completed} completed orders
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-[#e5ded7] bg-gradient-to-br from-white to-[#faf9f8] hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Discounts</CardTitle>
-            <Tag className="h-4 w-4 text-gray-500" />
+            <CardTitle className="text-sm font-semibold text-[#5c3d28]">Active Discounts</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
+              <Tag className="h-5 w-5 text-white" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent">
               {analytics.discount_stats.active_codes}
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[#7b5a3b] mt-1">
               Used {analytics.discount_stats.codes_used} times
             </p>
           </CardContent>
@@ -163,28 +184,33 @@ const SellerAnalytics = ({ sellerId }) => {
       </div>
 
       {/* Order Status Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Order Status Overview</CardTitle>
-          <CardDescription>Current status of all orders and performance metrics</CardDescription>
+      <Card className="border-[#e5ded7] shadow-xl">
+        <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+          <CardTitle className="text-[#5c3d28] flex items-center">
+            <Package className="h-5 w-5 mr-2 text-[#a4785a]" />
+            Order Status Overview
+          </CardTitle>
+          <CardDescription className="text-[#7b5a3b]">Current status of all orders and performance metrics</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="space-y-6">
             {/* Status Cards with Progress Bars */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-3 p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all duration-200">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-blue-600">Pending</p>
-                  <span className="text-xs text-gray-500">
+                  <p className="text-sm font-semibold text-blue-700">Pending</p>
+                  <span className="text-xs font-medium text-blue-600">
                     {analytics.order_metrics.total_orders > 0 
                       ? Math.round((analytics.order_metrics.pending / analytics.order_metrics.total_orders) * 100)
                       : 0}%
                   </span>
                 </div>
-                <p className="text-2xl font-bold">{analytics.order_metrics.pending}</p>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
+                  {analytics.order_metrics.pending}
+                </p>
+                <div className="w-full bg-blue-200 rounded-full h-2.5">
                   <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 h-2.5 rounded-full transition-all duration-300 shadow-sm"
                     style={{ 
                       width: `${analytics.order_metrics.total_orders > 0 
                         ? (analytics.order_metrics.pending / analytics.order_metrics.total_orders) * 100 
@@ -194,19 +220,21 @@ const SellerAnalytics = ({ sellerId }) => {
                 </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-3 p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border-2 border-yellow-200 hover:border-yellow-400 transition-all duration-200">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-yellow-600">Packing</p>
-                  <span className="text-xs text-gray-500">
+                  <p className="text-sm font-semibold text-yellow-700">Packing</p>
+                  <span className="text-xs font-medium text-yellow-600">
                     {analytics.order_metrics.total_orders > 0 
                       ? Math.round((analytics.order_metrics.packing / analytics.order_metrics.total_orders) * 100)
                       : 0}%
                   </span>
                 </div>
-                <p className="text-2xl font-bold">{analytics.order_metrics.packing}</p>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <p className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-yellow-700 bg-clip-text text-transparent">
+                  {analytics.order_metrics.packing}
+                </p>
+                <div className="w-full bg-yellow-200 rounded-full h-2.5">
                   <div 
-                    className="bg-yellow-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-2.5 rounded-full transition-all duration-300 shadow-sm"
                     style={{ 
                       width: `${analytics.order_metrics.total_orders > 0 
                         ? (analytics.order_metrics.packing / analytics.order_metrics.total_orders) * 100 
@@ -216,19 +244,21 @@ const SellerAnalytics = ({ sellerId }) => {
                 </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-3 p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border-2 border-purple-200 hover:border-purple-400 transition-all duration-200">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-purple-600">Shipped</p>
-                  <span className="text-xs text-gray-500">
+                  <p className="text-sm font-semibold text-purple-700">Shipped</p>
+                  <span className="text-xs font-medium text-purple-600">
                     {analytics.order_metrics.total_orders > 0 
                       ? Math.round((analytics.order_metrics.shipped / analytics.order_metrics.total_orders) * 100)
                       : 0}%
                   </span>
                 </div>
-                <p className="text-2xl font-bold">{analytics.order_metrics.shipped}</p>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <p className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent">
+                  {analytics.order_metrics.shipped}
+                </p>
+                <div className="w-full bg-purple-200 rounded-full h-2.5">
                   <div 
-                    className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-purple-500 to-purple-600 h-2.5 rounded-full transition-all duration-300 shadow-sm"
                     style={{ 
                       width: `${analytics.order_metrics.total_orders > 0 
                         ? (analytics.order_metrics.shipped / analytics.order_metrics.total_orders) * 100 
@@ -238,19 +268,21 @@ const SellerAnalytics = ({ sellerId }) => {
                 </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-3 p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border-2 border-green-200 hover:border-green-400 transition-all duration-200">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-green-600">Completed</p>
-                  <span className="text-xs text-gray-500">
+                  <p className="text-sm font-semibold text-green-700">Completed</p>
+                  <span className="text-xs font-medium text-green-600">
                     {analytics.order_metrics.total_orders > 0 
                       ? Math.round((analytics.order_metrics.completed / analytics.order_metrics.total_orders) * 100)
                       : 0}%
                   </span>
                 </div>
-                <p className="text-2xl font-bold">{analytics.order_metrics.completed}</p>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
+                  {analytics.order_metrics.completed}
+                </p>
+                <div className="w-full bg-green-200 rounded-full h-2.5">
                   <div 
-                    className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-green-500 to-green-600 h-2.5 rounded-full transition-all duration-300 shadow-sm"
                     style={{ 
                       width: `${analytics.order_metrics.total_orders > 0 
                         ? (analytics.order_metrics.completed / analytics.order_metrics.total_orders) * 100 
@@ -262,21 +294,23 @@ const SellerAnalytics = ({ sellerId }) => {
             </div>
 
             {/* Performance Metrics */}
-            <div className="border-t pt-4">
+            <div className="border-t border-[#e5ded7] pt-6 mt-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">Total Orders</p>
-                  <p className="text-2xl font-bold text-gray-900">{analytics.order_metrics.total_orders}</p>
+                <div className="text-center p-5 bg-gradient-to-br from-[#faf9f8] to-white rounded-xl border-2 border-[#e5ded7] hover:border-[#a4785a] transition-all duration-200 hover:shadow-md">
+                  <p className="text-sm font-semibold text-[#7b5a3b]">Total Orders</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] bg-clip-text text-transparent mt-2">
+                    {analytics.order_metrics.total_orders}
+                  </p>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-sm text-green-600">Completion Rate</p>
-                  <p className="text-2xl font-bold text-green-700">
+                <div className="text-center p-5 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border-2 border-green-200 hover:border-green-400 transition-all duration-200 hover:shadow-md">
+                  <p className="text-sm font-semibold text-green-700">Completion Rate</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent mt-2">
                     {Math.round(analytics.order_metrics.completion_rate)}%
                   </p>
                 </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-600">Processing Orders</p>
-                  <p className="text-2xl font-bold text-blue-700">
+                <div className="text-center p-5 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 hover:shadow-md">
+                  <p className="text-sm font-semibold text-blue-700">Processing Orders</p>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent mt-2">
                     {analytics.order_metrics.pending + analytics.order_metrics.packing + analytics.order_metrics.shipped}
                   </p>
                 </div>
@@ -284,9 +318,12 @@ const SellerAnalytics = ({ sellerId }) => {
             </div>
 
             {/* Order Flow Visualization */}
-            <div className="border-t pt-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Order Flow</h4>
-              <div className="flex items-center justify-between">
+            <div className="border-t border-[#e5ded7] pt-6 mt-6">
+              <h4 className="text-sm font-semibold text-[#5c3d28] mb-4 flex items-center">
+                <div className="h-1 w-8 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded mr-2"></div>
+                Order Flow Journey
+              </h4>
+              <div className="flex items-center justify-between bg-gradient-to-r from-[#faf9f8] to-white p-4 rounded-xl border-2 border-[#e5ded7]">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
                   <span className="text-xs text-gray-600">Pending</span>
@@ -319,12 +356,15 @@ const SellerAnalytics = ({ sellerId }) => {
       </Card>
 
       {/* Peak Selling Periods */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Peak Selling Periods</CardTitle>
-          <CardDescription>Top performing months with detailed insights</CardDescription>
+      <Card className="border-2 border-[#e5ded7] shadow-xl">
+        <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+          <CardTitle className="text-[#5c3d28] flex items-center">
+            <TrendingUp className="h-5 w-5 mr-2 text-[#a4785a]" />
+            Peak Selling Periods
+          </CardTitle>
+          <CardDescription className="text-[#7b5a3b]">Top performing months with detailed insights</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="space-y-4">
             {analytics.peak_periods.map((period, index) => {
               // Get top products for this period (simulate based on best_sellers)
@@ -337,12 +377,19 @@ const SellerAnalytics = ({ sellerId }) => {
                 <TooltipProvider key={period.month}>
                   <UITooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors">
-                        <div>
-                          <p className="font-medium">#{index + 1} - {period.month}</p>
-                          <p className="text-sm text-gray-500">{period.orders} orders</p>
+                      <div className="flex items-center justify-between p-5 rounded-xl border-2 border-[#e5ded7] hover:border-[#a4785a] bg-gradient-to-r from-white to-[#faf9f8] hover:shadow-md cursor-pointer transition-all duration-200">
+                        <div className="flex items-center space-x-4">
+                          <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center text-white font-bold shadow-lg">
+                            #{index + 1}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-[#5c3d28]">{period.month}</p>
+                            <p className="text-sm text-[#7b5a3b]">{period.orders} orders</p>
+                          </div>
                         </div>
-                        <p className="font-bold">{formatCurrency(period.revenue)}</p>
+                        <p className="text-xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
+                          {formatCurrency(period.revenue)}
+                        </p>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-md">
@@ -395,12 +442,15 @@ const SellerAnalytics = ({ sellerId }) => {
       </Card>
 
       {/* Revenue Trends */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Revenue Trends</CardTitle>
-          <CardDescription>Monthly revenue over the past year</CardDescription>
+      <Card className="border-2 border-[#e5ded7] shadow-xl">
+        <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+          <CardTitle className="text-[#5c3d28] flex items-center">
+            <TrendingUp className="h-5 w-5 mr-2 text-[#a4785a]" />
+            Revenue Trends
+          </CardTitle>
+          <CardDescription className="text-[#7b5a3b]">Monthly revenue over the past year</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={analytics.monthly_trends}>
@@ -412,8 +462,11 @@ const SellerAnalytics = ({ sellerId }) => {
                 <Line
                   type="monotone"
                   dataKey="revenue"
-                  stroke="#8884d8"
+                  stroke="#a4785a"
+                  strokeWidth={3}
                   name="Revenue"
+                  dot={{ fill: '#7b5a3b', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -422,12 +475,15 @@ const SellerAnalytics = ({ sellerId }) => {
       </Card>
 
       {/* Combined Product Performance & Revenue Analysis */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Product Performance & Revenue Analysis</CardTitle>
-          <CardDescription>Combined view of best selling products and revenue by category</CardDescription>
+      <Card className="border-2 border-[#e5ded7] shadow-xl">
+        <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+          <CardTitle className="text-[#5c3d28] flex items-center">
+            <Package className="h-5 w-5 mr-2 text-[#a4785a]" />
+            Product Performance & Revenue Analysis
+          </CardTitle>
+          <CardDescription className="text-[#7b5a3b]">Combined view of best selling products and revenue by category</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -484,16 +540,16 @@ const SellerAnalytics = ({ sellerId }) => {
                 <Bar 
                   yAxisId="units"
                   dataKey="units_sold" 
-                  fill="#8884d8" 
+                  fill="#a4785a" 
                   name="Units Sold"
-                  radius={[2, 2, 0, 0]}
+                  radius={[8, 8, 0, 0]}
                 />
                 <Bar 
                   yAxisId="revenue"
                   dataKey="revenue" 
-                  fill="#82ca9d" 
+                  fill="#7b5a3b" 
                   name="Revenue"
-                  radius={[2, 2, 0, 0]}
+                  radius={[8, 8, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -502,24 +558,31 @@ const SellerAnalytics = ({ sellerId }) => {
       </Card>
 
       {/* Discount Code Stats */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Discount Code Performance</CardTitle>
-          <CardDescription>Overview of your discount codes usage</CardDescription>
+      <Card className="border-2 border-[#e5ded7] shadow-xl">
+        <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+          <CardTitle className="text-[#5c3d28] flex items-center">
+            <Tag className="h-5 w-5 mr-2 text-[#a4785a]" />
+            Discount Code Performance
+          </CardTitle>
+          <CardDescription className="text-[#7b5a3b]">Overview of your discount codes usage</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Total Codes</p>
-              <p className="text-2xl font-bold">{analytics.discount_stats.total_codes}</p>
+            <div className="p-5 bg-gradient-to-br from-white to-[#faf9f8] rounded-xl border-2 border-[#e5ded7] hover:border-[#a4785a] transition-all duration-200 hover:shadow-md">
+              <p className="text-sm font-semibold text-[#7b5a3b]">Total Codes</p>
+              <p className="text-3xl font-bold bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] bg-clip-text text-transparent mt-2">
+                {analytics.discount_stats.total_codes}
+              </p>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Times Used</p>
-              <p className="text-2xl font-bold">{analytics.discount_stats.codes_used}</p>
+            <div className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border-2 border-purple-200 hover:border-purple-400 transition-all duration-200 hover:shadow-md">
+              <p className="text-sm font-semibold text-purple-700">Times Used</p>
+              <p className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent mt-2">
+                {analytics.discount_stats.codes_used}
+              </p>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Total Discount Amount</p>
-              <p className="text-2xl font-bold">
+            <div className="p-5 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border-2 border-green-200 hover:border-green-400 transition-all duration-200 hover:shadow-md">
+              <p className="text-sm font-semibold text-green-700">Total Discount Amount</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent mt-2">
                 {formatCurrency(analytics.discount_stats.total_discount_amount)}
               </p>
             </div>
@@ -528,29 +591,32 @@ const SellerAnalytics = ({ sellerId }) => {
       </Card>
 
       {/* Low Performing Products */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Products Needing Attention</CardTitle>
-          <CardDescription>Products with low inventory turnover</CardDescription>
+      <Card className="border-2 border-[#e5ded7] shadow-xl">
+        <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+          <CardTitle className="text-[#5c3d28] flex items-center">
+            <AlertTriangle className="h-5 w-5 mr-2 text-[#a4785a]" />
+            Products Needing Attention
+          </CardTitle>
+          <CardDescription className="text-[#7b5a3b]">Products with low inventory turnover</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="pt-6">
+          <div className="space-y-3">
             {analytics.low_performers.map((product) => (
               <div
                 key={product.product_id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between p-5 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border-2 border-orange-200 hover:border-orange-400 transition-all duration-200 hover:shadow-md"
               >
                 <div>
-                  <p className="font-medium">{product.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {product.units_sold} units sold | {formatCurrency(product.revenue)} revenue
+                  <p className="font-semibold text-[#5c3d28]">{product.name}</p>
+                  <p className="text-sm text-[#7b5a3b] mt-1">
+                    {product.units_sold} units sold • {formatCurrency(product.revenue)} revenue
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-semibold text-orange-700">
                     {(product.conversion_rate).toFixed(1)}% conversion
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-orange-600 mt-1">
                     {(product.inventory_turnover).toFixed(2)}x turnover
                   </p>
                 </div>

@@ -38,30 +38,35 @@ import EmptyState from "../ui/EmptyState";
 import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
 
   const ColorPicker = ({ label, value, onChange }) => (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Label htmlFor={label}>{label}</Label>
+        <Label htmlFor={label} className="text-sm font-semibold text-[#5c3d28]">{label}</Label>
         <div className="flex items-center gap-2">
           <div
-            className="h-5 w-5 rounded-full border"
+            className="h-6 w-6 rounded-lg border-2 border-[#e5ded7] shadow-sm"
             style={{ backgroundColor: value }}
           />
-          <span className="text-xs text-gray-500">{value}</span>
+          <span className="text-xs text-[#7b5a3b] font-mono font-medium bg-[#faf9f8] px-2 py-1 rounded">{value}</span>
         </div>
       </div>
-      <div className="flex gap-2">
-        <Input
-          id={label}
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-10 w-10 p-1"
-        />
+      <div className="flex gap-3">
+        <div className="relative group">
+          <Input
+            id={label}
+            type="color"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="h-12 w-12 p-1 cursor-pointer border-2 border-[#e5ded7] rounded-lg hover:border-[#a4785a] transition-all duration-200"
+          />
+          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-[#5c3d28] text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Pick Color
+          </div>
+        </div>
         <Input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1"
+          className="flex-1 border-2 border-[#e5ded7] focus:border-[#a4785a] bg-white text-[#5c3d28] font-mono transition-all duration-200"
           placeholder="#000000"
         />
       </div>
@@ -475,6 +480,7 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
                   storeData={storeData} 
                   customization={customization}
                   imagePreviews={imagePreviews}
+                  setPreviewMode={setPreviewMode}
                 />
               ) : (
               <div className="text-center py-20">
@@ -501,40 +507,66 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
 
           <div className="w-1/3 space-y-6">
             <Tabs defaultValue="branding">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="branding">
+              <TabsList className="grid w-full grid-cols-2 gap-2 bg-gradient-to-r from-[#faf9f8] to-white p-2 rounded-xl border-2 border-[#e5ded7] shadow-lg">
+                <TabsTrigger 
+                  value="branding"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 hover:bg-[#faf9f8] rounded-lg py-3"
+                >
                   <ImageIcon className="h-4 w-4 mr-2" />
-                  Branding
+                  <span className="font-semibold">Branding</span>
                 </TabsTrigger>
-                <TabsTrigger value="colors">
+                <TabsTrigger 
+                  value="colors"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 hover:bg-[#faf9f8] rounded-lg py-3"
+                >
                   <Palette className="h-4 w-4 mr-2" />
-                  Colors
+                  <span className="font-semibold">Colors</span>
                 </TabsTrigger>
-                <TabsTrigger value="typography">
+                <TabsTrigger 
+                  value="typography"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 hover:bg-[#faf9f8] rounded-lg py-3"
+                >
                   <Type className="h-4 w-4 mr-2" />
-                  Typography
+                  <span className="font-semibold">Typography</span>
                 </TabsTrigger>
-                <TabsTrigger value="layout">
+                <TabsTrigger 
+                  value="layout"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 hover:bg-[#faf9f8] rounded-lg py-3"
+                >
                   <Layout className="h-4 w-4 mr-2" />
-                  Layout
+                  <span className="font-semibold">Layout</span>
                 </TabsTrigger>
               </TabsList>
 
               {/* Branding Tab */}
               <TabsContent value="branding" className="space-y-4 pt-4">
-                <Card className="p-4 space-y-4">
+                <Card className="p-6 space-y-6 border-2 border-[#e5ded7] shadow-xl rounded-2xl bg-gradient-to-br from-white to-[#faf9f8]">
+                  <div className="flex items-center gap-3 pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <ImageIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-[#5c3d28]">Brand Identity</h3>
+                  </div>
                   <div className="space-y-2">
-                    <Label>Store Name</Label>
+                    <Label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
+                      <span className="p-1 bg-[#a4785a]/10 rounded">🏪</span>
+                      Store Name
+                    </Label>
                     <Input 
                       value={storeData?.store?.store_name || ""} 
                       disabled 
-                      className="bg-gray-50"
+                      className="bg-[#faf9f8] border-[#e5ded7] text-[#5c3d28] font-medium cursor-not-allowed"
                     />
-                    <p className="text-xs text-gray-500">Store name cannot be changed here</p>
+                    <p className="text-xs text-[#7b5a3b] flex items-center gap-1">
+                      <span className="text-amber-600">ℹ️</span> Store name cannot be changed here
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Store Description</Label>
+                    <Label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
+                      <span className="p-1 bg-[#a4785a]/10 rounded">📝</span>
+                      Store Description
+                    </Label>
                     <textarea
                       value={storeData?.store?.store_description || ""}
                       onChange={(e) => {
@@ -547,22 +579,32 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
                         });
                       }}
                       placeholder="Describe your store and what makes it unique..."
-                      className="w-full min-h-[100px] p-3 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#a4785a] focus:border-transparent resize-y"
+                      className="w-full min-h-[100px] p-3 rounded-xl border-2 border-[#e5ded7] focus:outline-none focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] resize-y bg-white text-[#5c3d28] transition-all duration-200"
                     />
-                    <p className="text-xs text-gray-500">This description will appear on your store's homepage</p>
+                    <p className="text-xs text-[#7b5a3b] flex items-center gap-1">
+                      <span className="text-blue-600">💡</span> This description will appear on your store's homepage
+                    </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Store Logo</Label>
-                    <div className="flex items-center gap-4">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
+                      <span className="p-1 bg-[#a4785a]/10 rounded">🎨</span>
+                      Store Logo
+                    </Label>
+                    <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl hover:border-[#a4785a] transition-all duration-200">
                       {imagePreviews.logo && (
-                        <img 
-                          src={imagePreviews.logo} 
-                          alt="Logo preview" 
-                          className="w-16 h-16 object-contain border rounded"
-                        />
+                        <div className="relative group">
+                          <img 
+                            src={imagePreviews.logo} 
+                            alt="Logo preview" 
+                            className="w-16 h-16 object-contain border-2 border-[#a4785a] rounded-lg shadow-md"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                            <span className="text-white text-xs">✓</span>
+                          </div>
+                        </div>
                       )}
-                      <div>
+                      <div className="flex-1">
                         <input
                           type="file"
                           accept="image/*"
@@ -571,8 +613,8 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
                           id="logo-upload"
                         />
                         <Label htmlFor="logo-upload" className="cursor-pointer">
-                          <Button variant="outline" size="sm" asChild>
-                            <span><Upload className="h-4 w-4 mr-2" />Upload Logo</span>
+                          <Button variant="outline" size="sm" asChild className="border-[#a4785a] text-[#5c3d28] hover:bg-[#a4785a] hover:text-white transition-all duration-200">
+                            <span><Upload className="h-4 w-4 mr-2" />{imagePreviews.logo ? 'Change Logo' : 'Upload Logo'}</span>
                           </Button>
                         </Label>
                       </div>
@@ -687,151 +729,268 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
 
               {/* Colors Tab */}
               <TabsContent value="colors" className="space-y-4 pt-4">
-                <Card className="p-4 space-y-4">
-                  <ColorPicker 
-                    label="Primary Color" 
-                    value={customization.primary_color} 
-                    onChange={(val) => handleCustomizationChange("primary_color", val)} 
-                  />
-                  <ColorPicker 
-                    label="Secondary Color" 
-                    value={customization.secondary_color} 
-                    onChange={(val) => handleCustomizationChange("secondary_color", val)} 
-                  />
-                  <ColorPicker 
-                    label="Background Color" 
-                    value={customization.background_color} 
-                    onChange={(val) => handleCustomizationChange("background_color", val)} 
-                  />
-                  <ColorPicker 
-                    label="Text Color" 
-                    value={customization.text_color} 
-                    onChange={(val) => handleCustomizationChange("text_color", val)} 
-                  />
-                  <ColorPicker 
-                    label="Accent Color" 
-                    value={customization.accent_color} 
-                    onChange={(val) => handleCustomizationChange("accent_color", val)} 
-                  />
+                <Card className="p-6 space-y-6 border-2 border-[#e5ded7] shadow-xl rounded-2xl bg-gradient-to-br from-white to-[#faf9f8]">
+                  <div className="flex items-center gap-3 pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <Palette className="h-5 w-5 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-[#5c3d28]">Color Scheme</h3>
+                  </div>
+                  <div className="space-y-5">
+                    <div className="p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl hover:border-[#a4785a] transition-all duration-200">
+                      <ColorPicker 
+                        label="🎨 Primary Color" 
+                        value={customization.primary_color} 
+                        onChange={(val) => handleCustomizationChange("primary_color", val)} 
+                      />
+                    </div>
+                    <div className="p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl hover:border-[#a4785a] transition-all duration-200">
+                      <ColorPicker 
+                        label="🌟 Secondary Color" 
+                        value={customization.secondary_color} 
+                        onChange={(val) => handleCustomizationChange("secondary_color", val)} 
+                      />
+                    </div>
+                    <div className="p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl hover:border-[#a4785a] transition-all duration-200">
+                      <ColorPicker 
+                        label="🖼️ Background Color" 
+                        value={customization.background_color} 
+                        onChange={(val) => handleCustomizationChange("background_color", val)} 
+                      />
+                    </div>
+                    <div className="p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl hover:border-[#a4785a] transition-all duration-200">
+                      <ColorPicker 
+                        label="📝 Text Color" 
+                        value={customization.text_color} 
+                        onChange={(val) => handleCustomizationChange("text_color", val)} 
+                      />
+                    </div>
+                    <div className="p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl hover:border-[#a4785a] transition-all duration-200">
+                      <ColorPicker 
+                        label="✨ Accent Color" 
+                        value={customization.accent_color} 
+                        onChange={(val) => handleCustomizationChange("accent_color", val)} 
+                      />
+                    </div>
+                  </div>
+                  <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                    <p className="text-sm text-blue-800 flex items-center gap-2">
+                      <span className="text-lg">💡</span>
+                      <span className="font-medium">Tip: Choose colors that reflect your brand identity and create visual harmony</span>
+                    </p>
+                  </div>
                 </Card>
               </TabsContent>
 
               {/* Typography Tab */}
               <TabsContent value="typography" className="space-y-4 pt-4">
-                <Card className="p-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label>Heading Font</Label>
+                <Card className="p-6 space-y-6 border-2 border-[#e5ded7] shadow-xl rounded-2xl bg-gradient-to-br from-white to-[#faf9f8]">
+                  <div className="flex items-center gap-3 pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <Type className="h-5 w-5 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-[#5c3d28]">Typography</h3>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
+                      <span className="p-1 bg-[#a4785a]/10 rounded">Aa</span>
+                      Heading Font
+                    </Label>
                     <Select value={customization.heading_font} onValueChange={(val) => handleCustomizationChange("heading_font", val)}>
-                      <SelectTrigger className="bg-white">
+                      <SelectTrigger className="bg-white border-2 border-[#e5ded7] focus:border-[#a4785a] hover:border-[#a4785a] transition-all duration-200">
                         <SelectValue placeholder="Select font" />
                       </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        <SelectItem value="Inter">Inter</SelectItem>
-                        <SelectItem value="Roboto">Roboto</SelectItem>
-                        <SelectItem value="Montserrat">Montserrat</SelectItem>
-                        <SelectItem value="Playfair Display">Playfair Display</SelectItem>
-                        <SelectItem value="Merriweather">Merriweather</SelectItem>
+                      <SelectContent className="bg-white border-2 border-[#e5ded7]">
+                        <SelectItem value="Inter" className="hover:bg-[#faf9f8]">Inter</SelectItem>
+                        <SelectItem value="Roboto" className="hover:bg-[#faf9f8]">Roboto</SelectItem>
+                        <SelectItem value="Montserrat" className="hover:bg-[#faf9f8]">Montserrat</SelectItem>
+                        <SelectItem value="Playfair Display" className="hover:bg-[#faf9f8]">Playfair Display</SelectItem>
+                        <SelectItem value="Merriweather" className="hover:bg-[#faf9f8]">Merriweather</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Body Font</Label>
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
+                      <span className="p-1 bg-[#a4785a]/10 rounded">Aa</span>
+                      Body Font
+                    </Label>
                     <Select value={customization.body_font} onValueChange={(val) => handleCustomizationChange("body_font", val)}>
-                      <SelectTrigger className="bg-white">
+                      <SelectTrigger className="bg-white border-2 border-[#e5ded7] focus:border-[#a4785a] hover:border-[#a4785a] transition-all duration-200">
                         <SelectValue placeholder="Select font" />
                       </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        <SelectItem value="Inter">Inter</SelectItem>
-                        <SelectItem value="Roboto">Roboto</SelectItem>
-                        <SelectItem value="Open Sans">Open Sans</SelectItem>
-                        <SelectItem value="Lato">Lato</SelectItem>
-                        <SelectItem value="Source Sans Pro">Source Sans Pro</SelectItem>
+                      <SelectContent className="bg-white border-2 border-[#e5ded7]">
+                        <SelectItem value="Inter" className="hover:bg-[#faf9f8]">Inter</SelectItem>
+                        <SelectItem value="Roboto" className="hover:bg-[#faf9f8]">Roboto</SelectItem>
+                        <SelectItem value="Open Sans" className="hover:bg-[#faf9f8]">Open Sans</SelectItem>
+                        <SelectItem value="Lato" className="hover:bg-[#faf9f8]">Lato</SelectItem>
+                        <SelectItem value="Source Sans Pro" className="hover:bg-[#faf9f8]">Source Sans Pro</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Heading Size: {customization.heading_size}px</Label>
-                    <Slider 
-                      value={[customization.heading_size]} 
-                      min={12} 
-                      max={36} 
-                      step={1} 
-                      onValueChange={(val) => handleCustomizationChange("heading_size", val[0])} 
-                    />
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-[#5c3d28] flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <span className="p-1 bg-[#a4785a]/10 rounded">H</span>
+                        Heading Size
+                      </span>
+                      <span className="text-[#a4785a] font-bold">{customization.heading_size}px</span>
+                    </Label>
+                    <div className="p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl">
+                      <Slider 
+                        value={[customization.heading_size]} 
+                        min={12} 
+                        max={36} 
+                        step={1} 
+                        onValueChange={(val) => handleCustomizationChange("heading_size", val[0])} 
+                        className="cursor-pointer"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Body Size: {customization.body_size}px</Label>
-                    <Slider 
-                      value={[customization.body_size]} 
-                      min={12} 
-                      max={24} 
-                      step={1} 
-                      onValueChange={(val) => handleCustomizationChange("body_size", val[0])} 
-                    />
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-[#5c3d28] flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <span className="p-1 bg-[#a4785a]/10 rounded">T</span>
+                        Body Size
+                      </span>
+                      <span className="text-[#a4785a] font-bold">{customization.body_size}px</span>
+                    </Label>
+                    <div className="p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl">
+                      <Slider 
+                        value={[customization.body_size]} 
+                        min={12} 
+                        max={24} 
+                        step={1} 
+                        onValueChange={(val) => handleCustomizationChange("body_size", val[0])} 
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-amber-50 border-2 border-amber-200 rounded-xl">
+                    <p className="text-sm text-amber-800 flex items-center gap-2">
+                      <span className="text-lg">📖</span>
+                      <span className="font-medium">Typography affects readability and brand personality</span>
+                    </p>
                   </div>
                 </Card>
               </TabsContent>
 
               {/* Layout Tab */}
               <TabsContent value="layout" className="space-y-4 pt-4">
-                <Card className="p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label>Show Hero Section</Label>
+                <Card className="p-6 space-y-6 border-2 border-[#e5ded7] shadow-xl rounded-2xl bg-gradient-to-br from-white to-[#faf9f8]">
+                  <div className="flex items-center gap-3 pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <Layout className="h-5 w-5 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-[#5c3d28]">Layout Settings</h3>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl hover:border-[#a4785a] transition-all duration-200 group">
+                    <Label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2 cursor-pointer">
+                      <span className="p-1 bg-[#a4785a]/10 rounded group-hover:bg-[#a4785a]/20 transition-all">🎯</span>
+                      Show Hero Section
+                    </Label>
                     <Switch 
                       checked={customization.show_hero_section} 
                       onCheckedChange={(val) => handleCustomizationChange("show_hero_section", val)} 
+                      className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#a4785a] data-[state=checked]:to-[#7b5a3b]"
                     />
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <Label>Show Featured Products</Label>
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl hover:border-[#a4785a] transition-all duration-200 group">
+                    <Label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2 cursor-pointer">
+                      <span className="p-1 bg-[#a4785a]/10 rounded group-hover:bg-[#a4785a]/20 transition-all">⭐</span>
+                      Show Featured Products
+                    </Label>
                     <Switch 
                       checked={customization.show_featured_products} 
                       onCheckedChange={(val) => handleCustomizationChange("show_featured_products", val)} 
+                      className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#a4785a] data-[state=checked]:to-[#7b5a3b]"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Product Card Style</Label>
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
+                      <span className="p-1 bg-[#a4785a]/10 rounded">🃏</span>
+                      Product Card Style
+                    </Label>
                     <Select 
                       value={customization.product_card_style} 
                       onValueChange={(val) => handleCustomizationChange("product_card_style", val)}
                     >
-                      <SelectTrigger className="bg-white">
+                      <SelectTrigger className="bg-white border-2 border-[#e5ded7] focus:border-[#a4785a] hover:border-[#a4785a] transition-all duration-200">
                         <SelectValue placeholder="Select style" />
                       </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        <SelectItem value="minimal">Minimal</SelectItem>
-                        <SelectItem value="detailed">Detailed</SelectItem>
-                        <SelectItem value="compact">Compact</SelectItem>
-                        <SelectItem value="elegant">Elegant</SelectItem>
+                      <SelectContent className="bg-white border-2 border-[#e5ded7]">
+                        <SelectItem value="minimal" className="hover:bg-[#faf9f8]">Minimal</SelectItem>
+                        <SelectItem value="detailed" className="hover:bg-[#faf9f8]">Detailed</SelectItem>
+                        <SelectItem value="compact" className="hover:bg-[#faf9f8]">Compact</SelectItem>
+                        <SelectItem value="elegant" className="hover:bg-[#faf9f8]">Elegant</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Desktop Columns: {customization.desktop_columns}</Label>
-                    <Slider 
-                      value={[customization.desktop_columns]} 
-                      min={2} 
-                      max={6} 
-                      step={1} 
-                      onValueChange={(val) => handleCustomizationChange("desktop_columns", val[0])} 
-                    />
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-[#5c3d28] flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <span className="p-1 bg-[#a4785a]/10 rounded">🖥️</span>
+                        Desktop Columns
+                      </span>
+                      <span className="text-[#a4785a] font-bold">{customization.desktop_columns}</span>
+                    </Label>
+                    <div className="p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl">
+                      <Slider 
+                        value={[customization.desktop_columns]} 
+                        min={2} 
+                        max={6} 
+                        step={1} 
+                        onValueChange={(val) => handleCustomizationChange("desktop_columns", val[0])} 
+                        className="cursor-pointer"
+                      />
+                      <div className="flex justify-between mt-2 text-xs text-[#7b5a3b]">
+                        <span>2</span>
+                        <span>3</span>
+                        <span>4</span>
+                        <span>5</span>
+                        <span>6</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Mobile Columns: {customization.mobile_columns}</Label>
-                    <Slider 
-                      value={[customization.mobile_columns]} 
-                      min={1} 
-                      max={3} 
-                      step={1} 
-                      onValueChange={(val) => handleCustomizationChange("mobile_columns", val[0])} 
-                    />
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-[#5c3d28] flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <span className="p-1 bg-[#a4785a]/10 rounded">📱</span>
+                        Mobile Columns
+                      </span>
+                      <span className="text-[#a4785a] font-bold">{customization.mobile_columns}</span>
+                    </Label>
+                    <div className="p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl">
+                      <Slider 
+                        value={[customization.mobile_columns]} 
+                        min={1} 
+                        max={3} 
+                        step={1} 
+                        onValueChange={(val) => handleCustomizationChange("mobile_columns", val[0])} 
+                        className="cursor-pointer"
+                      />
+                      <div className="flex justify-between mt-2 text-xs text-[#7b5a3b]">
+                        <span>1</span>
+                        <span>2</span>
+                        <span>3</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-xl">
+                    <p className="text-sm text-purple-800 flex items-center gap-2">
+                      <span className="text-lg">📐</span>
+                      <span className="font-medium">Layout options help optimize your store for different devices</span>
+                    </p>
                   </div>
                 </Card>
               </TabsContent>
@@ -844,7 +1003,7 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
   };
 
   // Store Preview Component with StoreView Design
-  const StorePreview = ({ storeData, customization, imagePreviews }) => {
+  const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode }) => {
     // Use real store data from database
     const store = {
       name: storeData?.store?.store_name || "Your Store",

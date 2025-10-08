@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use App\Models\User;
 use App\Models\Seller;
 use App\Models\Customer;
@@ -171,17 +172,17 @@ class AdminController extends AuthController
     }
 
     /**
-     * Get all stores for admin verification
+     * Get all stores for admin verification (optimized)
      */
     public function getAllStores(Request $request)
     {
         $this->checkAdminRole();
         
-        $query = Store::with(['seller.user', 'user'])
+        $query = Store::with('seller:sellerID,is_verified')
             ->orderBy('created_at', 'desc');
 
         // Filter by status
-        if ($request->has('status')) {
+        if ($request->has('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
@@ -191,21 +192,31 @@ class AdminController extends AuthController
             $query->where(function($q) use ($search) {
                 $q->where('store_name', 'like', "%{$search}%")
                   ->orWhere('owner_name', 'like', "%{$search}%")
-                  ->orWhereHas('user', function($userQuery) use ($search) {
-                      $userQuery->where('userName', 'like', "%{$search}%");
-                  });
+                  ->orWhere('owner_email', 'like', "%{$search}%");
             });
         }
 
-        $stores = $query->paginate(15);
+        // Use smaller pagination size for better performance
+        $stores = $query->paginate(10);
 
-        // Add document URLs
+        // Transform for response
         $stores->getCollection()->transform(function ($store) {
-            $store->logo_url = $store->logo_path ? url('storage/' . $store->logo_path) : null;
-            $store->bir_url = $store->bir_path ? url('storage/' . $store->bir_path) : null;
-            $store->dti_url = $store->dti_path ? url('storage/' . $store->dti_path) : null;
-            $store->id_image_url = $store->id_image_path ? url('storage/' . $store->id_image_path) : null;
-            return $store;
+            return [
+                'storeID' => $store->storeID,
+                'store_name' => $store->store_name,
+                'owner_name' => $store->owner_name,
+                'owner_email' => $store->owner_email,
+                'tin_number' => $store->tin_number,
+                'category' => $store->category,
+                'status' => $store->status,
+                'rejection_reason' => $store->rejection_reason,
+                'logo_url' => $store->logo_path ? url('storage/' . $store->logo_path) : null,
+                'created_at' => $store->created_at,
+                'seller' => $store->seller ? [
+                    'sellerID' => $store->seller->sellerID,
+                    'is_verified' => $store->seller->is_verified
+                ] : null
+            ];
         });
 
         return response()->json($stores);
@@ -245,6 +256,9 @@ class AdminController extends AuthController
             $seller->update(['is_verified' => true]);
         }
 
+        // Clear verification stats cache
+        Cache::forget('verification_stats');
+
         return response()->json([
             'message' => 'Store approved and seller verified successfully',
             'store' => $store
@@ -269,6 +283,9 @@ class AdminController extends AuthController
             'status' => 'rejected',
             'rejection_reason' => $request->reason
         ]);
+
+        // Clear verification stats cache
+        Cache::forget('verification_stats');
 
         return response()->json([
             'message' => 'Store rejected successfully',
@@ -317,7 +334,7 @@ class AdminController extends AuthController
     }
 
     /**
-     * Get comprehensive seller details including their products
+     * Get comprehensive seller details including their products (optimized)
      */
     public function getSellerDetails($storeId)
     {
@@ -330,54 +347,20 @@ class AdminController extends AuthController
             return response()->json(['error' => 'Seller not found'], 404);
         }
 
-        // Get seller's products
-        $products = \App\Models\Product::where('seller_id', $seller->sellerID)
-            ->with(['reviews'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($product) {
-                return [
-                    'product_id' => $product->product_id,
-                    'productName' => $product->productName,
-                    'productDescription' => $product->productDescription,
-                    'productPrice' => $product->productPrice,
-                    'productQuantity' => $product->productQuantity,
-                    'productImage' => $product->productImage ? url('storage/' . $product->productImage) : null,
-                    'category' => $product->category,
-                    'status' => $product->status,
-                    'approval_status' => $product->approval_status,
-                    'featured' => $product->featured,
-                    'view_count' => $product->view_count ?? 0,
-                    'average_rating' => $product->reviews->avg('rating') ?? 0,
-                    'total_reviews' => $product->reviews->count(),
-                    'created_at' => $product->created_at,
-                    'updated_at' => $product->updated_at,
-                ];
-            });
-
-        // Get seller's orders
-        $orders = \App\Models\Order::whereHas('products', function($query) use ($seller) {
+        // Use DB queries with limits for faster response
+        $totalProducts = \App\Models\Product::where('seller_id', $seller->sellerID)->count();
+        $totalOrders = \App\Models\Order::whereHas('products', function($query) use ($seller) {
             $query->where('seller_id', $seller->sellerID);
-        })->with(['customer.user', 'products'])
-        ->orderBy('created_at', 'desc')
-        ->get()
-        ->map(function($order) {
-            return [
-                'orderID' => $order->orderID,
-                'customer_name' => $order->customer ? 
-                    ($order->customer->firstName . ' ' . $order->customer->lastName) : 'Unknown',
-                'customer_email' => $order->customer ? $order->customer->user->userEmail : 'N/A',
-                'total_amount' => $order->totalAmount,
-                'status' => $order->status,
-                'created_at' => $order->created_at,
-                'products_count' => $order->products->count(),
-            ];
-        });
-
-        // Calculate seller statistics
-        $totalRevenue = $orders->sum('total_amount');
-        $totalOrders = $orders->count();
-        $completedOrders = $orders->where('status', 'delivered')->count();
+        })->count();
+        
+        $completedOrders = \App\Models\Order::whereHas('products', function($query) use ($seller) {
+            $query->where('seller_id', $seller->sellerID);
+        })->where('status', 'delivered')->count();
+        
+        $totalRevenue = \App\Models\Order::whereHas('products', function($query) use ($seller) {
+            $query->where('seller_id', $seller->sellerID);
+        })->where('status', 'delivered')->sum('totalAmount');
+        
         $completionRate = $totalOrders > 0 ? ($completedOrders / $totalOrders) * 100 : 0;
 
         return response()->json([
@@ -413,36 +396,37 @@ class AdminController extends AuthController
                 'created_at' => $store->created_at,
                 'updated_at' => $store->updated_at,
             ],
-            'products' => $products,
-            'orders' => $orders,
             'statistics' => [
-                'total_products' => $products->count(),
+                'total_products' => $totalProducts,
                 'total_orders' => $totalOrders,
                 'completed_orders' => $completedOrders,
                 'completion_rate' => round($completionRate, 2),
-                'total_revenue' => $totalRevenue,
+                'total_revenue' => round($totalRevenue, 2),
                 'average_order_value' => $totalOrders > 0 ? round($totalRevenue / $totalOrders, 2) : 0,
             ]
         ]);
     }
 
     /**
-     * Get store verification statistics
+     * Get store verification statistics (cached)
      */
     public function getVerificationStats()
     {
         $this->checkAdminRole();
         
-        $stats = [
-            'total_stores' => Store::count(),
-            'pending_stores' => Store::where('status', 'pending')->count(),
-            'approved_stores' => Store::where('status', 'approved')->count(),
-            'rejected_stores' => Store::where('status', 'rejected')->count(),
-            'verified_sellers' => Seller::where('is_verified', true)->count(),
-            'unverified_sellers' => Seller::where('is_verified', false)->count(),
-            'total_customers' => User::where('role', 'customer')->count(),
-            'total_artisans' => User::where('role', 'seller')->count(),
-        ];
+        // Cache stats for 2 minutes (120 seconds)
+        $stats = Cache::remember('verification_stats', 120, function() {
+            return [
+                'total_stores' => Store::count(),
+                'pending_stores' => Store::where('status', 'pending')->count(),
+                'approved_stores' => Store::where('status', 'approved')->count(),
+                'rejected_stores' => Store::where('status', 'rejected')->count(),
+                'verified_sellers' => Seller::where('is_verified', true)->count(),
+                'unverified_sellers' => Seller::where('is_verified', false)->count(),
+                'total_customers' => User::where('role', 'customer')->count(),
+                'total_artisans' => User::where('role', 'seller')->count(),
+            ];
+        });
 
         return response()->json($stats);
     }

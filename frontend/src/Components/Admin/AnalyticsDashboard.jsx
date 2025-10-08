@@ -73,7 +73,7 @@ const AnalyticsDashboard = () => {
   const [generating, setGenerating] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('monthly');
   const [dateRange, setDateRange] = useState({
-    start_date: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year ago
+    start_date: new Date(Date.now() - 3 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 years ago (minimum recommended)
     end_date: new Date().toISOString().split('T')[0]
   });
   
@@ -91,6 +91,12 @@ const AnalyticsDashboard = () => {
         description: "Ideal for business planning, seasonal analysis, and long-term trend identification",
         suggestedRange: "Last 6-12 months",
         charts: ["Monthly revenue", "Growth patterns", "Seasonal trends"]
+      },
+      quarterly: {
+        title: "Quarterly View Recommended",
+        description: "Excellent for quarterly reporting, business reviews, and performance tracking",
+        suggestedRange: "Last 4-8 quarters",
+        charts: ["Quarterly revenue", "Quarter-over-quarter growth", "Seasonal patterns"]
       },
       yearly: {
         title: "Yearly View Recommended",
@@ -114,8 +120,10 @@ const AnalyticsDashboard = () => {
       const url = `http://localhost:8000/api/analytics/test-controller?period=${selectedPeriod}&start_date=${dateRange.start_date}&end_date=${dateRange.end_date}`;
       
       const response = await fetch(url, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
       });
       
@@ -151,6 +159,10 @@ const AnalyticsDashboard = () => {
         // For monthly view, show last 12 months
         newDateRange.start_date = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         break;
+      case 'quarterly':
+        // For quarterly view, show last 8 quarters (2 years)
+        newDateRange.start_date = new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        break;
       case 'yearly':
         // For yearly view, show last 3 years
         newDateRange.start_date = new Date(now.getTime() - 3 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -172,8 +184,8 @@ const AnalyticsDashboard = () => {
   const fetchMicroAnalyticsData = async () => {
     setMicroAnalyticsLoading(true);
     try {
-      const mostSellingUrl = `http://localhost:8000/api/analytics/micro/most-selling-products?period=${selectedPeriod}&start_date=${dateRange.start_date}&end_date=${dateRange.end_date}`;
-      const highestSalesUrl = `http://localhost:8000/api/analytics/micro/highest-sales-sellers?period=${selectedPeriod}&start_date=${dateRange.start_date}&end_date=${dateRange.end_date}`;
+      const mostSellingUrl = `http://localhost:8000/api/analytics/revenue/most-selling-products?period=${selectedPeriod}&start_date=${dateRange.start_date}&end_date=${dateRange.end_date}`;
+      const highestSalesUrl = `http://localhost:8000/api/analytics/revenue/highest-sales-sellers?period=${selectedPeriod}&start_date=${dateRange.start_date}&end_date=${dateRange.end_date}`;
       
       const [mostSellingResponse, highestSalesResponse] = await Promise.all([
         fetch(mostSellingUrl),
@@ -217,10 +229,12 @@ const AnalyticsDashboard = () => {
     setGenerating(true);
     try {
       console.log('Generating analytics data...');
+      
       const response = await fetch('http://localhost:8000/api/analytics/generate-public', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
           date: new Date().toISOString().split('T')[0],
@@ -368,6 +382,7 @@ const AnalyticsDashboard = () => {
                   <SelectContent>
                     <SelectItem value="daily">Daily</SelectItem>
                     <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
                     <SelectItem value="yearly">Yearly</SelectItem>
                   </SelectContent>
                 </Select>
@@ -408,7 +423,10 @@ const AnalyticsDashboard = () => {
                   // Trigger micro analytics data generation
                   fetch(`http://localhost:8000/api/analytics/generate-public`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Accept': 'application/json',
+                    },
                     body: JSON.stringify({
                       date: new Date().toISOString().split('T')[0],
                       period_type: selectedPeriod
@@ -547,7 +565,7 @@ const AnalyticsDashboard = () => {
       <div className="admin-table-container">
         <Tabs defaultValue="revenue" className="space-y-4">
           <div className="admin-table-header">
-            <TabsList className="grid w-full grid-cols-7 bg-gray-50 p-1 rounded-lg">
+            <TabsList className="grid w-full grid-cols-6 bg-gray-50 p-1 rounded-lg">
               <TabsTrigger 
                 value="revenue" 
                 className="data-[state=active]:bg-[#a4785a] data-[state=active]:text-white transition-all duration-300"
@@ -583,12 +601,6 @@ const AnalyticsDashboard = () => {
                 className="data-[state=active]:bg-[#a4785a] data-[state=active]:text-white transition-all duration-300"
               >
                 Moderation
-              </TabsTrigger>
-              <TabsTrigger 
-                value="micro"
-                className="data-[state=active]:bg-[#a4785a] data-[state=active]:text-white transition-all duration-300"
-              >
-                Micro Analytics
               </TabsTrigger>
             </TabsList>
           </div>
@@ -676,6 +688,327 @@ const AnalyticsDashboard = () => {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Micro Analytics Section - Merged into Revenue Tab */}
+            <div className="p-6 space-y-6">
+          {/* Time Scale Controls */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue Micro Analytics</CardTitle>
+              <CardDescription>Comprehensive revenue insights into most selling products and highest sales sellers</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4 mb-4">
+                <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="text-sm text-gray-600">
+                  Showing data for: {selectedPeriod} view
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 gap-6">
+            {/* Most Selling Products Trend - Full Width */}
+            <div className="w-full">
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle>Most Selling Products Trend - {selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} View</CardTitle>
+                  <CardDescription>Product performance over time ({selectedPeriod} data points)</CardDescription>
+                </CardHeader>
+                <CardContent className="w-full">
+                  {microAnalyticsLoading ? (
+                    <div className="flex items-center justify-center h-96">
+                      <RefreshCw className="h-8 w-8 animate-spin" />
+                      <span className="ml-2">Loading...</span>
+                    </div>
+                  ) : mostSellingProducts?.trend_data ? (
+                    <div className="w-full h-96">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={mostSellingProducts.trend_data} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="product_name" 
+                            angle={-60}
+                            textAnchor="end"
+                            height={120}
+                            interval={0}
+                            fontSize={12}
+                            tick={{ fontSize: 10 }}
+                          />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value, name) => [
+                              name === 'total_revenue' ? `₱${value.toLocaleString()}` : value,
+                              name === 'total_revenue' ? 'Revenue' : name === 'total_quantity' ? 'Quantity Sold' : 'Orders'
+                            ]}
+                            labelFormatter={(label, payload) => {
+                              if (payload && payload[0]) {
+                                return `Product: ${payload[0].payload.product_name} (${payload[0].payload.seller_name})`;
+                              }
+                              return `Product: ${label}`;
+                            }}
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #ccc',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Legend />
+                          <Line type="monotone" dataKey="total_quantity" stroke="#8884d8" strokeWidth={3} name="Quantity Sold" />
+                          <Line type="monotone" dataKey="total_orders" stroke="#82ca9d" strokeWidth={3} name="Orders" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
+                      <p className="text-gray-600">No trend data available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Highest Sales Sellers Trend - Full Width */}
+            <div className="w-full">
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle>Highest Sales Sellers Trend</CardTitle>
+                  <CardDescription>Seller performance over time ({selectedPeriod})</CardDescription>
+                </CardHeader>
+                <CardContent className="w-full">
+                  {microAnalyticsLoading ? (
+                    <div className="flex items-center justify-center h-96">
+                      <RefreshCw className="h-8 w-8 animate-spin" />
+                      <span className="ml-2">Loading...</span>
+                    </div>
+                  ) : highestSalesSellers?.trend_data ? (
+                    <div className="w-full h-96">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={highestSalesSellers.trend_data} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="seller_name" 
+                            angle={-60}
+                            textAnchor="end"
+                            height={120}
+                            interval={0}
+                            fontSize={12}
+                            tick={{ fontSize: 10 }}
+                          />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value, name) => [
+                              name === 'total_revenue' ? `₱${value.toLocaleString()}` : value,
+                              name === 'total_revenue' ? 'Revenue' : name === 'total_orders' ? 'Orders' : 'Products'
+                            ]}
+                            labelFormatter={(label, payload) => {
+                              if (payload && payload[0]) {
+                                return `Seller: ${payload[0].payload.seller_name} (${payload[0].payload.business_name})`;
+                              }
+                              return `Seller: ${label}`;
+                            }}
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #ccc',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Legend />
+                          <Area type="monotone" dataKey="total_revenue" stackId="1" stroke="#10B981" fill="#10B981" name="Revenue" />
+                          <Area type="monotone" dataKey="total_orders" stackId="2" stroke="#3B82F6" fill="#3B82F6" name="Orders" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
+                      <p className="text-gray-600">No trend data available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Category Performance Comparison */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Category Performance Analysis</CardTitle>
+              <CardDescription>Compare performance across product categories</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {microAnalyticsLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <RefreshCw className="h-8 w-8 animate-spin" />
+                  <span className="ml-2">Loading category data...</span>
+                </div>
+              ) : mostSellingProducts?.category_breakdown ? (
+                <div className="space-y-6">
+                  {Object.entries(mostSellingProducts.category_breakdown).map(([category, products]) => (
+                    <div key={category} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-semibold text-lg capitalize">{category}</h4>
+                        <Badge variant="outline">{products.length} products</Badge>
+                      </div>
+                      <div className="space-y-2">
+                        {products.slice(0, 3).map((product, index) => (
+                          <div key={product.product_id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                            <div className="flex items-center gap-3">
+                              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-sm font-bold">
+                                {index + 1}
+                              </div>
+                              <div>
+                                <div className="font-medium">{product.product_name}</div>
+                                <div className="text-sm text-gray-600">by {product.seller_name}</div>
+                              </div>
+                            </div>
+                            <div className="flex gap-4 text-sm">
+                              <div className="text-center">
+                                <div className="font-semibold text-green-600">{product.total_quantity}</div>
+                                <div className="text-gray-500">Sold</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="font-semibold text-blue-600">₱{product.total_revenue?.toLocaleString()}</div>
+                                <div className="text-gray-500">Revenue</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="font-semibold text-yellow-600">★{product.avg_rating ? parseFloat(product.avg_rating).toFixed(1) : '0.0'}</div>
+                                <div className="text-gray-500">Rating</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
+                  <p className="text-gray-600">No category data available</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Seller Growth Analysis */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Seller Growth Analysis</CardTitle>
+              <CardDescription>Growth rates and performance comparison</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {microAnalyticsLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <RefreshCw className="h-8 w-8 animate-spin" />
+                  <span className="ml-2">Loading growth data...</span>
+                </div>
+              ) : highestSalesSellers?.growth_comparison ? (
+                <div className="space-y-4">
+                  {highestSalesSellers.growth_comparison.slice(0, 10).map((seller, index) => (
+                    <div key={seller.seller_id} className="flex justify-between items-center p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          seller.growth_rate > 0 ? 'bg-green-100 text-green-800' : 
+                          seller.growth_rate < 0 ? 'bg-red-100 text-red-800' : 
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <div>
+                          <div className="font-semibold">{seller.business_name}</div>
+                          <div className="text-sm text-gray-600">{seller.seller_name}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-6 text-sm">
+                        <div className="text-center">
+                          <div className="font-semibold text-green-600">₱{seller.total_revenue?.toLocaleString()}</div>
+                          <div className="text-gray-500">Revenue</div>
+                        </div>
+                        <div className="text-center">
+                          <div className={`font-semibold ${seller.growth_rate > 0 ? 'text-green-600' : seller.growth_rate < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                            {seller.growth_rate > 0 ? '+' : ''}{seller.growth_rate}%
+                          </div>
+                          <div className="text-gray-500">Growth</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold text-blue-600">{seller.total_orders}</div>
+                          <div className="text-gray-500">Orders</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold text-yellow-600">★{seller.avg_rating ? parseFloat(seller.avg_rating).toFixed(1) : '0.0'}</div>
+                          <div className="text-gray-500">Rating</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
+                  <p className="text-gray-600">No growth data available</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Detailed Rating Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Detailed Rating Breakdown</CardTitle>
+              <CardDescription>Who rated what with detailed user information</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {analyticsData.micro_analytics?.detailed_reviews?.rating_breakdowns && 
+                  Object.entries(analyticsData.micro_analytics.detailed_reviews.rating_breakdowns).map(([rating, reviews]) => (
+                    <div key={rating} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-semibold capitalize">{rating.replace('_', ' ')} Reviews</h4>
+                        <Badge variant="outline">{reviews.length} reviews</Badge>
+                      </div>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {reviews.slice(0, 5).map((review, index) => (
+                          <div key={index} className="text-sm border-l-2 border-gray-200 pl-2">
+                            <div className="flex justify-between">
+                              <span className="font-medium">{review.user_name}</span>
+                              <span className="text-gray-500">{review.date}</span>
+                            </div>
+                            <div className="text-gray-600">{review.product_name}</div>
+                            <div className="text-xs text-gray-500">by {review.seller_name}</div>
+                            {review.review_text && (
+                              <div className="text-xs text-gray-700 mt-1 italic">
+                                "{review.review_text.substring(0, 100)}..."
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {reviews.length > 5 && (
+                          <div className="text-xs text-gray-500 text-center">
+                            ... and {reviews.length - 5} more reviews
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            </CardContent>
+          </Card>
             </div>
         </TabsContent>
 
@@ -1458,278 +1791,6 @@ const AnalyticsDashboard = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Micro Analytics Tab */}
-        <TabsContent value="micro" className="space-y-4">
-          {/* Time Scale Controls */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Micro Analytics Dashboard</CardTitle>
-              <CardDescription>Comprehensive insights into most selling products and highest sales sellers</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4 mb-4">
-                <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="yearly">Yearly</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="text-sm text-gray-600">
-                  Showing data for: {selectedPeriod} view
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Most Selling Products Trend */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Most Selling Products Trend - {selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} View</CardTitle>
-                <CardDescription>Product performance over time ({selectedPeriod} data points)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {microAnalyticsLoading ? (
-                  <div className="flex items-center justify-center h-64">
-                    <RefreshCw className="h-8 w-8 animate-spin" />
-                    <span className="ml-2">Loading...</span>
-                  </div>
-                ) : mostSellingProducts?.trend_data ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={mostSellingProducts.trend_data}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip 
-                        formatter={(value, name) => [
-                          name === 'total_revenue' ? `₱${value.toLocaleString()}` : value,
-                          name === 'total_revenue' ? 'Revenue' : name === 'total_quantity' ? 'Quantity' : 'Orders'
-                        ]}
-                      />
-                      <Legend />
-                      <Line type="monotone" dataKey="total_quantity" stroke="#8884d8" strokeWidth={2} name="Quantity Sold" />
-                      <Line type="monotone" dataKey="total_orders" stroke="#82ca9d" strokeWidth={2} name="Orders" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="text-center py-8">
-                    <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
-                    <p className="text-gray-600">No trend data available</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Highest Sales Sellers Trend */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Highest Sales Sellers Trend</CardTitle>
-                <CardDescription>Seller performance over time ({selectedPeriod})</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {microAnalyticsLoading ? (
-                  <div className="flex items-center justify-center h-64">
-                    <RefreshCw className="h-8 w-8 animate-spin" />
-                    <span className="ml-2">Loading...</span>
-                  </div>
-                ) : highestSalesSellers?.trend_data ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={highestSalesSellers.trend_data}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip 
-                        formatter={(value, name) => [
-                          name === 'total_revenue' ? `₱${value.toLocaleString()}` : value,
-                          name === 'total_revenue' ? 'Revenue' : name === 'total_orders' ? 'Orders' : 'Products'
-                        ]}
-                      />
-                      <Legend />
-                      <Area type="monotone" dataKey="total_revenue" stackId="1" stroke="#10B981" fill="#10B981" name="Revenue" />
-                      <Area type="monotone" dataKey="total_orders" stackId="2" stroke="#3B82F6" fill="#3B82F6" name="Orders" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="text-center py-8">
-                    <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
-                    <p className="text-gray-600">No trend data available</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Category Performance Comparison */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Category Performance Analysis</CardTitle>
-              <CardDescription>Compare performance across product categories</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {microAnalyticsLoading ? (
-                <div className="flex items-center justify-center h-64">
-                  <RefreshCw className="h-8 w-8 animate-spin" />
-                  <span className="ml-2">Loading category data...</span>
-                </div>
-              ) : mostSellingProducts?.category_breakdown ? (
-                <div className="space-y-6">
-                  {Object.entries(mostSellingProducts.category_breakdown).map(([category, products]) => (
-                    <div key={category} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-4">
-                        <h4 className="font-semibold text-lg capitalize">{category}</h4>
-                        <Badge variant="outline">{products.length} products</Badge>
-                      </div>
-                      <div className="space-y-2">
-                        {products.slice(0, 3).map((product, index) => (
-                          <div key={product.product_id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                            <div className="flex items-center gap-3">
-                              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-sm font-bold">
-                                {index + 1}
-                              </div>
-                              <div>
-                                <div className="font-medium">{product.product_name}</div>
-                                <div className="text-sm text-gray-600">by {product.seller_name}</div>
-                              </div>
-                            </div>
-                            <div className="flex gap-4 text-sm">
-                              <div className="text-center">
-                                <div className="font-semibold text-green-600">{product.total_quantity}</div>
-                                <div className="text-gray-500">Sold</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="font-semibold text-blue-600">₱{product.total_revenue?.toLocaleString()}</div>
-                                <div className="text-gray-500">Revenue</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="font-semibold text-yellow-600">★{product.avg_rating ? parseFloat(product.avg_rating).toFixed(1) : '0.0'}</div>
-                                <div className="text-gray-500">Rating</div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
-                  <p className="text-gray-600">No category data available</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Seller Growth Analysis */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Seller Growth Analysis</CardTitle>
-              <CardDescription>Growth rates and performance comparison</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {microAnalyticsLoading ? (
-                <div className="flex items-center justify-center h-64">
-                  <RefreshCw className="h-8 w-8 animate-spin" />
-                  <span className="ml-2">Loading growth data...</span>
-                </div>
-              ) : highestSalesSellers?.growth_comparison ? (
-                <div className="space-y-4">
-                  {highestSalesSellers.growth_comparison.slice(0, 10).map((seller, index) => (
-                    <div key={seller.seller_id} className="flex justify-between items-center p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                          seller.growth_rate > 0 ? 'bg-green-100 text-green-800' : 
-                          seller.growth_rate < 0 ? 'bg-red-100 text-red-800' : 
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {index + 1}
-                        </div>
-                        <div>
-                          <div className="font-semibold">{seller.business_name}</div>
-                          <div className="text-sm text-gray-600">{seller.seller_name}</div>
-                        </div>
-                      </div>
-                      <div className="flex gap-6 text-sm">
-                        <div className="text-center">
-                          <div className="font-semibold text-green-600">₱{seller.total_revenue?.toLocaleString()}</div>
-                          <div className="text-gray-500">Revenue</div>
-                        </div>
-                        <div className="text-center">
-                          <div className={`font-semibold ${seller.growth_rate > 0 ? 'text-green-600' : seller.growth_rate < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                            {seller.growth_rate > 0 ? '+' : ''}{seller.growth_rate}%
-                          </div>
-                          <div className="text-gray-500">Growth</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-semibold text-blue-600">{seller.total_orders}</div>
-                          <div className="text-gray-500">Orders</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-semibold text-yellow-600">★{seller.avg_rating ? parseFloat(seller.avg_rating).toFixed(1) : '0.0'}</div>
-                          <div className="text-gray-500">Rating</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
-                  <p className="text-gray-600">No growth data available</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Detailed Rating Breakdown */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Detailed Rating Breakdown</CardTitle>
-              <CardDescription>Who rated what with detailed user information</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {analyticsData.micro_analytics?.detailed_reviews?.rating_breakdowns && 
-                  Object.entries(analyticsData.micro_analytics.detailed_reviews.rating_breakdowns).map(([rating, reviews]) => (
-                    <div key={rating} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-semibold capitalize">{rating.replace('_', ' ')} Reviews</h4>
-                        <Badge variant="outline">{reviews.length} reviews</Badge>
-                      </div>
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {reviews.slice(0, 5).map((review, index) => (
-                          <div key={index} className="text-sm border-l-2 border-gray-200 pl-2">
-                            <div className="flex justify-between">
-                              <span className="font-medium">{review.user_name}</span>
-                              <span className="text-gray-500">{review.date}</span>
-                            </div>
-                            <div className="text-gray-600">{review.product_name}</div>
-                            <div className="text-xs text-gray-500">by {review.seller_name}</div>
-                            {review.review_text && (
-                              <div className="text-xs text-gray-700 mt-1 italic">
-                                "{review.review_text.substring(0, 100)}..."
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        {reviews.length > 5 && (
-                          <div className="text-xs text-gray-500 text-center">
-                            ... and {reviews.length - 5} more reviews
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                }
-              </div>
-            </CardContent>
-          </Card>
-          </TabsContent>
         </Tabs>
       </div>
     </div>

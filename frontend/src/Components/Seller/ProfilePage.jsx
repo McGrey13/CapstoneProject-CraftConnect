@@ -3,6 +3,7 @@ import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
+import { User, Save, X, AlertTriangle, Trash2 } from "lucide-react";
 import api from "../../api";
 
 const ProfilePage = () => {
@@ -135,28 +136,58 @@ const ProfilePage = () => {
     }
 
     return (
-        <div className="flex-1 p-6 space-y-6">
-            <h1 className="text-3xl font-bold">My Profile</h1>
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
+                <h1 className="text-3xl font-bold text-white flex items-center">
+                    <User className="h-8 w-8 mr-3" />
+                    My Profile
+                </h1>
+                <p className="text-white/90 mt-2 text-lg">
+                    Manage your personal information and account settings
+                </p>
+            </div>
 
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+            <Card className="border-[#e5ded7] shadow-xl">
+                <CardHeader className="flex flex-row items-center justify-between border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
                     <div>
-                        <CardTitle>Profile Information</CardTitle>
-                        <CardDescription>View and edit your personal details.</CardDescription>
+                        <CardTitle className="text-[#5c3d28] flex items-center">
+                            <User className="h-5 w-5 mr-2 text-[#a4785a]" />
+                            Profile Information
+                        </CardTitle>
+                        <CardDescription className="text-[#7b5a3b]">View and edit your personal details</CardDescription>
                     </div>
                     {isEditing ? (
-                        <div className="space-x-2">
-                            <Button onClick={handleSave}>Save</Button>
-                            <Button variant="outline" onClick={() => {
-                                setIsEditing(false);
-                                setEditableUser(user); // Revert changes on cancel
-                            }}>Cancel</Button>
+                        <div className="flex gap-2">
+                            <Button 
+                                onClick={handleSave}
+                                className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
+                            >
+                                <Save className="mr-2 h-4 w-4" />
+                                Save
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                onClick={() => {
+                                    setIsEditing(false);
+                                    setEditableUser(user); 
+                                }}
+                                className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"
+                            >
+                                <X className="mr-2 h-4 w-4" />
+                                Cancel
+                            </Button>
                         </div>
                     ) : (
-                        <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                        <Button 
+                            onClick={() => setIsEditing(true)}
+                            className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
+                        >
+                            Edit Profile
+                        </Button>
                     )}
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pt-6">
                     <div>
                         <Label htmlFor="userName">Name</Label>
                         <Input
@@ -214,19 +245,41 @@ const ProfilePage = () => {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Account Management</CardTitle>
-                    <CardDescription>Manage your account status and data.</CardDescription>
+            <Card className="border-[#e5ded7] shadow-xl">
+                <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+                    <CardTitle className="text-[#5c3d28] flex items-center">
+                        <AlertTriangle className="h-5 w-5 mr-2 text-[#a4785a]" />
+                        Account Management
+                    </CardTitle>
+                    <CardDescription className="text-[#7b5a3b]">Manage your account status and data</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center space-x-4">
-                        <Button variant="outline" onClick={handleDeactivate}>Deactivate Account</Button>
-                        <span className="text-sm text-gray-500">Temporarily disable your account.</span>
+                <CardContent className="space-y-6 pt-6">
+                    <div className="flex items-center justify-between p-4 border-2 border-[#e5ded7] rounded-xl hover:border-yellow-400 transition-all duration-200 bg-gradient-to-r from-white to-[#faf9f8]">
+                        <div className="flex-1">
+                            <p className="font-semibold text-[#5c3d28]">Deactivate Account</p>
+                            <span className="text-sm text-[#7b5a3b]">Temporarily disable your account</span>
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            onClick={handleDeactivate}
+                            className="border-2 border-yellow-300 text-yellow-700 hover:bg-yellow-50 hover:border-yellow-400 transition-all duration-200"
+                        >
+                            Deactivate
+                        </Button>
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <Button variant="destructive" onClick={handleDelete}>Delete Account</Button>
-                        <span className="text-sm text-gray-500">Permanently delete your account and all data.</span>
+                    <div className="flex items-center justify-between p-4 border-2 border-red-200 rounded-xl hover:border-red-400 transition-all duration-200 bg-gradient-to-r from-red-50 to-white">
+                        <div className="flex-1">
+                            <p className="font-semibold text-red-700">Delete Account</p>
+                            <span className="text-sm text-red-600">Permanently delete your account and all data</span>
+                        </div>
+                        <Button 
+                            variant="destructive" 
+                            onClick={handleDelete}
+                            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all duration-200"
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                        </Button>
                     </div>
                 </CardContent>
             </Card>

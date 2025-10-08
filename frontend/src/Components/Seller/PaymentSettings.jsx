@@ -21,24 +21,29 @@ import {
 } from "lucide-react";
 
 const PaymentMethodCard = ({ title, description, icon, isConnected = false, onConnect }) => (
-  <Card className="p-4">
+  <Card className="p-5 border-2 border-[#e5ded7] hover:border-[#a4785a] hover:shadow-lg transition-all duration-200 bg-gradient-to-r from-white to-[#faf9f8]">
     <div className="flex items-start gap-4">
-      <div className="bg-primary/10 p-3 rounded-full">{icon}</div>
+      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-lg">
+        <div className="text-white">{icon}</div>
+      </div>
       <div className="flex-1">
         <div className="flex items-center justify-between">
-          <h3 className="font-medium">{title}</h3>
+          <h3 className="font-semibold text-[#5c3d28]">{title}</h3>
           {isConnected && (
-            <span className="flex items-center text-sm text-green-600">
+            <span className="flex items-center text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full">
               <CheckCircle2 className="h-4 w-4 mr-1" />
               Connected
             </span>
           )}
         </div>
-        <p className="text-sm text-gray-500 mt-1">{description}</p>
+        <p className="text-sm text-[#7b5a3b] mt-1">{description}</p>
         <Button
           variant={isConnected ? "outline" : "default"}
           size="sm"
-          className="mt-3"
+          className={isConnected 
+            ? "mt-3 border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"
+            : "mt-3 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
+          }
           onClick={onConnect}
         >
           {isConnected ? "Manage" : "Connect"}
@@ -72,17 +77,24 @@ const PaymentSettings = () => {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold">Payment Settings</h1>
-        <p className="text-gray-500 mt-1">
-          Manage your payment methods, transaction fees, and payout preferences.
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
+        <h1 className="text-3xl font-bold text-white flex items-center">
+          <CreditCard className="h-8 w-8 mr-3" />
+          Payment Settings
+        </h1>
+        <p className="text-white/90 mt-2 text-lg">
+          Manage your payment methods, transaction fees, and payout preferences
         </p>
       </div>
 
       <Tabs defaultValue="methods">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="methods">
+        <TabsList className="grid w-full grid-cols-3 bg-[#faf9f8] border-2 border-[#e5ded7] p-1 rounded-xl shadow-md">
+          <TabsTrigger 
+            value="methods"
+            className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
+          >
             <CreditCard className="h-4 w-4 mr-2" />
             Payment Methods
           </TabsTrigger>
