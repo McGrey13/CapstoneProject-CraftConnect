@@ -15,6 +15,7 @@ class Shipping extends Model
         'rider_name',
         'rider_phone',
         'rider_email',
+        'rider_company',
         'vehicle_type',
         'vehicle_number',
         'delivery_address',

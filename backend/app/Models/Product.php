@@ -26,6 +26,7 @@ class Product extends Model
         'productImages',
         'productVideo',
         'category',
+        'tags',
         'seller_id',
         'approval_status',
         'average_rating',
@@ -43,6 +44,7 @@ class Product extends Model
         'review_count' => 'integer',
         'is_featured' => 'boolean',
         'productImages' => 'array',
+        'tags' => 'array',
     ];
 
     public function getIdAttribute()

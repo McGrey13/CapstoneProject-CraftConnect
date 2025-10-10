@@ -24,18 +24,15 @@ class ShippingController extends Controller
                 'rider_info.rider_name' => 'required|string',
                 'rider_info.rider_phone' => 'required|string',
                 'rider_info.rider_email' => 'nullable|email',
+                'rider_info.rider_company' => 'nullable|string',
                 'rider_info.vehicle_type' => 'required|string',
                 'rider_info.vehicle_number' => 'required|string',
-                'delivery_info' => 'required|array',
-                'delivery_info.delivery_address' => 'required|string',
-                'delivery_info.delivery_city' => 'required|string',
-                'delivery_info.delivery_province' => 'required|string',
+                'delivery_info' => 'nullable|array',
                 'delivery_info.delivery_notes' => 'nullable|string',
-                'delivery_info.estimated_delivery' => 'nullable|date',
-                'status' => 'required|string|in:to_ship,shipped,delivered'
+                'status' => 'required|string|in:shipped,delivered' // Only accept shipped/delivered for orders
             ]);
 
-            $order = Order::findOrFail($request->order_id);
+            $order = Order::with('customer.user')->findOrFail($request->order_id);
 
             // Check if shipping record already exists for this order
             $existingShipping = Shipping::where('order_id', $request->order_id)->first();
@@ -46,26 +43,46 @@ class ShippingController extends Controller
                 ], 400);
             }
 
-            // Create shipping record
+            // Auto-fetch customer address from order
+            // Use customer's registered address from their user profile
+            $customer = $order->customer;
+            if (!$customer || !$customer->user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer information not found for this order'
+                ], 400);
+            }
+
+            $deliveryAddress = $customer->user->userAddress ?? $order->location ?? 'Address not available';
+            $deliveryCity = $customer->user->userCity ?? '';
+            $deliveryProvince = $customer->user->userProvince ?? '';
+
+            // Create shipping record with auto-calculated estimated delivery (2-5 days from now)
+            $estimatedDelivery = now()->addDays(rand(2, 5));
+            
             $shipping = Shipping::create([
                 'order_id' => $request->order_id,
                 'tracking_number' => $request->tracking_number,
                 'rider_name' => $request->rider_info['rider_name'],
                 'rider_phone' => $request->rider_info['rider_phone'],
                 'rider_email' => $request->rider_info['rider_email'] ?? null,
+                'rider_company' => $request->rider_info['rider_company'] ?? null,
                 'vehicle_type' => $request->rider_info['vehicle_type'],
                 'vehicle_number' => $request->rider_info['vehicle_number'],
-                'delivery_address' => $request->delivery_info['delivery_address'],
-                'delivery_city' => $request->delivery_info['delivery_city'],
-                'delivery_province' => $request->delivery_info['delivery_province'],
+                'delivery_address' => $deliveryAddress,
+                'delivery_city' => $deliveryCity,
+                'delivery_province' => $deliveryProvince,
                 'delivery_notes' => $request->delivery_info['delivery_notes'] ?? null,
-                'estimated_delivery' => $request->delivery_info['estimated_delivery'] ?? null,
+                'estimated_delivery' => $estimatedDelivery,
                 'status' => $request->status,
                 'assigned_at' => now()
             ]);
 
-            // Update order status
-            $order->update(['status' => $request->status]);
+            // Update order status AND tracking number
+            $order->update([
+                'status' => $request->status,
+                'tracking_number' => $request->tracking_number
+            ]);
 
             // Create initial shipping history
             ShippingHistory::create([

@@ -47,7 +47,7 @@ return [
     |
     */
 
-    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 60), // 60 minutes
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 720), // 12 hours (matches session lifetime)
     
     /*
     |--------------------------------------------------------------------------

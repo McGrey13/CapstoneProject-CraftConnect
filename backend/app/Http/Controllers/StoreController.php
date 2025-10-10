@@ -183,11 +183,83 @@ class StoreController extends Controller
 
     public function show(Store $store)
     {
-        return response()->json([
-            'store' => $store->load('seller', 'user'),
-            'logo_url' => $store->logo_path ? url('storage/' . $store->logo_path) : null,
-            'bir_url' => $store->bir_path ? url('storage/' . $store->bir_path) : null,
-        ]);
+        try {
+            $store->load('seller.user');
+            
+            // Calculate average rating from products
+            $averageRating = 0;
+            $totalRatings = 0;
+            
+            if ($store->seller && $store->seller->products) {
+                $totalRatingSum = 0;
+                $ratingCount = 0;
+                
+                foreach ($store->seller->products as $product) {
+                    $productRatings = \App\Models\Ratings::where('product_id', $product->product_id)->get();
+                    foreach ($productRatings as $rating) {
+                        $totalRatingSum += $rating->stars;
+                        $ratingCount++;
+                    }
+                }
+                
+                if ($ratingCount > 0) {
+                    $averageRating = round($totalRatingSum / $ratingCount, 1);
+                    $totalRatings = $ratingCount;
+                }
+            }
+            
+            // Get followers count
+            $followersCount = 0;
+            if ($store->seller) {
+                try {
+                    $followersCount = $store->seller->followers()->count();
+                } catch (\Exception $e) {
+                    Log::warning('Error getting followers count', ['error' => $e->getMessage()]);
+                }
+            }
+            
+            // Prepare location string
+            $location = '';
+            if ($store->seller && $store->seller->user) {
+                $locationParts = [];
+                if ($store->seller->user->userCity) {
+                    $locationParts[] = $store->seller->user->userCity;
+                }
+                if ($store->seller->user->userProvince) {
+                    $locationParts[] = $store->seller->user->userProvince;
+                }
+                $location = implode(', ', $locationParts);
+            }
+            
+            // Calculate years active
+            $yearsActive = $store->created_at->diffInYears(now());
+            
+            return response()->json([
+                'store_name' => $store->store_name,
+                'store_description' => $store->store_description,
+                'category' => $store->category,
+                'logo_path' => $store->logo_path ? url('storage/' . $store->logo_path) : null,
+                'banner_path' => $store->background_image_path ? url('storage/' . $store->background_image_path) : null,
+                'rating' => $averageRating,
+                'followers' => $followersCount,
+                'location' => $location,
+                'years_active' => $yearsActive,
+                'categories' => $store->category ? [$store->category] : [],
+                'seller' => $store->seller ? [
+                    'sellerID' => $store->seller->sellerID,
+                    'user' => $store->seller->user ? [
+                        'userName' => $store->seller->user->userName,
+                        'userEmail' => $store->seller->user->userEmail,
+                    ] : null
+                ] : null
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in store show method', [
+                'store_id' => $store->storeID,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['message' => 'Error fetching store data'], 500);
+        }
     }
 
     public function index(Request $request)
@@ -198,7 +270,7 @@ class StoreController extends Controller
             'user_id' => Auth::id()
         ]);
 
-        $query = Store::with('seller', 'user');
+        $query = Store::with('seller.user', 'user');
 
         // Filter by status if provided
         if ($request->has('status')) {
@@ -222,10 +294,52 @@ class StoreController extends Controller
             'total' => $stores->total()
         ]);
 
-        // Add full URLs for images
+        // Add full URLs for images and ensure seller_id is available
         $stores->getCollection()->transform(function ($store) {
+            // Log the logo_path before transformation
+            Log::info('Store logo_path', [
+                'store_id' => $store->storeID,
+                'store_name' => $store->store_name,
+                'logo_path' => $store->logo_path,
+                'logo_exists' => !empty($store->logo_path)
+            ]);
+            
             $store->logo_url = $store->logo_path ? url('storage/' . $store->logo_path) : null;
             $store->bir_url = $store->bir_path ? url('storage/' . $store->bir_path) : null;
+            // Ensure seller_id is available for frontend routing
+            $store->seller_id = $store->seller ? $store->seller->sellerID : null;
+            
+            // Get followers count
+            $followersCount = 0;
+            if ($store->seller) {
+                try {
+                    $followersCount = $store->seller->followers()->count();
+                } catch (\Exception $e) {
+                    Log::warning('Error getting followers count for store', [
+                        'store_id' => $store->storeID,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            $store->followers_count = $followersCount;
+            
+            // Add location information
+            $location = '';
+            if ($store->seller && $store->seller->user) {
+                $locationParts = [];
+                if ($store->seller->user->userCity) {
+                    $locationParts[] = $store->seller->user->userCity;
+                }
+                if ($store->seller->user->userProvince) {
+                    $locationParts[] = $store->seller->user->userProvince;
+                }
+                $location = implode(', ', $locationParts);
+            }
+            $store->location = $location;
+            
+            // Add years active
+            $store->years_active = $store->created_at->diffInYears(now());
+            
             return $store;
         });
 
@@ -416,6 +530,7 @@ class StoreController extends Controller
                 'desktop_columns' => 'sometimes|integer|min:2|max:6',
                 'mobile_columns' => 'sometimes|integer|min:1|max:3',
                 'product_card_style' => 'sometimes|string|in:minimal,detailed,compact,elegant',
+                'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:4096',
                 'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:8192',
             ]);
 
@@ -458,6 +573,16 @@ class StoreController extends Controller
             Log::info('Validation passed', ['validated_fields' => array_keys($validated)]);
 
             // Handle file uploads
+            if ($request->hasFile('logo')) {
+                Log::info('Logo upload detected');
+                // Delete old logo if exists
+                if ($store->logo_path) {
+                    Storage::disk('public')->delete($store->logo_path);
+                }
+                $validated['logo_path'] = $request->file('logo')->store('stores/logos', 'public');
+                Log::info('Logo stored', ['path' => $validated['logo_path']]);
+            }
+
             if ($request->hasFile('background_image')) {
                 Log::info('Background image upload detected');
                 // Delete old background if exists
@@ -475,6 +600,7 @@ class StoreController extends Controller
             return response()->json([
                 'message' => 'Store customization updated successfully',
                 'store' => $store,
+                'logo_url' => $store->logo_path ? url('storage/' . $store->logo_path) : null,
                 'background_url' => $store->background_image_path ? url('storage/' . $store->background_image_path) : null,
             ]);
         } catch (\Exception $e) {
@@ -484,6 +610,54 @@ class StoreController extends Controller
                 'user_id' => $user ? $user->userID : 'No user'
             ]);
             return response()->json(['message' => 'An error occurred while updating customization'], 500);
+        }
+    }
+
+    public function getStoreProducts($storeId)
+    {
+        try {
+            // Find the store
+            $store = Store::findOrFail($storeId);
+            
+            // Get the seller for this store
+            $seller = $store->seller;
+            if (!$seller) {
+                return response()->json(['message' => 'Seller not found for this store'], 404);
+            }
+            
+            // Get approved products for this seller
+            $products = Product::where('seller_id', $seller->sellerID)
+                ->where('approval_status', 'approved')
+                ->where('publish_status', 'published')
+                ->with(['seller.user', 'seller.store'])
+                ->get()
+                ->map(function ($product) {
+                    $productData = [
+                        'productID' => $product->product_id,
+                        'productName' => $product->productName,
+                        'productDescription' => $product->productDescription,
+                        'price' => $product->price,
+                        'category' => $product->category,
+                        'stock' => $product->stock,
+                        'average_rating' => $product->average_rating ?? 0,
+                        'productImage' => $product->productImage 
+                            ? url('storage/' . ltrim($product->productImage, '/'))
+                            : null,
+                        'is_new' => $product->created_at->isAfter(now()->subDays(30)),
+                        'discount' => null, // Add discount logic if needed
+                        'old_price' => null, // Add old price logic if needed
+                    ];
+                    
+                    return $productData;
+                });
+            
+            return response()->json($products);
+        } catch (\Exception $e) {
+            Log::error('Error fetching store products', [
+                'store_id' => $storeId,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['message' => 'Error fetching store products'], 500);
         }
     }
 

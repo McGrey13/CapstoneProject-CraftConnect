@@ -17,9 +17,19 @@ class CategoryController extends Controller
     {
         try {
             $categories = Category::all();
+            
+            // Transform the categories to have consistent naming
+            $transformedCategories = $categories->map(function($category) {
+                return [
+                    'id' => $category->id,
+                    'category_name' => $category->CategoryName,
+                    'category_id' => strtolower(str_replace([' ', '&', '/'], ['-', '', '-'], $category->CategoryName)),
+                ];
+            });
+            
             return response()->json([
                 'status' => 'success',
-                'data' => $categories
+                'data' => $transformedCategories
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching categories: ' . $e->getMessage());

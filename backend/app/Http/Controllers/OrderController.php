@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Seller;
 use App\Models\Store;
+use App\Models\ShippingHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -24,10 +25,10 @@ class OrderController extends Controller
         }
 
         $orders = Order::with(['orderProducts.product' => function($query) {
-                $query->select('product_id', 'productName', 'productPrice', 'productImage', 'seller_id');
+                $query->select('product_id', 'productName', 'productPrice', 'productImage', 'seller_id', 'sku');
             }, 'orderProducts.product.seller.user'])
             ->where('customer_id', $customer->customerID)
-            ->whereIn('status', ['pending', 'processing', 'packing', 'shipped', 'delivered', 'cancelled', 'payment_failed']) // Show all order statuses
+            ->whereIn('status', ['pending', 'processing', 'packing', 'shipped', 'delivered', 'cancelled', 'payment_failed', 'failed', 'returned']) // Show all order statuses
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($order) {
@@ -38,6 +39,7 @@ class OrderController extends Controller
                     'orderDate' => $order->created_at->format('Y-m-d H:i:s'),
                     'status' => $order->status,
                     'paymentStatus' => $order->paymentStatus ?? 'pending',
+                    'payment_method' => $order->payment_method ?? 'cod', // Add payment method
                     'totalAmount' => $order->totalAmount,
                     'items' => $order->orderProducts->map(function($item) {
                         return [
@@ -45,6 +47,7 @@ class OrderController extends Controller
                             'product_id' => $item->product_id,
                             'product_name' => $item->product->productName ?? 'Product Unavailable',
                             'product_image' => $item->product->productImage ?? null,
+                            'sku' => $item->product->sku ?? 'N/A',
                             'seller_name' => $item->product->seller->businessName ?? 'Unknown Seller',
                             'price' => $item->price,
                             'quantity' => $item->quantity,
@@ -92,6 +95,13 @@ class OrderController extends Controller
                     return $item->product && $item->product->seller_id == $seller->sellerID;
                 });
 
+                $paymentMethod = $order->payment_method ?? 'cod';
+                \Log::info('Seller Order API - Order #' . $order->orderID, [
+                    'payment_method' => $paymentMethod,
+                    'paymentStatus' => $order->paymentStatus,
+                    'order_number' => $order->order_number
+                ]);
+                
                 return [
                     'orderID' => $order->orderID,
                     'id' => 'ORD-' . $order->orderID,
@@ -106,6 +116,7 @@ class OrderController extends Controller
                     }),
                     'status' => $order->status,
                     'paymentStatus' => $order->paymentStatus ?? 'pending',
+                    'payment_method' => $paymentMethod, // Add payment method for waybill
                     'trackingNumber' => $order->tracking_number ?? ($order->shipping ? $order->shipping->tracking_number : null),
                     'location' => $this->getCustomerFullAddress($order),
                     'seller_name' => $seller->businessName ?? ($seller->user ? $seller->user->userName : 'CraftConnect Seller'),
@@ -200,6 +211,42 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to mark order as received',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update order status (for sellers)
+     */
+    public function updateStatus(Request $request, $orderId)
+    {
+        try {
+            $request->validate([
+                'status' => 'required|string|in:pending,processing,packing,shipped,delivered,cancelled,failed'
+            ]);
+
+            $order = Order::findOrFail($orderId);
+            
+            \Log::info('Updating order status', [
+                'order_id' => $orderId,
+                'old_status' => $order->status,
+                'new_status' => $request->status
+            ]);
+
+            $order->update(['status' => $request->status]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order status updated successfully',
+                'order' => $order
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error updating order status: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update order status',
                 'error' => $e->getMessage()
             ], 500);
         }

@@ -37,6 +37,7 @@ class Order extends Model
         'shippingAddress',
         'paymentMethod',
         'paymentStatus',
+        'payment_method',
         'orderDate',
         'shippingDate',
         'deliveryDate',

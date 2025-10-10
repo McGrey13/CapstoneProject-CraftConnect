@@ -71,8 +71,11 @@ class CartController extends Controller
                         'product_id' => $product->product_id,
                         'productName' => $product->productName ?? 'Unknown Product',
                         'productPrice' => (float) $product->productPrice,
+                        'productQuantity' => (int) ($product->productQuantity ?? 0), // Add available stock
                         'productImage' => $product->productImage,
-                        'seller_name' => $sellerName
+                        'seller_name' => $sellerName,
+                        'category' => $product->category ?? null,
+                        'productDescription' => $product->productDescription ?? null
                     ]
                 ];
             })->filter()->values();
@@ -165,20 +168,75 @@ class CartController extends Controller
         ]);
     }
 
-    public function checkout()
+    public function checkout(Request $request)
     {
         try {
             // Start database transaction
-            return DB::transaction(function () {
+            return DB::transaction(function () use ($request) {
                 $user = Auth::user();
-                $cartItems = Cart::with('product')->where('userID', $user->userID)->get();
+                
+                // Get selected cart item IDs from request (if provided)
+                $selectedCartIds = $request->input('selected_items', []);
+                
+                Log::info('Checkout request', [
+                    'user_id' => $user->userID,
+                    'selected_items' => $selectedCartIds,
+                    'has_selection' => !empty($selectedCartIds)
+                ]);
+                
+                // If selected items are provided, only checkout those items
+                // Otherwise, checkout all items (backward compatibility)
+                if (!empty($selectedCartIds)) {
+                    $cartItems = Cart::with('product')
+                        ->where('userID', $user->userID)
+                        ->whereIn('cart_id', $selectedCartIds)
+                        ->get();
+                    
+                    Log::info('Checking out selected items', [
+                        'selected_count' => count($selectedCartIds),
+                        'found_count' => $cartItems->count()
+                    ]);
+                } else {
+                    $cartItems = Cart::with('product')->where('userID', $user->userID)->get();
+                    
+                    Log::info('Checking out all cart items (no selection provided)', [
+                        'cart_count' => $cartItems->count()
+                    ]);
+                }
 
                 if ($cartItems->isEmpty()) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Your cart is empty'
+                        'message' => 'Your cart is empty or selected items not found'
                     ], 400);
                 }
+                
+                // Validate stock availability BEFORE creating order
+                foreach ($cartItems as $item) {
+                    // Refresh product data to get latest stock
+                    $freshProduct = Product::find($item->product_id);
+                    
+                    if (!$freshProduct) {
+                        throw new \Exception("Product '{$item->product->productName}' no longer exists.");
+                    }
+                    
+                    Log::info('Stock check', [
+                        'product' => $freshProduct->productName,
+                        'available' => $freshProduct->productQuantity,
+                        'requested' => $item->quantity
+                    ]);
+                    
+                    if ($freshProduct->productQuantity < $item->quantity) {
+                        throw new \Exception("Insufficient stock for product: {$freshProduct->productName}. Available: {$freshProduct->productQuantity}, Requested: {$item->quantity}");
+                    }
+                    
+                    // Update the cart item's product with fresh data
+                    $item->product = $freshProduct;
+                }
+
+                // Get payment method from request, default to 'cod'
+                $paymentMethod = $request->input('payment_method', 'cod');
+                Log::info('Checkout with payment method', ['payment_method' => $paymentMethod]);
 
                 // Calculate total amount
                 $totalAmount = $cartItems->sum(function ($item) {
@@ -193,8 +251,7 @@ class CartController extends Controller
                     ]);
                 }
 
-                // Generate unique tracking number and order number
-                $trackingNumber = $this->generateTrackingNumber();
+                // Generate unique order number (NOT tracking number yet - that comes when rider is assigned)
                 $orderNumber = $this->generateOrderNumber();
                 
                 // Get seller ID from first cart item (assuming single seller per order)
@@ -208,15 +265,28 @@ class CartController extends Controller
                     $user->userProvince
                 ])) ?: 'Not specified';
 
+                // Determine payment status based on payment method
+                // COD orders should be 'pending' payment until delivery
+                // Online payments (GCash/PayMaya) will be 'pending' until webhook confirms
+                $paymentStatus = ($paymentMethod === 'cod') ? 'pending' : 'pending';
+
                 // Create order with pending status (will be confirmed after payment)
                 $order = Order::create([
                     'customer_id' => $customer->customerID,
                     'sellerID' => $sellerID,
-                    'status' => 'pending', // Set to pending for COD orders
+                    'status' => 'pending', // Set to pending initially
+                    'paymentStatus' => $paymentStatus,
+                    'payment_method' => $paymentMethod, // Save the payment method
                     'totalAmount' => $totalAmount,
                     'location' => $fullAddress,
-                    'tracking_number' => $trackingNumber, // Assign tracking immediately
+                    'tracking_number' => null, // Tracking number will be generated when rider is assigned
                     'order_number' => $orderNumber // Assign unique order number
+                ]);
+                
+                Log::info('Order created', [
+                    'order_id' => $order->orderID,
+                    'payment_method' => $paymentMethod,
+                    'payment_status' => $paymentStatus
                 ]);
 
                 // Create order products
@@ -245,8 +315,23 @@ class CartController extends Controller
                 // Bulk insert order products
                 OrderProduct::insert($orderProducts);
 
-                // DON'T clear cart here - only clear after successful payment
-                // Cart will be cleared by the frontend after successful payment
+                // Clear ONLY the selected cart items (or all if no selection)
+                // This ensures unselected items remain in cart
+                if (!empty($selectedCartIds)) {
+                    // Remove only selected items
+                    Cart::where('userID', $user->userID)
+                        ->whereIn('cart_id', $selectedCartIds)
+                        ->delete();
+                    
+                    Log::info('Cleared selected cart items', [
+                        'cleared_count' => count($selectedCartIds)
+                    ]);
+                } else {
+                    // Remove all cart items (backward compatibility)
+                    Cart::where('userID', $user->userID)->delete();
+                    
+                    Log::info('Cleared all cart items');
+                }
 
                 // Load relationships for response
                 $order->load('orderProducts.product');

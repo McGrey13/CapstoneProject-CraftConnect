@@ -284,12 +284,15 @@ class ComprehensiveDataSeeder extends Seeder
             ? $shippedAt->copy()->addHours(rand(6, 72)) 
             : null;
         
+        $companies = ['JRS Express', 'LBC', 'J&T Express', 'Ninja Van', 'Flash Express', 'Lalamove', 'Grab Express', 'Borzo'];
+        
         $shipping = Shipping::create([
             'order_id' => $order->orderID,
             'tracking_number' => $trackingNumber,
             'rider_name' => $riderNames[array_rand($riderNames)],
             'rider_phone' => '09' . rand(100000000, 999999999),
             'rider_email' => strtolower(str_replace(' ', '.', $riderNames[array_rand($riderNames)])) . '@craftconnect.com',
+            'rider_company' => $companies[array_rand($companies)],
             'vehicle_type' => $vehicleTypes[array_rand($vehicleTypes)],
             'vehicle_number' => strtoupper(chr(rand(65, 90))) . strtoupper(chr(rand(65, 90))) . strtoupper(chr(rand(65, 90))) . '-' . rand(1000, 9999),
             'delivery_address' => $customer->user->userAddress,

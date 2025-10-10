@@ -296,19 +296,27 @@ class ProductController extends Controller
     // update product
     public function update(Request $request, Product $product) // Changed parameter order for consistency
     {
-        $ownershipCheck = $this->checkProductOwnership($product);
-        if ($ownershipCheck instanceof \Illuminate\Http\JsonResponse) {
-            return $ownershipCheck;
-        }
+        try {
+            Log::info('Product update attempt', [
+                'product_id' => $product->product_id,
+                'request_data' => $request->except(['productImage', 'productImages', 'productVideo'])
+            ]);
 
-        // If you are sending a POST with _method=PUT, Laravel automatically handles it.
-        // You don't need a custom check here.
+            $ownershipCheck = $this->checkProductOwnership($product);
+            if ($ownershipCheck instanceof \Illuminate\Http\JsonResponse) {
+                return $ownershipCheck;
+            }
+
+            // If you are sending a POST with _method=PUT, Laravel automatically handles it.
+            // You don't need a custom check here.
         $data = $request->validate([
             'productName' => 'required|string|max:255',
             'productDescription' => 'nullable|string',
             'productPrice' => 'required|numeric',
             'productQuantity' => 'required|integer|min:0',
             'category' => 'required|string',
+            'tags' => 'nullable|array',
+            'tags.*' => 'nullable|string',
             'status' => 'nullable|in:in stock,low stock,out of stock',
             'publish_status' => 'nullable|in:published,draft',
             'productImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120',
@@ -319,8 +327,16 @@ class ProductController extends Controller
             'mainImageIndex' => 'nullable|integer',
             'mainExistingImageIndex' => 'nullable|integer',
             'productVideo' => 'nullable|mimes:mp4,avi,mov|max:20480',
-            'approval_status' => $product->approval_status
+            'sku' => 'nullable|string|max:255'
         ]);
+        
+        // Handle tags - convert to JSON if present
+        if (isset($data['tags']) && is_array($data['tags'])) {
+            $data['tags'] = json_encode($data['tags']);
+        }
+        
+        // Preserve approval status - sellers cannot change it
+        $data['approval_status'] = $product->approval_status;
 
         if ($request->hasFile('productImage')) {
             $data['productImage'] = $request->file('productImage')->store('images', 'public');
@@ -387,7 +403,6 @@ class ProductController extends Controller
             $data['productVideo'] = $request->file('productVideo')->store('videos', 'public');
         }
 
-        try {
             $product->update($data);
             Log::info('Product updated successfully:', ['product_id' => $product->product_id]);
             

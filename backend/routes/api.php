@@ -170,6 +170,9 @@ Route::middleware([])->group(function () {
     Route::get('/products/featured', [ProductController::class, 'featuredProducts']);
     Route::get('/products/{id}', [ProductController::class, 'getProductDetails'])->whereNumber('id');
     
+    // Categories routes
+    Route::get('/categories', [App\Http\Controllers\CategoryController::class, 'index']);
+    
     // Public work and events routes (for customers to view)
     Route::get('/work-and-events/public', [Work_and_EventsController::class, 'getPublicWorkAndEvents']);
     Route::get('/work-and-events/public/{id}', [Work_and_EventsController::class, 'getPublicWorkAndEventById'])->whereNumber('id');
@@ -417,6 +420,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/{id}', [OrderController::class, 'show']);
         Route::post('/', [OrderController::class, 'store']);
         Route::post('/{orderId}/mark-received', [OrderController::class, 'markAsReceived']);
+        Route::put('/{orderId}/status', [OrderController::class, 'updateStatus']);
     });
 
     // Payment Method routes
@@ -441,6 +445,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::middleware(['role:seller', 'verified.store'])->group(function () {
         Route::apiResource('products', ProductController::class)->except(['index', 'show']);
         Route::get('/seller/products', [ProductController::class, 'sellerProducts']);
+        Route::get('/seller/payments', [SellerController::class, 'getPayments']);
     });
     
     // Admin routes
@@ -705,6 +710,7 @@ Route::middleware(['auth:sanctum'])->get('/admin/products', [ProductController::
     // Seller Follow Routes
     Route::post('/sellers/{seller}/follow', [SellerFollowController::class, 'follow']);
     Route::post('/sellers/{seller}/unfollow', [SellerFollowController::class, 'unfollow']);
+    Route::get('/sellers/{seller}/follow-status', [SellerFollowController::class, 'checkFollowStatus']);
     Route::get('/user/followed-sellers', [SellerFollowController::class, 'followedSellers']);
     Route::get('/products/followed-sellers', [ProductController::class, 'followedSellerProducts']);
 
@@ -746,6 +752,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/customization', [StoreController::class, 'updateCustomization']);
         Route::get('/dashboard', [StoreController::class, 'getDashboardData']);
         Route::get('/{store}', [StoreController::class, 'show']);
+        Route::get('/{store}/products', [StoreController::class, 'getStoreProducts']);
         Route::put('/{store}', [StoreController::class, 'update']);
         Route::delete('/{store}', [StoreController::class, 'destroy']);
         Route::post('/{store}/approve', [StoreController::class, 'approve']);
@@ -771,3 +778,47 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/generate-tracking', [App\Http\Controllers\ShippingController::class, 'generateTrackingNumber']);
     });
 });
+
+// TEST/SIMULATION ROUTES - For development/demo purposes only
+if (env('APP_ENV') === 'local' || env('APP_DEBUG')) {
+    Route::prefix('test')->group(function () {
+        // Mark pending GCash/PayMaya orders as paid (for simulation)
+        Route::post('/mark-orders-paid', function (Request $request) {
+            $orderIds = $request->input('order_ids', []);
+            
+            if (empty($orderIds)) {
+                // If no specific IDs, update all pending gcash/paymaya orders
+                $orders = Order::whereIn('payment_method', ['gcash', 'paymaya'])
+                    ->where('paymentStatus', 'pending')
+                    ->get();
+            } else {
+                $orders = Order::whereIn('orderID', $orderIds)->get();
+            }
+            
+            $updated = 0;
+            foreach ($orders as $order) {
+                $order->update([
+                    'status' => 'processing',
+                    'paymentStatus' => 'paid'
+                ]);
+                $updated++;
+                
+                \Log::info('TEST: Marked order as paid', [
+                    'order_id' => $order->orderID,
+                    'payment_method' => $order->payment_method
+                ]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Marked {$updated} orders as paid",
+                'orders' => $orders->map(fn($o) => [
+                    'orderID' => $o->orderID,
+                    'status' => $o->status,
+                    'paymentStatus' => $o->paymentStatus,
+                    'payment_method' => $o->payment_method
+                ])
+            ]);
+        });
+    });
+}

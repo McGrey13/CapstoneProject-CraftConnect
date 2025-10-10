@@ -59,6 +59,9 @@ class ProductSeeder extends Seeder
                 continue; // Skip if product already exists
             }
             
+            // Generate unique SKU for this product
+            $sku = $this->generateSKU($seller->sellerID, $productData['category']);
+            
             Product::create([
                 'productName' => $productData['name'],
                 'productDescription' => $productData['description'],
@@ -71,9 +74,12 @@ class ProductSeeder extends Seeder
                 'publish_status' => $productData['publish_status'] ?? 'published',
                 'is_featured' => $productData['is_featured'] ?? (rand(0, 1) ? true : false),
                 'productImage' => $productData['productImage'] ?? 'products/sample-product-' . rand(1, 10) . '.jpg',
+                'sku' => $sku, // Add unique SKU
                 'created_at' => Carbon::now()->subDays(rand(1, 90)),
                 'updated_at' => Carbon::now()->subDays(rand(1, 30)),
             ]);
+            
+            $this->command->info("  ✓ Created product: {$productData['name']} (SKU: {$sku})");
         }
     }
 
@@ -486,6 +492,28 @@ class ProductSeeder extends Seeder
                 'status' => 'out of stock',
             ],
         ];
+    }
+
+    /**
+     * Generate unique SKU for product
+     * Format: CC-S{SELLER_ID}-{CATEGORY}-{RANDOM}
+     * Example: CC-S01-JEWE-A1B2C3
+     */
+    private function generateSKU($sellerId, $category)
+    {
+        $categoryCode = strtoupper(substr($category, 0, 4));
+        $sellerCode = 'S' . str_pad($sellerId, 2, '0', STR_PAD_LEFT);
+        $random = strtoupper(substr(md5(uniqid()), 0, 6));
+        
+        $sku = "CC-{$sellerCode}-{$categoryCode}-{$random}";
+        
+        // Ensure SKU is unique (check database)
+        while (Product::where('sku', $sku)->exists()) {
+            $random = strtoupper(substr(md5(uniqid()), 0, 6));
+            $sku = "CC-{$sellerCode}-{$categoryCode}-{$random}";
+        }
+        
+        return $sku;
     }
 }
 
