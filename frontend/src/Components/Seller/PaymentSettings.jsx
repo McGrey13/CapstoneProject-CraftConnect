@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Input } from "../ui/input";
@@ -8,6 +8,7 @@ import { Switch } from "../ui/switch";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Separator } from "../ui/separator";
 import { Alert, AlertDescription } from "../ui/alert";
+import PaymentGatewaySetup from "./PaymentGatewaySetup";
 import {
   CreditCard,
   Wallet,
@@ -20,7 +21,7 @@ import {
   Shield,
 } from "lucide-react";
 
-const PaymentMethodCard = ({ title, description, icon, isConnected = false, onConnect }) => (
+const PaymentMethodCard = ({ title, description, icon, isConnected = false, connectedPhone = null, onConnect }) => (
   <Card className="p-5 border-2 border-[#e5ded7] hover:border-[#a4785a] hover:shadow-lg transition-all duration-200 bg-gradient-to-r from-white to-[#faf9f8]">
     <div className="flex items-start gap-4">
       <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-lg">
@@ -37,6 +38,11 @@ const PaymentMethodCard = ({ title, description, icon, isConnected = false, onCo
           )}
         </div>
         <p className="text-sm text-[#7b5a3b] mt-1">{description}</p>
+        {isConnected && connectedPhone && (
+          <p className="text-xs text-[#a4785a] font-medium mt-2">
+            📱 {connectedPhone}
+          </p>
+        )}
         <Button
           variant={isConnected ? "outline" : "default"}
           size="sm"
@@ -55,11 +61,13 @@ const PaymentMethodCard = ({ title, description, icon, isConnected = false, onCo
 
 const PaymentSettings = () => {
   const [paymentMethods, setPaymentMethods] = useState({
-    stripe: true,
-    paypal: true,
-    bankTransfer: false,
-    applePay: false,
-    googlePay: false,
+    gcash: false,
+    paymaya: false,
+  });
+
+  const [connectedPhones, setConnectedPhones] = useState({
+    gcash: null,
+    paymaya: null,
   });
 
   const [payoutSettings, setPayoutSettings] = useState({
@@ -67,6 +75,32 @@ const PaymentSettings = () => {
     frequency: "monthly",
     minimumAmount: "100",
   });
+
+  const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
+  const [selectedGateway, setSelectedGateway] = useState(null);
+
+  useEffect(() => {
+    // Check connected status and phone numbers from localStorage
+    const gcashConnected = localStorage.getItem("gcash_connected") === "true";
+    const paymayaConnected = localStorage.getItem("paymaya_connected") === "true";
+    const gcashPhone = localStorage.getItem("gcash_phone");
+    const paymayaPhone = localStorage.getItem("paymaya_phone");
+    
+    console.log("🔍 Loading payment connections:", {
+      gcash: { connected: gcashConnected, phone: gcashPhone },
+      paymaya: { connected: paymayaConnected, phone: paymayaPhone }
+    });
+    
+    setPaymentMethods({
+      gcash: gcashConnected,
+      paymaya: paymayaConnected
+    });
+
+    setConnectedPhones({
+      gcash: gcashPhone,
+      paymaya: paymayaPhone
+    });
+  }, []);
 
   const handlePaymentMethodToggle = (method) => {
     setPaymentMethods({ ...paymentMethods, [method]: !paymentMethods[method] });
@@ -76,27 +110,82 @@ const PaymentSettings = () => {
     setPayoutSettings({ ...payoutSettings, [setting]: value });
   };
 
+  const handleConnectGateway = (gateway) => {
+    console.log(`🔗 Opening connection modal for: ${gateway}`);
+    setSelectedGateway(gateway);
+    setIsSetupModalOpen(true);
+  };
+
+  const handleSetupComplete = (success) => {
+    if (success && selectedGateway) {
+      // Only update the specific gateway that was just connected
+      const isConnected = localStorage.getItem(`${selectedGateway}_connected`) === "true";
+      const phoneNumber = localStorage.getItem(`${selectedGateway}_phone`);
+      
+      console.log(`✅ Updating ${selectedGateway} connection:`, {
+        connected: isConnected,
+        phone: phoneNumber
+      });
+      
+      setPaymentMethods(prev => ({
+        ...prev,
+        [selectedGateway]: isConnected
+      }));
+
+      setConnectedPhones(prev => ({
+        ...prev,
+        [selectedGateway]: phoneNumber
+      }));
+    }
+    setIsSetupModalOpen(false);
+    setSelectedGateway(null);
+  };
+
+  const handleDisconnectGateway = (gateway) => {
+    console.log(`🔌 Disconnecting ${gateway}`);
+    
+    localStorage.removeItem(`${gateway}_connected`);
+    localStorage.removeItem(`${gateway}_phone`);
+    
+    setPaymentMethods(prev => ({
+      ...prev,
+      [gateway]: false
+    }));
+    
+    setConnectedPhones(prev => ({
+      ...prev,
+      [gateway]: null
+    }));
+    
+    console.log(`✅ ${gateway} disconnected. Remaining connections:`, {
+      gcash: localStorage.getItem("gcash_connected"),
+      paymaya: localStorage.getItem("paymaya_connected")
+    });
+    
+    alert(`${gateway === "gcash" ? "GCash" : "PayMaya"} has been disconnected`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
         <h1 className="text-3xl font-bold text-white flex items-center">
-          <CreditCard className="h-8 w-8 mr-3" />
-          Payment Settings
+          <Wallet className="h-8 w-8 mr-3" />
+          E-payment Settings
         </h1>
         <p className="text-white/90 mt-2 text-lg">
-          Manage your payment methods, transaction fees, and payout preferences
+          Connect your e-wallet accounts to accept GCash and PayMaya payments
         </p>
       </div>
 
       <Tabs defaultValue="methods">
-        <TabsList className="grid w-full grid-cols-3 bg-[#faf9f8] border-2 border-[#e5ded7] p-1 rounded-xl shadow-md">
+        <TabsList className="grid w-full grid-cols-1 bg-[#faf9f8] border-2 border-[#e5ded7] p-1 rounded-xl shadow-md">
           <TabsTrigger 
             value="methods"
             className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
           >
-            <CreditCard className="h-4 w-4 mr-2" />
-            Payment Methods
+            <Wallet className="h-4 w-4 mr-2" />
+            E-wallet Accounts
           </TabsTrigger>
           {/* <TabsTrigger value="payouts">
             <Building2 className="h-4 w-4 mr-2" />
@@ -108,46 +197,32 @@ const PaymentSettings = () => {
           </TabsTrigger> */}
         </TabsList>
 
-        {/* Payment Methods */}
+        {/* E-wallet Accounts */}
         <TabsContent value="methods" className="space-y-4 pt-4">
           <div className="grid gap-4">
             <PaymentMethodCard
-              title="Stripe"
-              description="Accept credit card payments directly on your store"
-              icon={<CreditCard className="h-6 w-6 text-primary" />}
-              isConnected={paymentMethods.stripe}
-              onConnect={() => handlePaymentMethodToggle("stripe")}
-            />
-
-            <PaymentMethodCard
-              title="PayPal"
-              description="Allow customers to pay with their PayPal account"
+              title="GCash"
+              description="Accept GCash e-wallet payments from Filipino customers"
               icon={<Wallet className="h-6 w-6 text-primary" />}
-              isConnected={paymentMethods.paypal}
-              onConnect={() => handlePaymentMethodToggle("paypal")}
+              isConnected={paymentMethods.gcash}
+              connectedPhone={connectedPhones.gcash}
+              onConnect={() => paymentMethods.gcash ? handleDisconnectGateway("gcash") : handleConnectGateway("gcash")}
             />
 
             <PaymentMethodCard
-              title="Gcash"
-              description="Accept direct bank transfers from customers"
-              icon={<Building2 className="h-6 w-6 text-primary" />}
-              isConnected={paymentMethods.bankTransfer}
-              onConnect={() => handlePaymentMethodToggle("GCash")}
-            />
-
-            <PaymentMethodCard
-              title="Paymaya"
-              description="Accept direct bank transfers from customers"
-              icon={<Building2 className="h-6 w-6 text-primary" />}
-              isConnected={paymentMethods.bankTransfer}
-              onConnect={() => handlePaymentMethodToggle("Paymaya")}
+              title="PayMaya"
+              description="Accept PayMaya e-wallet payments from Filipino customers"
+              icon={<CreditCard className="h-6 w-6 text-primary" />}
+              isConnected={paymentMethods.paymaya}
+              connectedPhone={connectedPhones.paymaya}
+              onConnect={() => paymentMethods.paymaya ? handleDisconnectGateway("paymaya") : handleConnectGateway("paymaya")}
             />  
           </div>
 
           <Alert className="bg-blue-50 border-blue-200">
             <AlertCircle className="h-4 w-4 text-blue-600" />
             <AlertDescription className="text-blue-600">
-              Adding multiple payment methods can increase your conversion rate by up to 30%.
+              Connect both GCash and PayMaya to maximize payment convenience for your customers and increase sales by up to 40%.
             </AlertDescription>
           </Alert>
         </TabsContent>
@@ -323,6 +398,13 @@ const PaymentSettings = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Payment Gateway Setup Modal */}
+      <PaymentGatewaySetup
+        isOpen={isSetupModalOpen}
+        onClose={handleSetupComplete}
+        gatewayType={selectedGateway}
+      />
     </div>
   );
 };

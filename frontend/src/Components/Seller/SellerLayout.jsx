@@ -46,14 +46,17 @@ import SellerSettings from "./SellerSettings";
 import ProfilePage from "./ProfilePage";
 import ShippingSimulation from "./ShippingSimulation";
 import EReceiptWaybill from "./EReceiptWaybill";
+import PaymentTracking from "./PaymentTracking";
+import { Wallet } from "lucide-react";
 
 const sidebarItems = [
   { key: "storefront", label: "Storefront Customizer", icon: <Palette className="h-5 w-5" /> },
   { key: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
   { key: "profile", label: "My Profile", icon: <UserCircle className="h-5 w-5" /> },
-  { key: "payments", label: "Payment Settings", icon: <CreditCard className="h-5 w-5" /> },
+  { key: "payments", label: "E-payment Settings", icon: <Wallet className="h-5 w-5" /> },
+  { key: "payment-tracking", label: "Payment Tracking", icon: <Wallet className="h-5 w-5" /> },
   { key: "orders", label: "Orders & Inventory", icon: <ShoppingBag className="h-5 w-5" /> },
-  { key: "shipping-sim", label: "Shipping Simulation", icon: <Truck className="h-5 w-5" /> },
+  { key: "shipping-sim", label: "Shipping", icon: <Truck className="h-5 w-5" /> },
   { key: "receipts", label: "E-Receipts & Waybills", icon: <FileText className="h-5 w-5" /> },
   { key: "marketing", label: "Marketing Tools", icon: <Megaphone className="h-5 w-5" /> },
   { key: "shipping", label: "Shipping Settings", icon: <Truck className="h-5 w-5" /> },
@@ -73,7 +76,7 @@ const SellerLayout = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [isVerifying, setIsVerifying] = useState(true);
 
-  const { logout, user, isAuthenticated } = useUser();
+  const { logout, isAuthenticated } = useUser();
   
   const handleLogout = async () => {
     try {
@@ -171,6 +174,8 @@ const SellerLayout = () => {
         return <ProfilePage />;
       case "payments":
         return <PaymentSettings />;
+      case "payment-tracking":
+        return <PaymentTracking />;
       case "orders":
         return <OrderInventoryManager />;
       case "shipping-sim":

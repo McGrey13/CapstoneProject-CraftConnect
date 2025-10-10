@@ -272,207 +272,304 @@ const WorkshopsEvents = () => {
         </div>
       )}
 
-      {/* Create Form */}
+      {/* Create Form Modal */}
       {showCreateForm && (
-      <Card className="mt-6 rounded-2xl shadow-xl border-2 border-[#e5ded7] bg-white">
-        <CardHeader className="px-8 pt-8 pb-6 border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
-          <CardTitle className="text-2xl font-bold text-[#5c3d28]">Create New Workshop</CardTitle>
-          <CardDescription className="text-base text-[#7b5a3b]">
-            Set up a new workshop or event for your customers
-          </CardDescription>
-        </CardHeader>
-
-          <form onSubmit={handleSubmit}>
-        <CardContent className="px-6 py-6 space-y-6">
-          {/* Title */}
-          <div>
-                <Label htmlFor="title" className="text-sm font-medium text-gray-700">
-                  Workshop Title *
-            </Label>
-            <Input
-                  id="title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-              placeholder="e.g., Introduction to Pottery"
-              className="mt-1"
-                  required
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <Label htmlFor="description" className="text-sm font-medium text-gray-700">
-                  Description *
-                </Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Describe what participants will learn and what to bring..."
-                  rows={4}
-                  className="mt-1"
-                  required
-            />
-          </div>
-
-          {/* Date & Time */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                  <Label htmlFor="date" className="text-sm font-medium text-gray-700">
-                    Date *
-              </Label>
-                  <Input 
-                    id="date" 
-                    name="date"
-                    type="date" 
-                    value={formData.date}
-                    onChange={handleInputChange}
-                    className="mt-1" 
-                    required
-                  />
-            </div>
-            <div>
-                  <Label htmlFor="time" className="text-sm font-medium text-gray-700">
-                    Time *
-              </Label>
-                  <Input 
-                    id="time" 
-                    name="time"
-                    type="time" 
-                    value={formData.time}
-                    onChange={handleInputChange}
-                    className="mt-1" 
-                    required
-                  />
-            </div>
-          </div>
-
-              {/* Location */}
-              <div>
-                <Label htmlFor="location" className="text-sm font-medium text-gray-700">
-                  Location *
-                </Label>
-                <Input 
-                  id="location" 
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  placeholder="Your Studio or Online" 
-                  required
-                />
-              </div>
-
-              {/* Link */}
-              <div>
-                <Label htmlFor="link" className="text-sm font-medium text-gray-700">
-                  Registration Link *
-                </Label>
-                <Input 
-                  id="link" 
-                  name="link"
-                  type="url"
-                  value={formData.link}
-                  onChange={handleInputChange}
-                  placeholder="https://example.com/register" 
-                  required
-                />
-          </div>
-
-              {/* Capacity & Status */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                  <Label htmlFor="participants" className="text-sm font-medium text-gray-700">
-                    Max Participants *
-              </Label>
-                  <Input 
-                    id="participants" 
-                    name="participants"
-                    type="number" 
-                    value={formData.participants}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 12" 
-                    className="mt-1" 
-                    required
-                  />
-            </div>
-            <div>
-                  <Label htmlFor="status" className="text-sm font-medium text-gray-700">
-                    Status *
-              </Label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                    required
-                  >
-                    <option value="upcoming">Upcoming</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-            </div>
-          </div>
-
-              {/* Image Upload */}
-          <div>
-                <Label htmlFor="image" className="text-sm font-medium text-gray-700">
-                  Workshop Image *
-            </Label>
-                <div className="mt-1">
-                  <Input
-                    id="image"
-                    name="image"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
-                    required
-                  />
-                  {imagePreview && (
-                    <div className="mt-2 relative inline-block">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="h-32 w-32 object-cover rounded-lg"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                        onClick={() => {
-                          setImagePreview(null);
-                          setFormData(prev => ({ ...prev, image: null }));
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-6 rounded-t-2xl z-10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-white flex items-center">
+                    <Plus className="h-7 w-7 mr-3" />
+                    Create New Workshop
+                  </h2>
+                  <p className="text-white/90 mt-1">Set up an engaging workshop or event for your customers</p>
                 </div>
-          </div>
-        </CardContent>
+                <button
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setImagePreview(null);
+                    setFormData({
+                      title: '',
+                      description: '',
+                      location: '',
+                      date: '',
+                      time: '',
+                      participants: '',
+                      status: 'upcoming',
+                      link: '',
+                      image: null,
+                    });
+                  }}
+                  className="text-white bg-[#7b5a3b] hover:bg-[#6a4c34] rounded-full p-2 transition-all"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
 
-        <CardFooter className="px-8 py-6 bg-[#faf9f8] border-t border-[#e5ded7]">
-              <Button 
-                type="submit" 
-                className="w-full rounded-xl bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-lg hover:shadow-xl transition-all duration-200"
-                disabled={loading}
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Creating...
+            <form onSubmit={handleSubmit}>
+              <div className="px-6 py-6 space-y-6">
+                {/* Info Banner */}
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                      <Calendar className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-blue-900">Workshop Creation Tips</p>
+                      <p className="text-xs text-blue-700 mt-1">
+                        Create engaging workshops to connect with customers, showcase your craft, and build your community. Include clear details and attractive images!
+                      </p>
+                    </div>
                   </div>
-                ) : 'Create Workshop'}
-          </Button>
-        </CardFooter>
-          </form>
-      </Card>
+                </div>
+
+                {/* Title */}
+                <div className="space-y-2">
+                  <Label htmlFor="title" className="text-base font-semibold text-[#5c3d28] flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Workshop Title *
+                  </Label>
+                  <Input
+                    id="title"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Introduction to Pottery Making"
+                    className="border-2 border-[#d5bfae] focus:border-[#a4785a] focus:ring-2 focus:ring-[#a4785a]/20 rounded-lg py-3"
+                    required
+                  />
+                  <p className="text-xs text-[#7b5a3b]">Choose a catchy and descriptive title</p>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-base font-semibold text-[#5c3d28]">
+                    Description *
+                  </Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    placeholder="Describe what participants will learn, what materials are included, and what to bring..."
+                    rows={4}
+                    className="border-2 border-[#d5bfae] focus:border-[#a4785a] focus:ring-2 focus:ring-[#a4785a]/20 rounded-lg resize-none"
+                    required
+                  />
+                  <p className="text-xs text-[#7b5a3b]">Be detailed to attract more participants</p>
+                </div>
+
+                {/* Date & Time */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date" className="text-base font-semibold text-[#5c3d28] flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Date *
+                    </Label>
+                    <Input 
+                      id="date" 
+                      name="date"
+                      type="date" 
+                      value={formData.date}
+                      onChange={handleInputChange}
+                      className="border-2 border-[#d5bfae] focus:border-[#a4785a] focus:ring-2 focus:ring-[#a4785a]/20 rounded-lg py-3" 
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="time" className="text-base font-semibold text-[#5c3d28] flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Time *
+                    </Label>
+                    <Input 
+                      id="time" 
+                      name="time"
+                      type="time" 
+                      value={formData.time}
+                      onChange={handleInputChange}
+                      className="border-2 border-[#d5bfae] focus:border-[#a4785a] focus:ring-2 focus:ring-[#a4785a]/20 rounded-lg py-3" 
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Location */}
+                <div className="space-y-2">
+                  <Label htmlFor="location" className="text-base font-semibold text-[#5c3d28] flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Location *
+                  </Label>
+                  <Input 
+                    id="location" 
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    placeholder="Your Studio Address or 'Online via Zoom'" 
+                    className="border-2 border-[#d5bfae] focus:border-[#a4785a] focus:ring-2 focus:ring-[#a4785a]/20 rounded-lg py-3"
+                    required
+                  />
+                  <p className="text-xs text-[#7b5a3b]">Specify physical address or online platform</p>
+                </div>
+
+                {/* Link */}
+                <div className="space-y-2">
+                  <Label htmlFor="link" className="text-base font-semibold text-[#5c3d28]">
+                    Registration Link *
+                  </Label>
+                  <Input 
+                    id="link" 
+                    name="link"
+                    type="url"
+                    value={formData.link}
+                    onChange={handleInputChange}
+                    placeholder="https://example.com/register" 
+                    className="border-2 border-[#d5bfae] focus:border-[#a4785a] focus:ring-2 focus:ring-[#a4785a]/20 rounded-lg py-3"
+                    required
+                  />
+                  <p className="text-xs text-[#7b5a3b]">Where customers can sign up for the workshop</p>
+                </div>
+
+                {/* Capacity & Status */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="participants" className="text-base font-semibold text-[#5c3d28] flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Max Participants *
+                    </Label>
+                    <Input 
+                      id="participants" 
+                      name="participants"
+                      type="number" 
+                      min="1"
+                      value={formData.participants}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 12" 
+                      className="border-2 border-[#d5bfae] focus:border-[#a4785a] focus:ring-2 focus:ring-[#a4785a]/20 rounded-lg py-3" 
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="status" className="text-base font-semibold text-[#5c3d28]">
+                      Status *
+                    </Label>
+                    <select
+                      id="status"
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border-2 border-[#d5bfae] rounded-lg focus:border-[#a4785a] focus:ring-2 focus:ring-[#a4785a]/20 focus:outline-none transition-all bg-white"
+                      required
+                    >
+                      <option value="upcoming">📅 Upcoming</option>
+                      <option value="in-progress">⏳ In Progress</option>
+                      <option value="completed">✅ Completed</option>
+                      <option value="cancelled">❌ Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Image Upload */}
+                <div className="space-y-2 text-center">
+                  <Label htmlFor="image" className="text-base font-semibold text-[#5c3d28] block">
+                    <div className="flex items-center justify-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      Workshop Image *
+                    </div>
+                  </Label>
+                  <div className="border-2 border-dashed border-[#d5bfae] rounded-lg p-6 hover:border-[#a4785a] transition-all bg-[#faf9f8] cursor-pointer">
+                    {!imagePreview ? (
+                      <Label htmlFor="image" className="cursor-pointer block">
+                        <div className="flex flex-col items-center justify-center text-center min-h-[200px]">
+                          <Upload className="h-12 w-12 text-[#a4785a] mb-3" />
+                          <p className="text-[#5c3d28] font-medium hover:text-[#a4785a] transition-all">
+                            <span className="underline">Click to upload</span> or drag and drop
+                          </p>
+                          <p className="text-xs text-[#7b5a3b] mt-1">PNG, JPG, GIF up to 10MB</p>
+                        </div>
+                        <Input
+                          id="image"
+                          name="image"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="hidden"
+                          required
+                        />
+                      </Label>
+                    ) : (
+                      <div className="relative inline-block">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="h-48 w-full object-cover rounded-lg shadow-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-3 -right-3 h-8 w-8 rounded-full p-0 shadow-lg"
+                          onClick={() => {
+                            setImagePreview(null);
+                            setFormData(prev => ({ ...prev, image: null }));
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-5 bg-[#faf9f8] border-t border-[#e5ded7] flex gap-3 sticky bottom-0 rounded-b-2xl">
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setImagePreview(null);
+                    setFormData({
+                      title: '',
+                      description: '',
+                      location: '',
+                      date: '',
+                      time: '',
+                      participants: '',
+                      status: 'upcoming',
+                      link: '',
+                      image: null,
+                    });
+                  }}
+                  className="flex-1 border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-white rounded-lg py-6"
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="flex-1 rounded-lg bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-lg hover:shadow-xl transition-all duration-200 py-6"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Creating Workshop...
+                    </div>
+                  ) : (
+                    <>
+                      <Plus className="h-5 w-5 mr-2" />
+                      Create Workshop
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

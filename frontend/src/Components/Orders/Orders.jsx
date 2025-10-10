@@ -36,37 +36,54 @@ const Orders = () => {
     }
   }, [location, navigate]);
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      if (!isAuthenticated) {
-        console.log('User not authenticated, redirecting to login');
+  const fetchOrders = async () => {
+    if (!isAuthenticated) {
+      console.log('User not authenticated, redirecting to login');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      console.log('🔍 Fetching orders for user:', user?.userName, 'User ID:', user?.userID);
+      const response = await api.get('/orders');
+      console.log('📦 Orders API response:', response.data);
+      console.log('📦 Response is array?', Array.isArray(response.data));
+      
+      // Handle different response structures
+      const ordersData = Array.isArray(response.data) ? response.data : response.data.data || [];
+      
+      // Log each order's details for debugging
+      console.log('✅ Total orders received:', ordersData.length);
+      ordersData.forEach(order => {
+        console.log(`📋 Order #${order.orderID} (${order.order_number}):`, {
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          payment_method: order.payment_method,
+          created: order.orderDate,
+          totalAmount: order.totalAmount,
+          itemsCount: order.items?.length
+        });
+      });
+      
+      console.log('💾 Setting orders state with', ordersData.length, 'orders');
+      setOrders(ordersData);
+      console.log('✅ Orders state updated!');
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      
+      if (error.response?.status === 401) {
+        console.log('Authentication failed, redirecting to login');
+        alert('Your session has expired. Please log in again.');
         navigate('/login');
-        return;
+      } else {
+        alert('Failed to load orders. Please try again.');
       }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      try {
-        console.log('Fetching orders for user:', user?.userName);
-        const response = await api.get('/orders');
-        console.log('Orders response:', response.data);
-        
-        // Handle different response structures
-        const ordersData = Array.isArray(response.data) ? response.data : response.data.data || [];
-        setOrders(ordersData);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-        
-        if (error.response?.status === 401) {
-          console.log('Authentication failed, redirecting to login');
-          alert('Your session has expired. Please log in again.');
-          navigate('/login');
-        } else {
-          alert('Failed to load orders. Please try again.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
     fetchOrders();
   }, [navigate, isAuthenticated, user]);
 
@@ -164,10 +181,23 @@ const Orders = () => {
 
   // Group orders by status
   const groupedOrders = {
-    'To Package': orders.filter(order => 
-      order.status === 'processing' || 
-      (order.status === 'pending' && order.paymentStatus === 'paid')
-    ),
+    'To Package': orders.filter(order => {
+      // Debug each order
+      const shouldShow = 
+        order.status === 'processing' ||
+        (order.status === 'pending' && order.paymentStatus === 'paid') ||
+        (order.status === 'pending' && order.payment_method === 'cod') ||
+        (order.status === 'pending' && (order.payment_method === 'gcash' || order.payment_method === 'paymaya'));
+      
+      console.log(`Order #${order.orderID} - To Package filter:`, {
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        payment_method: order.payment_method,
+        shouldShow: shouldShow
+      });
+      
+      return shouldShow;
+    }),
     'To Ship': orders.filter(order => 
       order.status === 'packing'
     ),
@@ -177,7 +207,8 @@ const Orders = () => {
       order.status === 'returned' || 
       order.status === 'cancelled' ||
       order.status === 'payment_failed' ||
-      (order.status === 'pending' && order.paymentStatus !== 'paid')
+      order.status === 'failed' // Orders with failed status
+      // Don't include pending online payments here anymore - they show in To Package
     )
   };
 
@@ -188,6 +219,22 @@ const Orders = () => {
     { key: 'Completed', title: 'Completed', icon: CheckCircle2, color: 'green' },
     { key: 'Return/Refund', title: 'Return/Refund', icon: RotateCcw, color: 'orange' }
   ];
+
+  // Log grouped orders count for debugging
+  console.log('📊 Grouped orders count:', {
+    'To Package': groupedOrders['To Package'].length,
+    'To Ship': groupedOrders['To Ship'].length,
+    'To Receive': groupedOrders['To Receive'].length,
+    'Completed': groupedOrders['Completed'].length,
+    'Return/Refund': groupedOrders['Return/Refund'].length
+  });
+  console.log('📊 Total orders in state:', orders.length);
+  
+  // List all orders by status
+  console.log('📊 Orders by status breakdown:');
+  orders.forEach(order => {
+    console.log(`  - Order ${order.order_number}: status="${order.status}", payment="${order.paymentStatus}", method="${order.payment_method}"`);
+  });
 
   const handleMarkAsReceived = async (orderId) => {
     try {
@@ -212,27 +259,51 @@ const Orders = () => {
         <div className="bg-[#f8f5f2] px-4 py-3 border-b border-[#e5ded7]">
           <div className="flex justify-between items-center">
             <div>
-              <span className="text-sm text-gray-500">Order #</span>
-              <span className="font-medium ml-1">{order.orderID}</span>
-              {/* Payment Status Badge */}
-              {order.paymentStatus === 'paid' && (
-                <Badge className="ml-2 bg-green-100 text-green-800 text-xs">
-                  ✓ Paid
-                </Badge>
-              )}
-              {order.paymentStatus === 'pending' && order.status !== 'payment_failed' && (
-                <Badge className="ml-2 bg-yellow-100 text-yellow-800 text-xs">
-                  COD
-                </Badge>
-              )}
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm text-gray-500">Order Number:</span>
+                <span className="font-bold text-[#5c3d28] bg-white px-2 py-1 rounded border border-[#e5ded7]">
+                  {order.order_number || `ORD-${order.orderID}`}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Payment Status Badge */}
+                {order.paymentStatus === 'paid' && (
+                  <Badge className="bg-green-100 text-green-800 text-xs">
+                    ✓ Paid ({order.payment_method?.toUpperCase() || 'Online'})
+                  </Badge>
+                )}
+                {order.paymentStatus === 'pending' && order.payment_method === 'cod' && (
+                  <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                    COD
+                  </Badge>
+                )}
+                {order.paymentStatus === 'pending' && order.payment_method === 'gcash' && (
+                  <Badge className="bg-blue-100 text-blue-800 text-xs">
+                    GCash (Pending)
+                  </Badge>
+                )}
+                {order.paymentStatus === 'pending' && order.payment_method === 'paymaya' && (
+                  <Badge className="bg-purple-100 text-purple-800 text-xs">
+                    PayMaya (Pending)
+                  </Badge>
+                )}
+              </div>
             </div>
-            <div className="text-sm">
+            <div className="text-sm text-right">
               <span className="text-gray-500">Total:</span>{' '}
-              <span className="font-bold">₱{parseFloat(order.totalAmount).toFixed(2)}</span>
+              <span className="font-bold text-lg">₱{parseFloat(order.totalAmount).toFixed(2)}</span>
             </div>
           </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {formatDate(order.orderDate)}
+          <div className="text-xs text-gray-500 mt-2 flex items-center gap-3">
+            <span>
+              <span className="mr-1">📅</span>
+              {formatDate(order.orderDate)}
+            </span>
+            {order.tracking_number && (
+              <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-mono text-xs">
+                📦 {order.tracking_number}
+              </span>
+            )}
           </div>
         </div>
         
@@ -255,7 +326,12 @@ const Orders = () => {
               
               <div className="flex-grow min-w-0">
                 <h4 className="font-medium text-[#4b3832] text-sm truncate">{item.product_name}</h4>
-                <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
+                {item.sku && (
+                  <p className="text-xs text-[#7b5a3b] font-mono bg-[#faf9f8] px-2 py-0.5 rounded inline-block mt-1">
+                    SKU: {item.sku}
+                  </p>
+                )}
+                <p className="text-xs text-gray-600 mt-1">Qty: {item.quantity}</p>
                 <p className="text-xs text-[#a36b4f] font-medium">
                   ₱{parseFloat(item.price).toFixed(2)}
                 </p>

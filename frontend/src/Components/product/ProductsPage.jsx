@@ -318,6 +318,27 @@ const ProductsPage = () => {
                       </span>
                     )}
                   </div>
+                  
+                  {/* Stock Information */}
+                  <div className="mt-2 flex items-center justify-between text-sm">
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      <span className={`font-medium ${
+                        (product.productQuantity || 0) > 10 ? 'text-green-600' : 
+                        (product.productQuantity || 0) > 0 ? 'text-orange-600' : 
+                        'text-red-600'
+                      }`}>
+                        {(product.productQuantity || 0) > 0 ? `${product.productQuantity} in stock` : 'Out of stock'}
+                      </span>
+                    </div>
+                    {(product.productQuantity || 0) > 0 && (product.productQuantity || 0) <= 10 && (
+                      <span className="text-xs text-orange-600 font-medium">
+                        Low stock!
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             );

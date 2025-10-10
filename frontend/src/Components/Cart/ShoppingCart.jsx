@@ -19,6 +19,21 @@ const ShoppingCart = () => {
 
   // Toggle item selection
   const handleCheck = (id) => {
+    // Find the item to check if it's out of stock
+    const item = cartItems.find(item => item.cartItemId === id);
+    
+    // Prevent selecting out of stock items
+    if (item && item.isOutOfStock) {
+      alert(`Sorry, "${item.title}" is currently out of stock and cannot be selected for checkout.`);
+      return;
+    }
+    
+    // Check if quantity exceeds available stock
+    if (item && item.availableQuantity > 0 && item.quantity > item.availableQuantity) {
+      alert(`Sorry, only ${item.availableQuantity} units of "${item.title}" are available. Please reduce the quantity before checkout.`);
+      return;
+    }
+    
     setSelectedItems((prev) =>
       prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
     );
@@ -26,10 +41,39 @@ const ShoppingCart = () => {
 
   // Select all toggle
   const handleSelectAll = () => {
-    if (selectedItems.length === cartItems.length) {
+    // Filter out out-of-stock items and items with quantity exceeding available stock
+    const selectableItems = cartItems.filter(item => 
+      !item.isOutOfStock && 
+      item.quantity <= item.availableQuantity
+    );
+    
+    const allSelectableSelected = selectableItems.every(item => 
+      selectedItems.includes(item.cartItemId)
+    );
+    
+    if (allSelectableSelected) {
+      // Deselect all
       setSelectedItems([]);
     } else {
-      setSelectedItems(cartItems.map((item) => item.cartItemId));
+      // Select all selectable items
+      setSelectedItems(selectableItems.map((item) => item.cartItemId));
+      
+      // Show info if some items were skipped
+      const outOfStockCount = cartItems.filter(item => item.isOutOfStock).length;
+      const exceededStockCount = cartItems.filter(item => 
+        !item.isOutOfStock && item.quantity > item.availableQuantity
+      ).length;
+      
+      if (outOfStockCount > 0 || exceededStockCount > 0) {
+        let message = 'Selected all available items. ';
+        if (outOfStockCount > 0) {
+          message += `${outOfStockCount} out-of-stock item(s) skipped. `;
+        }
+        if (exceededStockCount > 0) {
+          message += `${exceededStockCount} item(s) with insufficient stock skipped.`;
+        }
+        alert(message);
+      }
     }
   };
 
@@ -115,16 +159,32 @@ const ShoppingCart = () => {
               {cartItems.map((item) => (
                 <Card
                   key={item.cartItemId}
-                  className="bg-white rounded-xl shadow-sm border border-[#e5ded7]"
+                  className={`bg-white rounded-xl shadow-sm border ${
+                    item.isOutOfStock ? 'border-red-200 bg-red-50/30' : 'border-[#e5ded7]'
+                  }`}
                 >
                   <CardContent className="p-6">
+                    {/* Out of Stock Banner */}
+                    {item.isOutOfStock && (
+                      <div className="mb-3 px-3 py-2 bg-red-100 border border-red-300 rounded-lg">
+                        <p className="text-sm font-semibold text-red-700 flex items-center">
+                          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          This product is currently out of stock and cannot be purchased
+                        </p>
+                      </div>
+                    )}
+                    
                     <div className="flex items-start space-x-4">
                       {/* Checkbox */}
                       <input
                         type="checkbox"
                         checked={selectedItems.includes(item.cartItemId)}
                         onChange={() => handleCheck(item.cartItemId)}
-                        className="h-5 w-5 mt-2 accent-[#a36b4f]"
+                        disabled={item.isOutOfStock || item.quantity > item.availableQuantity}
+                        className="h-5 w-5 mt-2 accent-[#a36b4f] disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={item.isOutOfStock ? 'Out of stock - cannot select' : item.quantity > item.availableQuantity ? 'Insufficient stock - reduce quantity' : 'Select item'}
                       />
 
                       {/* Product Image */}
@@ -152,9 +212,31 @@ const ShoppingCart = () => {
                           {item.title || "Product Name Not Available"}
                         </h3>
                         {item.seller_name && (
-                          <p className="text-[#7a5c52] text-sm mb-2">
+                          <p className="text-[#7a5c52] text-sm mb-1">
                             Seller: {item.seller_name}
                           </p>
+                        )}
+                        {/* Stock Information */}
+                        {item.product && item.product.productQuantity !== undefined && (
+                          <div className="flex items-center mb-2">
+                            <svg className="w-3.5 h-3.5 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            <span className={`text-xs font-medium ${
+                              item.product.productQuantity > 10 ? 'text-green-600' : 
+                              item.product.productQuantity > 0 ? 'text-orange-600' : 
+                              'text-red-600'
+                            }`}>
+                              {item.product.productQuantity > 0 
+                                ? `${item.product.productQuantity} available` 
+                                : 'Out of stock'}
+                            </span>
+                            {item.product.productQuantity > 0 && item.product.productQuantity <= 10 && (
+                              <span className="ml-2 text-xs text-orange-600 font-semibold">
+                                Low stock!
+                              </span>
+                            )}
+                          </div>
                         )}
                         <div className="flex flex-col">
                           <p className="font-bold text-lg text-[#a36b4f]">
@@ -177,15 +259,25 @@ const ShoppingCart = () => {
                           onClick={() =>
                             updateQuantity(item.product_id, Math.max(1, item.quantity - 1))
                           }
+                          disabled={item.quantity <= 1}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="w-8 text-center">{item.quantity}</span>
+                        <span className="w-8 text-center font-semibold">{item.quantity}</span>
                         <Button
                           variant="outline"
                           size="icon"
                           className="h-8 w-8 rounded-full"
-                          onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                          onClick={() => {
+                            const availableStock = item.product?.productQuantity || 999;
+                            if (item.quantity >= availableStock) {
+                              alert(`Maximum available stock is ${availableStock} items.`);
+                              return;
+                            }
+                            updateQuantity(item.product_id, item.quantity + 1);
+                          }}
+                          disabled={item.product && item.quantity >= item.product.productQuantity}
+                          title={item.product && item.quantity >= item.product.productQuantity ? 'Maximum stock reached' : 'Increase quantity'}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>

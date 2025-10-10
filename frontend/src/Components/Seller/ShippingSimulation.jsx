@@ -22,6 +22,7 @@ const ShippingSimulation = () => {
     riderName: "",
     riderPhone: "",
     riderEmail: "",
+    riderCompany: "",
     vehicleType: "",
     vehicleNumber: ""
   });
@@ -29,8 +30,7 @@ const ShippingSimulation = () => {
     deliveryAddress: "",
     deliveryCity: "",
     deliveryProvince: "",
-    deliveryNotes: "",
-    estimatedDelivery: ""
+    deliveryNotes: ""
   });
   const [trackingNumber, setTrackingNumber] = useState("");
 
@@ -41,17 +41,31 @@ const ShippingSimulation = () => {
   const fetchOrders = async () => {
     try {
       const response = await api.get('/orders/seller');
-      console.log('Orders response:', response.data);
+      console.log('🚚 SHIPPING - All seller orders:', response.data.length);
       
-      // ONLY show orders in packing status (all packed and ready to ship)
-      // Exclude processing (not packed yet), shipped, and delivered orders
+      // ONLY show orders in packing status that DON'T have tracking numbers yet
+      // Orders with tracking numbers should be handled in E-Receipt & Waybill section
       const filteredOrders = response.data.filter(order => {
-        // ONLY show packing orders - all items packed and ready to assign rider
-        return order.status === 'packing';
+        const hasNoTracking = !order.trackingNumber || order.trackingNumber.trim() === '';
+        const isPacking = order.status === 'packing';
+        
+        console.log(`🚚 Order ${order.order_number}:`, {
+          orderID: order.orderID,
+          status: order.status,
+          isPacking: isPacking,
+          trackingNumber: order.trackingNumber || 'NONE',
+          hasNoTracking: hasNoTracking,
+          willShow: isPacking && hasNoTracking
+        });
+        
+        // ONLY show packing orders that don't have tracking numbers yet
+        return isPacking && hasNoTracking;
       });
       
-      console.log('Filtered orders for shipping (packing only):', filteredOrders);
-      console.log('Total orders ready to ship:', filteredOrders.length);
+      console.log('✅ Filtered orders for shipping (packing without tracking):', filteredOrders.length);
+      filteredOrders.forEach(order => {
+        console.log(`  ✓ Order ${order.order_number} - OrderID: ${order.orderID}`);
+      });
       setOrders(filteredOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -62,40 +76,82 @@ const ShippingSimulation = () => {
 
   const generateTrackingNumber = () => {
     const prefix = "CC";
-    const timestamp = Date.now().toString().slice(-6);
-    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-    return `${prefix}${timestamp}${random}`;
+    const date = new Date();
+    const dateStr = date.getFullYear().toString() +
+                   (date.getMonth() + 1).toString().padStart(2, '0') +
+                   date.getDate().toString().padStart(2, '0');
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    return `${prefix}${dateStr}${random}`;
   };
 
   const handleAssignRider = async (orderId) => {
     try {
+      // Validate required fields
+      if (!riderInfo.riderName || !riderInfo.riderPhone || !riderInfo.vehicleType || !riderInfo.vehicleNumber) {
+        alert('Please fill in all required rider information fields');
+        return;
+      }
+
       // Use existing tracking number from order, or generate new one if not exists
       const existingTracking = selectedOrder.trackingNumber;
       const trackingNum = existingTracking || generateTrackingNumber();
       setTrackingNumber(trackingNum);
 
+      // Convert camelCase to snake_case for backend
       const shippingData = {
         order_id: orderId,
         tracking_number: trackingNum,
-        rider_info: riderInfo,
-        delivery_info: deliveryInfo,
-        status: 'shipped'
+        rider_info: {
+          rider_name: riderInfo.riderName,
+          rider_phone: riderInfo.riderPhone,
+          rider_email: riderInfo.riderEmail,
+          rider_company: riderInfo.riderCompany,
+          vehicle_type: riderInfo.vehicleType,
+          vehicle_number: riderInfo.vehicleNumber
+        },
+        delivery_info: {
+          // Only send optional fields - address is auto-fetched from customer on backend
+          delivery_notes: deliveryInfo.deliveryNotes
+        },
+        status: 'shipped' // Order status becomes 'shipped' when rider is assigned
       };
 
-      await api.post('/shipping/assign', shippingData);
+      console.log('Sending shipping data:', shippingData);
+
+      const response = await api.post('/shipping/assign', shippingData);
+      console.log('✅ Shipping assignment response:', response.data);
       
-      // Update local state
-      setOrders(orders.map(order => 
-        order.orderID === orderId 
-          ? { ...order, status: 'to_ship', trackingNumber: trackingNum }
-          : order
-      ));
+      // Show success message
+      alert('✅ Rider assigned and tracking number generated! Order is now ready for E-Receipt. Tracking: ' + trackingNum);
+      
+      console.log('🔄 Updating local state for order:', orderId);
+      console.log('📋 Orders before update:', orders.length);
+      
+      // Update local state - mark THIS SPECIFIC ORDER as shipped
+      const updatedOrders = orders.map(order => {
+        if (order.orderID === orderId) {
+          console.log(`  ✓ Updating Order ${order.order_number} (ID: ${order.orderID}) to shipped`);
+          return { ...order, status: 'shipped', trackingNumber: trackingNum };
+        }
+        return order;
+      });
+      
+      setOrders(updatedOrders);
+      console.log('📋 Orders after update:', updatedOrders.length);
 
       setSelectedOrder(null);
       setIsEditing(false);
       resetForm();
+      
+      // Refresh orders list from server
+      console.log('🔄 Refreshing orders from server...');
+      await fetchOrders();
     } catch (error) {
       console.error('Error assigning rider:', error);
+      console.error('Error details:', error.response?.data);
+      
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+      alert('❌ Error assigning rider: ' + errorMessage);
     }
   };
 
@@ -113,11 +169,51 @@ const ShippingSimulation = () => {
     }
   };
 
+  const handleUpdateShippingStatus = async (orderId, newStatus) => {
+    try {
+      // Find the shipping record for this order
+      const order = orders.find(o => o.orderID === orderId);
+      if (!order || !order.trackingNumber) {
+        alert('❌ No tracking number found for this order');
+        return;
+      }
+
+      // Get shipping record by tracking number
+      const shippingResponse = await api.get(`/shipping/tracking/${order.trackingNumber}`);
+      const shippingId = shippingResponse.data.data.id;
+
+      // Update shipping status
+      const response = await api.put(`/shipping/${shippingId}/status`, {
+        status: newStatus,
+        location: newStatus === 'shipped' ? 'In Transit' : 'Warehouse',
+        description: newStatus === 'shipped' ? 'Package has been shipped and is in transit' : 'Package ready for shipping'
+      });
+
+      if (response.data.success) {
+        alert(`✅ Order status updated to ${newStatus}`);
+        
+        // Update local state
+        setOrders(orders.map(order => 
+          order.orderID === orderId 
+            ? { ...order, status: newStatus }
+            : order
+        ));
+        
+        // Refresh orders list
+        await fetchOrders();
+      }
+    } catch (error) {
+      console.error('Error updating shipping status:', error);
+      alert('❌ Error updating shipping status: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
   const resetForm = () => {
     setRiderInfo({
       riderName: "",
       riderPhone: "",
       riderEmail: "",
+      riderCompany: "",
       vehicleType: "",
       vehicleNumber: ""
     });
@@ -125,8 +221,7 @@ const ShippingSimulation = () => {
       deliveryAddress: "",
       deliveryCity: "",
       deliveryProvince: "",
-      deliveryNotes: "",
-      estimatedDelivery: ""
+      deliveryNotes: ""
     });
   };
 
@@ -172,7 +267,7 @@ const ShippingSimulation = () => {
             <Truck className="h-8 w-8 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Shipping Simulation</h1>
+            <h1 className="text-3xl font-bold text-white">Shipping </h1>
             <p className="text-white/90 mt-1">Manage deliveries and track packages</p>
           </div>
         </div>
@@ -182,10 +277,13 @@ const ShippingSimulation = () => {
           <p className="text-white/90 text-sm mb-2 font-medium">📋 Shipping Simulation:</p>
           <div className="flex flex-wrap gap-2 text-xs">
             <div className="bg-white/20 px-3 py-1 rounded-full text-white">
-              ✅ Shows ONLY orders in "Packing" status (All items packed)
+              ✅ Shows ONLY orders in "Packing" status WITHOUT tracking numbers
             </div>
             <div className="bg-white/20 px-3 py-1 rounded-full text-white">
-              📦 Assign rider → Enter delivery details → Ship order
+              📦 Assign rider → Generate tracking number → Ready for E-Receipt
+            </div>
+            <div className="bg-white/20 px-3 py-1 rounded-full text-white">
+              🧾 Orders with tracking numbers appear in "E-Receipt & Waybill"
             </div>
           </div>
         </div>
@@ -199,10 +297,10 @@ const ShippingSimulation = () => {
               <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
                 <Package className="h-5 w-5 text-white" />
               </div>
-              Orders Ready for Shipping
+              Orders Ready for Tracking Assignment
             </CardTitle>
             <CardDescription className="text-[#7b5a3b] ml-11">
-              Only shows orders in "Packing" status - all items packed and ready for rider assignment
+              Only shows orders in "Packing" status WITHOUT tracking numbers - ready to assign rider and generate tracking
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
@@ -210,8 +308,9 @@ const ShippingSimulation = () => {
               {orders.length === 0 ? (
                 <div className="text-center py-8">
                   <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-[#7b5a3b] font-semibold mb-2">No orders in "Packing" status</p>
-                  <p className="text-[#7b5a3b] text-sm">Orders will appear here once they are fully packed and ready to ship</p>
+                  <p className="text-[#7b5a3b] font-semibold mb-2">No orders ready for tracking assignment</p>
+                  <p className="text-[#7b5a3b] text-sm">Orders will appear here when they are packed but don't have tracking numbers yet</p>
+                  <p className="text-[#7b5a3b] text-xs mt-2">Orders with tracking numbers are handled in "E-Receipt & Waybill" section</p>
                 </div>
               ) : (
                 orders.map((order) => (
@@ -222,34 +321,51 @@ const ShippingSimulation = () => {
                         ? 'border-[#a4785a] bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10'
                         : 'border-[#e5ded7] hover:border-[#a4785a]/50 hover:shadow-md'
                     }`}
-                    onClick={() => setSelectedOrder(order)}
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      // Auto-populate delivery info from order's customer location
+                      setDeliveryInfo({
+                        deliveryAddress: order.location || "",
+                        deliveryCity: "",
+                        deliveryProvince: "",
+                        deliveryNotes: ""
+                      });
+                    }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <h3 className="font-semibold text-[#5c3d28]">Order #{order.orderID}</h3>
+                          <h3 className="font-bold text-[#5c3d28] bg-white px-2 py-1 rounded border border-[#e5ded7]">
+                            {order.order_number || `ORD-${order.orderID}`}
+                          </h3>
                           <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
                             <CheckCircle className="h-3 w-3" />
-                            All Packed
+                            Packed - Ready
                           </Badge>
+                          {order.payment_method && (
+                            <Badge className={`flex items-center gap-1 ${
+                              order.payment_method === 'cod' ? 'bg-yellow-100 text-yellow-800' :
+                              order.payment_method === 'gcash' ? 'bg-blue-100 text-blue-800' :
+                              'bg-purple-100 text-purple-800'
+                            }`}>
+                              {order.payment_method.toUpperCase()}
+                            </Badge>
+                          )}
                         </div>
-                        <p className="text-[#7b5a3b] text-sm">
-                          Customer: {order.customer || 'Unknown'}
+                        <p className="text-[#7b5a3b] text-sm font-medium">
+                          👤 {order.customer || 'Unknown'}
                         </p>
                         <p className="text-[#7b5a3b] text-sm">
-                          Items: {order.items || 0} • Total: ₱{order.totalAmount?.toFixed(2) || order.total || '0.00'}
+                          📦 Items: {order.items || 0} • 💰 Total: ₱{order.totalAmount?.toFixed(2) || order.total || '0.00'}
                         </p>
-                        {order.trackingNumber && (
-                          <p className="text-[#a4785a] text-sm font-medium mt-1">
-                            📦 Tracking: {order.trackingNumber}
-                          </p>
-                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          Order ID: #{order.orderID}
+                        </p>
                       </div>
                       <div className="flex gap-2">
-                        {/* Only packing orders shown - ready to assign rider */}
-                        <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3" />
-                          Ready to Ship
+                        <Badge className="bg-orange-100 text-orange-800 flex items-center gap-1 px-3 py-1">
+                          <AlertCircle className="h-4 w-4" />
+                          No Tracking Yet
                         </Badge>
                       </div>
                     </div>
@@ -270,7 +386,7 @@ const ShippingSimulation = () => {
               Rider & Delivery Information
             </CardTitle>
             <CardDescription className="text-[#7b5a3b] ml-11">
-              {selectedOrder ? `Assign rider for Order #${selectedOrder.orderID}` : 'Select an order to assign rider'}
+              {selectedOrder ? `Assign rider and generate tracking for Order #${selectedOrder.orderID}` : 'Select an order to assign rider and generate tracking number'}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
@@ -316,6 +432,16 @@ const ShippingSimulation = () => {
                       />
                     </div>
                     <div className="space-y-2">
+                      <Label htmlFor="riderCompany" className="text-[#5c3d28] font-medium">Company / Workplace</Label>
+                      <Input
+                        id="riderCompany"
+                        value={riderInfo.riderCompany}
+                        onChange={(e) => setRiderInfo({...riderInfo, riderCompany: e.target.value})}
+                        placeholder="e.g., JRS Express, LBC, J&T"
+                        className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28]"
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="vehicleType" className="text-[#5c3d28] font-medium">Vehicle Type</Label>
                       <Input
                         id="vehicleType"
@@ -343,63 +469,40 @@ const ShippingSimulation = () => {
                   <h3 className="text-lg font-semibold text-[#5c3d28] flex items-center">
                     <MapPin className="h-5 w-5 mr-2 text-[#a4785a]" />
                     Delivery Information
+                    <Badge className="ml-2 bg-blue-100 text-blue-800">Auto-fetched from Customer</Badge>
                   </h3>
                   
                   <div className="space-y-4">
+                    {/* Customer Complete Address */}
                     <div className="space-y-2">
-                      <Label htmlFor="deliveryAddress" className="text-[#5c3d28] font-medium">Delivery Address</Label>
+                      <Label htmlFor="deliveryAddress" className="text-[#5c3d28] font-medium">
+                        Customer's Delivery Address (Auto-fetched)
+                      </Label>
                       <Textarea
                         id="deliveryAddress"
                         value={deliveryInfo.deliveryAddress}
-                        onChange={(e) => setDeliveryInfo({...deliveryInfo, deliveryAddress: e.target.value})}
-                        placeholder="Enter complete delivery address"
-                        rows={3}
-                        className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28] resize-none"
+                        readOnly
+                        disabled
+                        rows={4}
+                        className="border-2 border-blue-200 bg-blue-50 text-[#5c3d28] resize-none cursor-not-allowed font-medium"
+                        placeholder="Customer's complete delivery address will appear here..."
                       />
+                      <p className="text-xs text-blue-800 font-medium">
+                        📍 This address includes the customer's street, city, and province from their profile
+                      </p>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="deliveryCity" className="text-[#5c3d28] font-medium">City</Label>
-                        <Input
-                          id="deliveryCity"
-                          value={deliveryInfo.deliveryCity}
-                          onChange={(e) => setDeliveryInfo({...deliveryInfo, deliveryCity: e.target.value})}
-                          placeholder="Enter city"
-                          className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28]"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="deliveryProvince" className="text-[#5c3d28] font-medium">Province</Label>
-                        <Input
-                          id="deliveryProvince"
-                          value={deliveryInfo.deliveryProvince}
-                          onChange={(e) => setDeliveryInfo({...deliveryInfo, deliveryProvince: e.target.value})}
-                          placeholder="Enter province"
-                          className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28]"
-                        />
-                      </div>
-                    </div>
-                    
+                    {/* Delivery Notes */}
                     <div className="space-y-2">
-                      <Label htmlFor="estimatedDelivery" className="text-[#5c3d28] font-medium">Estimated Delivery</Label>
-                      <Input
-                        id="estimatedDelivery"
-                        type="datetime-local"
-                        value={deliveryInfo.estimatedDelivery}
-                        onChange={(e) => setDeliveryInfo({...deliveryInfo, estimatedDelivery: e.target.value})}
-                        className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28]"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="deliveryNotes" className="text-[#5c3d28] font-medium">Delivery Notes</Label>
+                      <Label htmlFor="deliveryNotes" className="text-[#5c3d28] font-medium">
+                        Delivery Notes (Optional)
+                      </Label>
                       <Textarea
                         id="deliveryNotes"
                         value={deliveryInfo.deliveryNotes}
                         onChange={(e) => setDeliveryInfo({...deliveryInfo, deliveryNotes: e.target.value})}
-                        placeholder="Special delivery instructions..."
-                        rows={2}
+                        placeholder="Add special delivery instructions for the rider..."
+                        rows={3}
                         className="border-[#e5ded7] focus:border-[#a4785a] bg-[#faf9f8] text-[#5c3d28] resize-none"
                       />
                     </div>
@@ -413,7 +516,7 @@ const ShippingSimulation = () => {
                     className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white hover:from-[#8a6b4a] hover:to-[#6b4a2f] shadow-md hover:shadow-lg transition-all duration-200"
                   >
                     <Truck className="h-4 w-4 mr-2" />
-                    Assign Rider & Ship
+                    Assign Rider & Generate Tracking
                   </Button>
                   <Button
                     variant="outline"

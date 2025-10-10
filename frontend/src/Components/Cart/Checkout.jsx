@@ -35,9 +35,10 @@ const Checkout = () => {
     setIsProcessing(true);
     try {
       console.log('Starting checkout with payment method:', formData.paymentMethod);
+      console.log('Selected cart items for checkout:', cartItems.length);
       
-      // Call checkout with the selected payment method
-      const result = await checkout(formData.paymentMethod);
+      // Call checkout with the selected payment method AND selected items
+      const result = await checkout(formData.paymentMethod, cartItems);
       
       console.log('Checkout result:', result);
       

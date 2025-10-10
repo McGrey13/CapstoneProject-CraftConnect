@@ -325,9 +325,13 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
         if (response.ok) {
           console.log("Customization saved:", data);
           setSuccess("Store customization saved successfully!");
+          
+          // Clear image files from state since they're now saved
+          setImages({ logo: null, background: null });
+          
           // Clear success message after 3 seconds
           setTimeout(() => setSuccess(null), 3000);
-          // Refresh store data
+          // Refresh store data to get updated URLs
           await fetchStoreData();
         } else {
           console.error("Server error response:", data);
@@ -1004,11 +1008,16 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
 
   // Store Preview Component with StoreView Design
   const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode }) => {
+    // Debug logging
+    console.log("🔍 StorePreview - storeData:", storeData);
+    console.log("🔍 StorePreview - logo_url:", storeData?.logo_url);
+    console.log("🔍 StorePreview - imagePreviews:", imagePreviews);
+    
     // Use real store data from database
     const store = {
       name: storeData?.store?.store_name || "Your Store",
-      logo: imagePreviews.logo || "https://randomuser.me/api/portraits/men/32.jpg",
-      banner: imagePreviews.background || "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80",
+      logo: storeData?.logo_url || imagePreviews.logo || null, // Use saved logo URL first, then preview
+      banner: storeData?.background_url || imagePreviews.background || "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80",
       rating: storeData?.seller?.average_rating || 4.8, // Real rating from database
       followers: storeData?.seller?.followers_count || 1250,
       location: [
@@ -1250,8 +1259,16 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
                 className="w-32 h-32 rounded-2xl shadow-lg flex items-center justify-center overflow-hidden border-4 border-white"
                 style={{ backgroundColor: customization.background_color }}
               >
-                <img src={store.logo} alt={store.name} className="w-full h-full object-cover" />
+                {(storeData?.logo_url || imagePreviews.logo) ? (
+                  <img src={storeData?.logo_url || imagePreviews.logo} alt={store.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                    <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
                   </div>
+                )}
+              </div>
             </div>
                 <div>
               <h1 

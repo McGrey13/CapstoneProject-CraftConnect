@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Plus, Upload, Video, Image as ImageIcon, Check } from 'lucide-react';
+import { X, Plus, Upload, Video as VideoIcon, Image as ImageIcon, Check } from 'lucide-react';
 import api from '../../api';
 
 export const AddProductModal = ({ isOpen, onClose, onSave }) => {
@@ -61,7 +61,7 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
     if (isOpen) {
       fetchCategories();
     }
-  }, []);
+  }, [isOpen]);
 
   const handleMainImageChange = (e) => {
     const file = e.target.files[0];
@@ -169,312 +169,409 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Add New Product</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-slideUp">
+        {/* Header with Gradient */}
+        <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] px-8 py-6">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <Plus className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-white">Add New Product</h2>
+                <p className="text-white/80 text-sm mt-1">Create your handcrafted masterpiece listing</p>
+              </div>
+            </div>
             <button 
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-white/80 hover:text-white hover:bg-white/20 rounded-xl p-2 transition-all duration-200"
               aria-label="Close modal"
             >
-              <X size={24} />
+              <X size={28} />
             </button>
           </div>
+        </div>
+        
+        {/* Content with scroll */}
+        <div className="p-8 overflow-y-auto max-h-[calc(90vh-100px)]">
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes slideUp {
+              from { transform: translateY(20px); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
+            }
+            .animate-fadeIn {
+              animation: fadeIn 0.2s ease-out;
+            }
+            .animate-slideUp {
+              animation: slideUp 0.3s ease-out;
+            }
+          `}</style>
           
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left Column - Product Details */}
               <div className="lg:col-span-2 space-y-6">
                 {/* Product Information */}
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-6">Product Information</h3>
+                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-2xl border-2 border-[#e5ded7] shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <ImageIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-[#5c3d28]">Product Information</h3>
+                  </div>
                   
                   {/* Product Title */}
                   <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-bold text-[#5c3d28] mb-2">
                       Product Title <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter product name"
+                      className="w-full px-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-medium"
+                      placeholder="e.g., Handwoven Rattan Basket"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       maxLength={100}
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      {title.length}/100 characters
+                    <p className="text-xs text-[#7b5a3b] mt-2 flex items-center justify-between">
+                      <span>✨ Make it descriptive and catchy!</span>
+                      <span className="font-medium">{title.length}/100</span>
                     </p>
                   </div>
 
                   {/* Product Description */}
                   <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-bold text-[#5c3d28] mb-2">
                       Description <span className="text-red-500">*</span>
                     </label>
                     <textarea
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      rows="4"
-                      placeholder="Describe your product in detail..."
+                      className="w-full px-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] resize-none"
+                      rows="5"
+                      placeholder="Describe your handcrafted product - materials used, techniques, special features..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       maxLength={2000}
                       required
                     ></textarea>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {description.length}/2000 characters
+                    <p className="text-xs text-[#7b5a3b] mt-2 flex items-center justify-between">
+                      <span>📝 Tell the story behind your craft</span>
+                      <span className="font-medium">{description.length}/2000</span>
                     </p>
                   </div>
 
                   {/* Price and Stock */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-bold text-[#5c3d28] mb-2">
                         Price (₱) <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
-                        <span className="absolute left-3 top-3 text-gray-400">₱</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a4785a] font-bold text-lg">₱</span>
                         <input
                           type="number"
                           min="0"
                           step="0.01"
-                          className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full pl-10 pr-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-semibold text-lg"
                           placeholder="0.00"
                           value={price}
                           onChange={(e) => setPrice(e.target.value)}
                           required
                         />
                       </div>
+                      <p className="text-xs text-[#7b5a3b] mt-2">💰 Set a fair price for your craft</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-bold text-[#5c3d28] mb-2">
                         Stock Quantity <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="number"
                         min="0"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-semibold text-lg"
                         placeholder="Available units"
                         value={stock}
                         onChange={(e) => setStock(e.target.value)}
                         required
                       />
+                      <p className="text-xs text-[#7b5a3b] mt-2">📦 How many items do you have?</p>
                     </div>
                   </div>
 
-                  {/* Product Images */}
-                  <div className="bg-white rounded-xl shadow-sm p-6">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-6">Product Images</h3>
+                </div>
+                
+                {/* Product Images */}
+                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-2xl border-2 border-[#e5ded7] shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <ImageIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-[#5c3d28]">Product Images</h3>
+                  </div>
                     
-                    {/* Main Image */}
-                    <div className="mb-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Main Product Image <span className="text-red-500">*</span>
-                      </label>
-                      <div 
-                        className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors relative"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        {mainImage.preview ? (
+                  {/* Main Image */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-bold text-[#5c3d28] mb-3">
+                      Main Product Image <span className="text-red-500">*</span>
+                    </label>
+                    <div 
+                      className="border-3 border-dashed border-[#a4785a] rounded-2xl p-8 text-center cursor-pointer hover:border-[#7b5a3b] hover:bg-[#faf9f8] transition-all duration-300 relative group"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {mainImage.preview ? (
+                        <div className="relative">
                           <img 
                             src={mainImage.preview} 
                             alt="Main product display" 
-                            className="mx-auto mb-4 rounded-lg max-h-48 object-cover"
+                            className="mx-auto mb-4 rounded-xl max-h-64 object-cover shadow-lg border-4 border-[#e5ded7]"
                           />
-                        ) : (
-                          <>
-                            <ImageIcon className="mx-auto mb-4 text-gray-400" size={40} />
-                            <p className="text-gray-600">Click to upload or drag and drop</p>
-                            <p className="text-sm text-gray-500">PNG, JPG, GIF up to 5MB each</p>
-                          </>
-                        )}
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          className="hidden"
-                          accept="image/*"
-                          onChange={handleMainImageChange}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Additional Images */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-4">
-                        Additional Images (up to 5)
-                      </label>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                        {additionalImages.map((img, index) => (
-                          <div
-                            key={index}
-                            className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 transition-colors relative h-32 flex items-center justify-center"
-                            onClick={() => additionalImageRefs.current[index]?.current?.click()}
-                          >
-                            {img.preview ? (
-                              <>
-                                <img 
-                                  src={img.preview} 
-                                  alt={`Additional view ${index + 1}`}
-                                  className="w-full h-full object-cover rounded-lg"
-                                />
-                                <button
-                                  type="button"
-                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const newImages = [...additionalImages];
-                                    newImages[index] = { file: null, preview: null };
-                                    setAdditionalImages(newImages);
-                                  }}
-                                >
-                                  ×
-                                </button>
-                              </>
-                            ) : (
-                              <div className="text-gray-400">
-                                <Plus size={24} className="mx-auto mb-1" />
-                                <span className="text-xs">Add Image</span>
-                              </div>
-                            )}
-                            <input
-                              type="file"
-                              ref={additionalImageRefs.current[index]}
-                              className="hidden"
-                              accept="image/*"
-                              onChange={(e) => handleAdditionalImageChange(index, e)}
-                            />
+                          <div className="absolute top-2 right-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                            MAIN IMAGE
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Product Video */}
-                  <div className="bg-white rounded-xl shadow-sm p-6">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-6">Product Video (Optional)</h3>
-                    <div 
-                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
-                      onClick={() => videoInputRef.current?.click()}
-                    >
-                      {video.preview ? (
-                        <div className="relative">
-                          <video
-                            src={video.preview}
-                            controls
-                            className="w-full rounded-lg"
-                          />
-                          <button
-                            type="button"
-                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setVideo({ file: null, preview: null });
-                            }}
-                          >
-                            ×
-                          </button>
                         </div>
                       ) : (
                         <>
-                          <Video className="mx-auto mb-3 text-gray-400" size={40} />
-                          <p className="text-gray-600 mb-1">Click to upload or drag and drop your product video</p>
-                          <p className="text-sm text-gray-500">MP4 format, max 50MB</p>
+                          <div className="p-4 bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <ImageIcon className="text-[#a4785a]" size={40} />
+                          </div>
+                          <p className="text-[#5c3d28] font-semibold mb-2">Click to upload your product's main photo</p>
+                          <p className="text-sm text-[#7b5a3b]">PNG, JPG, GIF up to 5MB</p>
                         </>
                       )}
                       <input
                         type="file"
-                        ref={videoInputRef}
+                        ref={fileInputRef}
                         className="hidden"
-                        accept="video/mp4"
-                        onChange={handleVideoChange}
+                        accept="image/*"
+                        onChange={handleMainImageChange}
                       />
                     </div>
                   </div>
+
+                  {/* Additional Images */}
+                  <div>
+                    <label className="block text-sm font-bold text-[#5c3d28] mb-3">
+                      Additional Images <span className="text-[#7b5a3b] text-xs font-normal">(up to 5)</span>
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                      {additionalImages.map((img, index) => (
+                        <div
+                          key={index}
+                          className="border-2 border-dashed border-[#e5ded7] rounded-xl p-3 text-center cursor-pointer hover:border-[#a4785a] hover:bg-[#faf9f8] transition-all duration-300 relative h-32 flex items-center justify-center group"
+                          onClick={() => additionalImageRefs.current[index]?.current?.click()}
+                        >
+                          {img.preview ? (
+                            <>
+                              <img 
+                                src={img.preview} 
+                                alt={`Additional view ${index + 1}`}
+                                className="w-full h-full object-cover rounded-lg shadow-md"
+                              />
+                              <button
+                                type="button"
+                                className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm shadow-lg hover:scale-110 transition-transform duration-200"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const newImages = [...additionalImages];
+                                  newImages[index] = { file: null, preview: null };
+                                  setAdditionalImages(newImages);
+                                }}
+                              >
+                                ×
+                              </button>
+                            </>
+                          ) : (
+                            <div className="text-[#a4785a] group-hover:scale-110 transition-transform duration-300">
+                              <Plus size={28} className="mx-auto mb-1" />
+                              <span className="text-xs font-medium">Add Photo</span>
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            ref={additionalImageRefs.current[index]}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => handleAdditionalImageChange(index, e)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-[#7b5a3b] mt-3">📸 Show your product from different angles</p>
+                  </div>
                 </div>
 
+                {/* Product Video */}
+                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-2xl border-2 border-[#e5ded7] shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <VideoIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-[#5c3d28]">Product Video</h3>
+                    <span className="ml-auto text-xs text-[#7b5a3b] bg-[#faf9f8] px-3 py-1 rounded-full border border-[#e5ded7]">Optional</span>
+                  </div>
+                  <div 
+                    className="border-3 border-dashed border-[#a4785a] rounded-2xl p-8 text-center cursor-pointer hover:border-[#7b5a3b] hover:bg-[#faf9f8] transition-all duration-300 group"
+                    onClick={() => videoInputRef.current?.click()}
+                  >
+                    {video.preview ? (
+                      <div className="relative">
+                        <video
+                          src={video.preview}
+                          controls
+                          className="w-full rounded-xl shadow-lg border-4 border-[#e5ded7]"
+                        />
+                        <button
+                          type="button"
+                          className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setVideo({ file: null, preview: null });
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="p-4 bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                          <VideoIcon className="text-[#a4785a]" size={40} />
+                        </div>
+                        <p className="text-[#5c3d28] font-semibold mb-2">Click to upload your product video</p>
+                        <p className="text-sm text-[#7b5a3b]">MP4 format, max 50MB</p>
+                        <p className="text-xs text-[#7b5a3b] mt-3">🎥 Show your product in action!</p>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      ref={videoInputRef}
+                      className="hidden"
+                      accept="video/mp4"
+                      onChange={handleVideoChange}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Categories & Tags */}
+              <div className="space-y-6">
                 {/* Categories */}
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-6">Categories</h3>
+                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-2xl border-2 border-[#e5ded7] shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-[#5c3d28]">Category</h3>
+                  </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Category <span className="text-red-500">*</span>
+                    <label className="block text-sm font-bold text-[#5c3d28] mb-3">
+                      Select Category <span className="text-red-500">*</span>
                     </label>
                     <select
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-medium cursor-pointer hover:border-[#a4785a]"
                       value={mainCategory}
                       onChange={(e) => setMainCategory(e.target.value)}
                       required
                     >
-                      <option value="" disabled selected>Select a category</option>
-                      <option value="Miniatures & Souvenirs">Miniatures & Souvenirs</option>
-                      <option value="Rubber Stamp Engraving">Rubber Stamp Engraving</option>
-                      <option value="Traditional Accessories">Traditional Accessories</option>
-                      <option value="Statuary & Sculpture">Statuary & Sculpture</option>
-                      <option value="Basketry & Weaving">Basketry & Weaving</option>
-                      {apiCategories.map(category => (
-                        <option key={category.id} value={category.id}>{category.name}</option>
-                      ))}
+                      <option value="" disabled>Choose a category...</option>
+                      {apiCategories.length > 0 ? (
+                        apiCategories.map(category => (
+                          <option key={category.id} value={category.category_id || category.id}>
+                            {category.category_name || category.name}
+                          </option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="Basketry & Weaving">Basketry & Weaving</option>
+                          <option value="Miniatures & Souvenirs">Miniatures & Souvenirs</option>
+                          <option value="Rubber Stamp Engraving">Rubber Stamp Engraving</option>
+                          <option value="Traditional Accessories">Traditional Accessories</option>
+                          <option value="Statuary & Sculpture">Statuary & Sculpture</option>
+                        </>
+                      )}
                     </select>
+                    <p className="text-xs text-[#7b5a3b] mt-3">🎨 Select the best category for your product</p>
                   </div>
+                </div>
 
-                  {/* Tags */}
+                {/* Tags */}
+                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-2xl border-2 border-[#e5ded7] shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-[#5c3d28]">Product Tags</h3>
+                  </div>
+                  
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Product Tags
+                    <label className="block text-sm font-bold text-[#5c3d28] mb-3">
+                      Add Tags <span className="text-[#7b5a3b] text-xs font-normal">(Optional)</span>
                     </label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {tags.map((tag, index) => (
-                        <span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center">
+                    <div className="flex flex-wrap gap-2 mb-3 min-h-[40px] p-3 bg-[#faf9f8] rounded-xl border-2 border-[#e5ded7]">
+                      {tags.length > 0 ? tags.map((tag, index) => (
+                        <span key={index} className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-shadow duration-200">
                           {tag}
                           <button
                             type="button"
-                            className="ml-2 text-blue-600 hover:text-blue-800 focus:outline-none"
+                            className="hover:bg-white/20 rounded-full p-0.5 transition-colors duration-200"
                             onClick={() => removeTag(tag)}
                             aria-label={`Remove tag ${tag}`}
                           >
-                            ×
+                            <X size={14} />
                           </button>
                         </span>
-                      ))}
+                      )) : (
+                        <span className="text-[#7b5a3b] text-sm italic">No tags added yet</span>
+                      )}
                     </div>
                     <input
                       type="text"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Add tags (press Enter to add)"
+                      className="w-full px-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-medium"
+                      placeholder="Type a tag and press Enter..."
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyPress={handleAddTag}
                     />
-                    <p className="text-xs text-gray-400 mt-1">Press Enter to add tags</p>
+                    <p className="text-xs text-[#7b5a3b] mt-3">🏷️ Press <kbd className="px-2 py-1 bg-[#e5ded7] rounded text-[#5c3d28] font-mono">Enter</kbd> to add tags (e.g., handmade, gift-idea, eco-friendly)</p>
                   </div>
                 </div>
 
-                {/* Publish */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor="publishStatus" className="text-right">
-                    Publish Status
-                  </label>
+                {/* Publish Status */}
+                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-2xl border-2 border-[#e5ded7] shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <Check className="h-5 w-5 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-[#5c3d28]">Publish Status</h3>
+                  </div>
+                  
                   <select 
                     value={publishStatus} 
                     onChange={(e) => setPublishStatus(e.target.value)}
-                    className="col-span-3"
+                    className="w-full px-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-medium cursor-pointer hover:border-[#a4785a]"
                   >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
+                    <option value="draft">💾 Save as Draft</option>
+                    <option value="published">🚀 Publish Immediately</option>
                   </select>
+                  <p className="text-xs text-[#7b5a3b] mt-3">
+                    {publishStatus === 'draft' 
+                      ? '💾 Save and publish later' 
+                      : '🚀 Your product will be visible to customers immediately'}
+                  </p>
                 </div>
 
                 {/* Submit Button */}
-                <div className="pt-4 border-t border-gray-200">
+                <div className="sticky bottom-0 pt-4">
                   <button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center"
+                    className="w-full bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-[#8a6b4a] hover:to-[#6b4a2f] transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl shadow-xl flex items-center justify-center gap-3 group"
                   >
-                    <Plus className="mr-2 h-5 w-5" />
+                    <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
                     {getSubmitButtonText()}
                   </button>
                 </div>
@@ -488,3 +585,4 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
 };
 
 export default AddProductModal;
+

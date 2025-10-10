@@ -1,17 +1,19 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Star, MessageCircle, Heart, Share2, MapPin, Calendar, Users, CheckCircle, BookOpen, Users as UsersIcon, Clock } from "lucide-react";
+import api from "../api";
 
-// Hardcoded sample data for design/demo
-const store = {
-  name: "Handcrafted Haven",
-  logo: "https://randomuser.me/api/portraits/men/32.jpg",
+// Default store data (fallback)
+const defaultStore = {
+  name: "Loading Store...",
+  logo: null,
   banner: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80",
-  rating: 4.8,
-  followers: 1250,
-  location: "Manila, Philippines",
-  yearsActive: 2,
-  description: "Welcome to Handcrafted Haven! We offer unique, artisan-made crafts and gifts. Discover our curated selection and support local makers.",
-  categories: ["Handcrafted", "Artisan", "Unique"],
+  rating: 0,
+  followers: 0,
+  location: "Loading...",
+  yearsActive: 0,
+  description: "Loading store information...",
+  categories: [],
 };
 
 // Sample data for Featured Products
@@ -155,6 +157,125 @@ const displayProducts = [
 ];
 
 const StoreView = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [store, setStore] = useState(defaultStore);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (id) {
+      fetchStoreData();
+    }
+  }, [id]);
+
+  const fetchStoreData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch store data using the same endpoint as ArtisanDetail
+      const storeResponse = await fetch(`http://localhost:8000/api/sellers/${id}/store`, {
+        headers: { Accept: "application/json" },
+      });
+      
+      if (!storeResponse.ok) {
+        throw new Error('Store not found');
+      }
+      
+      const storeData = await storeResponse.json();
+      console.log('Store data received:', storeData);
+      
+      // Transform store data to match our UI structure (same as ArtisanDetail)
+      const transformedStore = {
+        name: storeData.store?.store_name || "Unknown Store",
+        logo: storeData.logo_url || null,
+        banner: storeData.background_url || "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80",
+        rating: storeData.seller?.average_rating || 0,
+        followers: storeData.seller?.followers_count || 0,
+        location: storeData.seller?.user?.userCity && storeData.seller?.user?.userProvince 
+          ? `${storeData.seller.user.userCity}, ${storeData.seller.user.userProvince}`
+          : storeData.seller?.user?.userAddress || "Location not specified",
+        yearsActive: storeData.seller?.created_at 
+          ? Math.floor((new Date() - new Date(storeData.seller.created_at)) / (1000 * 60 * 60 * 24 * 365))
+          : 0,
+        description: storeData.store?.store_description || "No description available",
+        categories: storeData.store?.category ? [storeData.store.category] : [],
+        seller: storeData.seller || null
+      };
+      
+      setStore(transformedStore);
+      
+      // Fetch products using the seller ID
+      const sellerId = storeData.seller?.sellerID;
+      if (sellerId) {
+        const productsResponse = await fetch(`http://localhost:8000/api/sellers/${sellerId}/approvedProduct`, {
+          headers: { Accept: "application/json" },
+        });
+        
+        if (productsResponse.ok) {
+          const productsData = await productsResponse.json();
+          
+          // Transform products data
+          const transformedProducts = Array.isArray(productsData) ? productsData.map(product => ({
+            id: product.productID || product.product_id || product.id,
+            name: product.productName || product.name,
+            price: `₱${parseFloat(product.price || 0).toFixed(2)}`,
+            image: product.productImage || product.image || null,
+            category: product.category || "General",
+            rating: product.average_rating || 0,
+            isNew: product.created_at ? new Date(product.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : false,
+            discount: null,
+            oldPrice: null,
+          })) : [];
+          
+          setProducts(transformedProducts);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error fetching store data:', error);
+      setError('Failed to load store data');
+      setStore({
+        ...defaultStore,
+        name: "Store Not Found",
+        description: "The requested store could not be found or is no longer available."
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#fdf6e3] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#a67c68] mx-auto mb-4"></div>
+          <p className="text-[#a67c68] text-lg">Loading store...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#fdf6e3] flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🏪</div>
+          <h2 className="text-2xl font-bold text-[#a67c68] mb-4">Store Not Found</h2>
+          <p className="text-[#a67c68] mb-6">The store you're looking for doesn't exist or has been removed.</p>
+          <button
+            onClick={() => navigate('/home')}
+            className="bg-[#ffe082] text-[#a67c68] font-semibold px-6 py-3 rounded-lg hover:bg-[#ffd54f] transition"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#fdf6e3]">
       {/* Professional Back Button */}
@@ -219,7 +340,7 @@ const StoreView = () => {
         <select className="px-4 py-2 rounded-lg border border-[#ffe082] bg-[#fffbe6] text-[#a67c68] font-semibold">
           <option>All</option>
         </select>
-        <div className="text-[#a67c68] font-semibold">{displayProducts.length} products</div>
+        <div className="text-[#a67c68] font-semibold">{products.length} products</div>
         <div className="flex items-center gap-2">
           <span className="text-[#a67c68] font-semibold">Sort:</span>
           <select className="px-2 py-1 rounded-lg border border-[#ffe082] bg-[#fffbe6] text-[#a67c68] font-semibold">
@@ -231,8 +352,8 @@ const StoreView = () => {
       </div>
       {/* Product Grid */}
       <div className="max-w-5xl mx-auto mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {displayProducts.length > 0 ? (
-          displayProducts.map((product) => (
+        {products.length > 0 ? (
+          products.map((product) => (
           <div
             key={product.id}
             className="bg-[#fffbe6] rounded-2xl shadow p-4 flex flex-col relative group transition-transform duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer"
@@ -290,7 +411,7 @@ const StoreView = () => {
           <p className="text-[#a67c68] text-lg">Discover our handpicked favorites</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((product) => (
+          {products.length > 0 ? products.slice(0, 4).map((product) => (
             <div
               key={product.id}
               className="bg-[#fffbe6] rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-[#ffe082] relative group cursor-pointer"
@@ -326,7 +447,13 @@ const StoreView = () => {
                 </div>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="col-span-full text-center py-12">
+              <div className="text-6xl mb-4">📦</div>
+              <h3 className="text-2xl font-bold text-[#a67c68] mb-4">No Featured Products</h3>
+              <p className="text-[#a67c68] text-lg">This store hasn't added any products yet.</p>
+            </div>
+          )}
         </div>
       </div>
 

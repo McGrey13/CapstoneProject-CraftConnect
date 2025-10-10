@@ -66,10 +66,16 @@ export const CartProvider = ({ children }) => {
               const productImage = product.productImage || product.image || '';
               const price = parseFloat(item.price || product.price || product.productPrice || 0);
               const quantity = parseInt(item.quantity || 1, 10);
+              const availableQuantity = parseInt(product.productQuantity || 0, 10);
               const sellerName = item.product?.seller_name || 
                                (product.seller && (product.seller.businessName || 
                                (product.seller.user && product.seller.user.userName))) || 
                                'Unknown Seller';
+              
+              // Log if product is out of stock
+              if (availableQuantity === 0) {
+                console.warn(`Product "${productName}" is out of stock (ID: ${productId})`);
+              }
               
               return {
                 id: cartItemId,
@@ -79,10 +85,12 @@ export const CartProvider = ({ children }) => {
                 image: productImage,
                 price: price,
                 quantity: quantity,
+                availableQuantity: availableQuantity, // Add available stock
+                isOutOfStock: availableQuantity === 0, // Flag for out of stock items
                 total_price: price * quantity,
                 artisanName: sellerName,
                 seller_name: sellerName,
-                product: product // Keep full product data
+                product: product // Keep full product data with productQuantity
               };
             } catch (error) {
               console.error("Error processing cart item:", error, item);
@@ -325,7 +333,7 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const checkout = async (paymentMethod = 'cod') => {
+  const checkout = async (paymentMethod = 'cod', selectedCartItems = null) => {
     if (!isAuthenticated) {
       const errorMsg = "Please log in to proceed to checkout.";
       console.warn(errorMsg);
@@ -333,9 +341,82 @@ export const CartProvider = ({ children }) => {
     }
 
     try {
+      // Refresh cart data before checkout to get latest stock levels
+      console.log('Refreshing cart before checkout...');
+      
+      // Fetch fresh cart data directly
+      const cartResponse = await api.get('/cart');
+      const responseData = cartResponse.data;
+      let freshCartData = responseData;
+      if (Array.isArray(responseData)) {
+        freshCartData = responseData;
+      } else if (Array.isArray(responseData.data)) {
+        freshCartData = responseData.data;
+      } else if (responseData.items) {
+        freshCartData = responseData.items;
+      }
+      
+      // Format fresh cart data
+      const currentCart = freshCartData.map(item => {
+        const product = item.product || item;
+        return {
+          cartItemId: item.cart_id || item.id,
+          product_id: item.product_id,
+          title: product.productName || 'Unknown Product',
+          quantity: parseInt(item.quantity || 1, 10),
+          availableQuantity: parseInt(product.productQuantity || 0, 10),
+          isOutOfStock: parseInt(product.productQuantity || 0, 10) === 0,
+          price: parseFloat(product.productPrice || 0),
+        };
+      });
+      
+      // If selectedCartItems provided, filter to only those items
+      const itemsToCheckout = selectedCartItems && selectedCartItems.length > 0 
+        ? currentCart.filter(item => selectedCartItems.some(selected => selected.cartItemId === item.cartItemId))
+        : currentCart;
+      
+      console.log('Items to checkout:', itemsToCheckout.length, 'out of', currentCart.length);
+      console.log('Selected items for checkout:', itemsToCheckout);
+      
+      // Validate ONLY the items being checked out (not all cart items)
+      const outOfStockItems = itemsToCheckout.filter(item => item.isOutOfStock || item.availableQuantity === 0);
+      if (outOfStockItems.length > 0) {
+        const itemNames = outOfStockItems.map(item => item.title).join(', ');
+        const errorMsg = `Cannot checkout: The following item(s) are out of stock: ${itemNames}. Please remove them from your cart.`;
+        console.error('Out of stock items:', outOfStockItems);
+        alert(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+      
+      const insufficientStockItems = itemsToCheckout.filter(item => 
+        item.quantity > item.availableQuantity && item.availableQuantity > 0
+      );
+      if (insufficientStockItems.length > 0) {
+        const itemDetails = insufficientStockItems.map(item => 
+          `${item.title} (requested: ${item.quantity}, available: ${item.availableQuantity})`
+        ).join(', ');
+        const errorMsg = `Cannot checkout: Insufficient stock for: ${itemDetails}. Please adjust quantities.`;
+        console.error('Insufficient stock items:', insufficientStockItems);
+        alert(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+
       console.log('Initiating checkout with payment method:', paymentMethod);
       
-      // First, create the order
+      // Prepare checkout data
+      const checkoutData = {
+        payment_method: paymentMethod
+      };
+      
+      // Add selected cart item IDs if specific items were selected
+      if (itemsToCheckout.length < currentCart.length) {
+        checkoutData.selected_items = itemsToCheckout.map(item => item.cartItemId);
+        console.log('Sending selected cart IDs:', checkoutData.selected_items);
+      } else {
+        console.log('Checking out all cart items (no specific selection)');
+      }
+      
+      // First, create the order with payment method
       const orderResponse = await fetch("http://localhost:8000/api/cart/checkout", {
         method: "POST",
         headers: {
@@ -343,6 +424,7 @@ export const CartProvider = ({ children }) => {
           'Accept': 'application/json',
           'Authorization': `Bearer ${getToken()}`,
         },
+        body: JSON.stringify(checkoutData),
       });
 
       const orderResponseText = await orderResponse.text();

@@ -15,6 +15,7 @@ const ArtisanDetail = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showMessenger, setShowMessenger] = useState(false);
+  const [showUnfollowWarning, setShowUnfollowWarning] = useState(false);
 
   useEffect(() => {
     const fetchArtisan = async () => {
@@ -99,8 +100,47 @@ const ArtisanDetail = () => {
     fetchArtisan();
   }, [id]);
 
+  // Check follow status on component mount
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      try {
+        const token = sessionStorage.getItem('auth_token');
+        if (!token) return;
+
+        const response = await fetch(`http://localhost:8000/api/sellers/${id}/follow-status`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setIsFollowing(data.is_following);
+        }
+      } catch (error) {
+        console.error('Error checking follow status:', error);
+      }
+    };
+
+    if (id) {
+      checkFollowStatus();
+    }
+  }, [id]);
+
   // Follow/Unfollow functionality
   const handleFollow = async () => {
+    // If trying to unfollow, show warning first
+    if (isFollowing) {
+      setShowUnfollowWarning(true);
+      return;
+    }
+
+    // If following, proceed directly
+    await performFollowAction('follow');
+  };
+
+  const performFollowAction = async (action) => {
     setIsLoading(true);
     try {
       const token = sessionStorage.getItem('auth_token');
@@ -109,8 +149,7 @@ const ArtisanDetail = () => {
         return;
       }
 
-      const endpoint = isFollowing ? 'unfollow' : 'follow';
-      const response = await fetch(`http://localhost:8000/api/sellers/${id}/${endpoint}`, {
+      const response = await fetch(`http://localhost:8000/api/sellers/${id}/${action}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -120,25 +159,38 @@ const ArtisanDetail = () => {
       });
 
       if (response.ok) {
-        setIsFollowing(!isFollowing);
-        // Update followers count in storeData
-        if (storeData?.seller) {
-          const newCount = storeData.seller.followers_count + (isFollowing ? -1 : 1);
+        const data = await response.json();
+        console.log('Follow/Unfollow response:', data);
+        
+        setIsFollowing(data.is_following);
+        
+        // Update followers count with the actual count from backend
+        if (storeData?.seller && data.followers_count !== undefined) {
           setStoreData(prev => ({
             ...prev,
             seller: {
               ...prev.seller,
-              followers_count: newCount
+              followers_count: data.followers_count
             }
           }));
         }
+        
+        // Show success message
+        if (action === 'follow') {
+          alert('Successfully followed! You will now receive updates about new products and offers.');
+        } else {
+          alert('Successfully unfollowed.');
+        }
       } else {
         console.error('Failed to follow/unfollow seller');
+        alert('Failed to update follow status. Please try again.');
       }
     } catch (error) {
       console.error('Error following/unfollowing seller:', error);
+      alert('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
+      setShowUnfollowWarning(false);
     }
   };
 
@@ -211,6 +263,72 @@ const ArtisanDetail = () => {
           sellerName={artisan?.name}
           sellerAvatar={storeData?.logo_url || artisan?.image}
         />
+
+        {/* Unfollow Warning Modal */}
+        {showUnfollowWarning && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-fadeIn">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full">
+                <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-3">
+                Unfollow {storeData?.store?.store_name || 'this store'}?
+              </h3>
+              
+              <div className="mb-6">
+                <p className="text-gray-600 text-center mb-4">
+                  If you unfollow this store, you will:
+                </p>
+                <ul className="text-sm text-gray-700 space-y-2 bg-gray-50 p-4 rounded-lg">
+                  <li className="flex items-start">
+                    <svg className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>Stop receiving updates about new products</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>Miss notifications about special offers and discounts</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>No longer see their items in your followed sellers feed</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>Miss updates about workshops, events, and promotions</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowUnfollowWarning(false)}
+                  className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition duration-200"
+                  disabled={isLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => performFollowAction('unfollow')}
+                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Unfollowing...' : 'Yes, Unfollow'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 };
