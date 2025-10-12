@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use App\Models\Order;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\SecureAuthController;
@@ -93,7 +95,7 @@ Route::middleware([])->group(function () {
     
     // Debug endpoint
     Route::get('/debug-route', function () {
-        \Log::info('Debug route hit', [
+        Log::info('Debug route hit', [
             'path' => request()->path(),
             'url' => request()->url(),
             'method' => request()->method(),
@@ -424,6 +426,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('products/{product}')->group(function () {
         Route::post('/reviews', [ReviewController::class, 'store']);
     });
+    // Batch review check for current user
+    Route::post('/reviews/user-reviewed', [ReviewController::class, 'userReviewedBatch']);
     
     // Cart routes
     Route::prefix('cart')->group(function () {
@@ -845,7 +849,7 @@ if (env('APP_ENV') === 'local' || env('APP_DEBUG')) {
                 ]);
                 $updated++;
                 
-                \Log::info('TEST: Marked order as paid', [
+                Log::info('TEST: Marked order as paid', [
                     'order_id' => $order->orderID,
                     'payment_method' => $order->payment_method
                 ]);

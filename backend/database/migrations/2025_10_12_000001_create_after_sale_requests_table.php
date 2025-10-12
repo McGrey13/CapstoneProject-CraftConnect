@@ -24,6 +24,7 @@ return new class extends Migration
             $table->text('description');
             $table->string('reason')->nullable(); // Return/exchange reason
             $table->json('images')->nullable(); // Images of damaged/wrong items
+            $table->string('video_path')->nullable(); // Unboxing/proof video
             $table->decimal('refund_amount', 10, 2)->nullable();
             $table->text('seller_response')->nullable();
             $table->text('admin_notes')->nullable();

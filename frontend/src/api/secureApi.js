@@ -33,6 +33,14 @@ secureApi.interceptors.request.use(
 );
 
 // Response interceptor for automatic token refresh
+let isRefreshing = false;
+let queued = [];
+
+const resolveQueue = (error) => {
+  queued.forEach(({ resolve, reject }) => (error ? reject(error) : resolve()));
+  queued = [];
+};
+
 secureApi.interceptors.response.use(
   (response) => {
     return response;
@@ -40,22 +48,31 @@ secureApi.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If token expired and we haven't already tried to refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Avoid retrying refresh endpoint itself
+      if (originalRequest.url?.includes('/auth/refresh-token')) {
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
 
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          queued.push({ resolve, reject });
+        }).then(() => secureApi(originalRequest));
+      }
+
+      isRefreshing = true;
       try {
-        // Attempt to refresh token
-        await secureApi.post('/auth/refresh-token', {}, {
-          withCredentials: true
-        });
-        
-        // Retry original request
+        await secureApi.post('/auth/refresh-token', {}, { withCredentials: true });
+        resolveQueue(null);
         return secureApi(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, redirect to login
+        resolveQueue(refreshError);
         window.location.href = '/login';
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 

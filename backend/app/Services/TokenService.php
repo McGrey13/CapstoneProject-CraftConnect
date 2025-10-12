@@ -17,7 +17,7 @@ class TokenService
     public function createAccessToken(User $user): string
     {
         // Create Sanctum token
-        $token = $user->createToken('access_token', ['*'], now()->addMinutes(config('sanctum.expiration', 60)));
+        $token = $user->createToken('access_token', ['*'], now()->addMinutes((int) config('sanctum.expiration', 60)));
         
         return $token->plainTextToken;
     }
@@ -34,7 +34,7 @@ class TokenService
         RefreshToken::create([
             'user_id' => $user->userID,
             'token' => hash('sha256', $refreshToken),
-            'expires_at' => now()->addMinutes(config('sanctum.refresh_expiration', 1440)),
+            'expires_at' => now()->addMinutes((int) config('sanctum.refresh_expiration', 1440)),
             'created_at' => now(),
         ]);
 
@@ -83,7 +83,7 @@ class TokenService
                 'success' => true,
                 'access_token' => $newAccessToken,
                 'refresh_token' => $newRefreshToken,
-                'expires_at' => now()->addMinutes(config('sanctum.expiration', 60))->toISOString()
+                'expires_at' => now()->addMinutes((int) config('sanctum.expiration', 60))->toISOString()
             ];
 
         } catch (Exception $e) {

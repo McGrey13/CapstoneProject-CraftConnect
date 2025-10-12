@@ -1,4 +1,4 @@
-=<?php
+<?php
 
 namespace App\Http\Middleware;
 
@@ -41,11 +41,15 @@ class EnhancedSecurityHeaders
      */
     private function addFullSecurityHeaders(Response $response, Request $request): Response
     {
-        // Content Security Policy
-        $this->addContentSecurityPolicy($response);
+        // Content Security Policy (configurable via env)
+        if (env('CSP_ENABLED', false)) {
+            $this->addContentSecurityPolicy($response);
+        }
 
-        // HSTS (HTTP Strict Transport Security)
-        $this->addHstsHeaders($response, $request);
+        // HSTS (HTTP Strict Transport Security) - configurable via env
+        if (env('HSTS_ENABLED', false)) {
+            $this->addHstsHeaders($response, $request);
+        }
 
         // X-Frame-Options
         $this->addFrameOptions($response);
@@ -134,7 +138,7 @@ class EnhancedSecurityHeaders
             $maxAge = env('HSTS_MAX_AGE', 31536000); // 1 year
             $includeSubdomains = env('HSTS_INCLUDE_SUBDOMAINS', true) ? '; includeSubDomains' : '';
             $preload = env('HSTS_PRELOAD', false) ? '; preload' : '';
-            
+
             $response->headers->set('Strict-Transport-Security', "max-age={$maxAge}{$includeSubdomains}{$preload}");
         }
     }

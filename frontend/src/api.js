@@ -97,8 +97,13 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If token expired and we haven't already tried to refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+  // If token expired and we haven't already tried to refresh
+  if (error.response?.status === 401 && !originalRequest._retry) {
+    // Gate refresh to bearer-token flow only; cookie-based auth should use secureApi
+    const existingToken = getToken();
+    if (!existingToken) {
+      return Promise.reject(error);
+    }
       // Prevent infinite refresh loops
       if (refreshAttempts >= MAX_REFRESH_ATTEMPTS) {
         console.log('Too many refresh attempts, clearing auth and redirecting to login');

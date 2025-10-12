@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, ArrowLeft, Clock, Package, Truck, CheckCircle2, RotateCcw, XCircle, Star, MessageSquare, Calendar } from 'lucide-react';
+import { Loader2, ArrowLeft, Clock, Package, Truck, CheckCircle2, RotateCcw, XCircle, Star, MessageSquare, Calendar, UploadCloud, Image as ImageIcon, Video as VideoIcon, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -25,6 +25,42 @@ const Orders = () => {
   const [sellerRating, setSellerRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [userReviewedMap, setUserReviewedMap] = useState({});
+  const [afterSaleDialog, setAfterSaleDialog] = useState({ open: false, order: null });
+  const [afterSaleType, setAfterSaleType] = useState('return');
+  const [afterSaleReason, setAfterSaleReason] = useState('');
+  const [afterSaleDescription, setAfterSaleDescription] = useState('');
+  const [afterSaleStep, setAfterSaleStep] = useState(1);
+  const [selectedIssue, setSelectedIssue] = useState('');
+  const [selectedReason, setSelectedReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState('');
+  const [imageFiles, setImageFiles] = useState([]); // File[]
+  const [imagePreviews, setImagePreviews] = useState([]); // string[]
+
+  const reasonOptions = {
+    received_damaged_items: [
+      'Box/package damaged',
+      'Product scratched or dented',
+      'Product not functioning',
+      'Signs of tampering',
+    ],
+    receive_incorrect_item: [
+      'Wrong color/variant',
+      'Wrong size',
+      'Completely different item',
+      'Missing accessories',
+    ],
+    did_not_receive_some_or_all_items: [
+      'Some items missing',
+      'All items missing',
+      'Received empty box',
+    ],
+    others: [
+      'Other issue (please describe)'
+    ],
+  };
 
   useEffect(() => {
     // Check for payment status in URL query params
@@ -78,6 +114,23 @@ const Orders = () => {
       
       console.log('💾 Setting orders state with', ordersData.length, 'orders');
       setOrders(ordersData);
+      // Build product id list from delivered orders for review check
+      const productIds = ordersData
+        .filter(o => o.status === 'delivered')
+        .flatMap(o => (o.items || []).map(i => i.product_id))
+        .filter(Boolean);
+      if (productIds.length) {
+        try {
+          const res = await api.post('/reviews/user-reviewed', { product_ids: Array.from(new Set(productIds)) });
+          if (res.data?.reviewed) {
+            setUserReviewedMap(res.data.reviewed);
+          }
+        } catch (e) {
+          console.warn('Failed to fetch user reviewed map', e);
+        }
+      } else {
+        setUserReviewedMap({});
+      }
       console.log('✅ Orders state updated!');
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -214,7 +267,10 @@ const Orders = () => {
     ),
     'To Receive': orders.filter(order => order.status === 'shipped'),
     'Completed': orders.filter(order => order.status === 'delivered'),
-    'Rating & Review': orders.filter(order => order.status === 'delivered'), // Only delivered orders can be reviewed
+    'Rating & Review': orders.filter(order => order.status === 'delivered').map(order => ({
+      ...order,
+      items: (order.items || []).filter(item => !userReviewedMap[item.product_id])
+    })).filter(order => (order.items || []).length > 0), // Hide if all products reviewed
     'Return/Refund': orders.filter(order => 
       order.status === 'returned' || 
       order.status === 'cancelled' ||
@@ -272,6 +328,81 @@ const Orders = () => {
     setShowReviewDialog(true);
   };
 
+  const handleBuyAgain = async (order) => {
+    try {
+      // Add all items back to cart
+      for (const item of (order.items || [])) {
+        await api.post('/cart/add', { product_id: item.product_id, quantity: Math.max(1, item.quantity || 1) });
+      }
+      alert('Items added to cart. You can review your cart now.');
+      navigate('/cart');
+    } catch (e) {
+      console.error('Buy again failed', e);
+      alert('Failed to add items to cart.');
+    }
+  };
+
+  const openAfterSale = (order) => {
+    setAfterSaleDialog({ open: true, order });
+    setAfterSaleType('return');
+    setAfterSaleReason('');
+    setAfterSaleDescription('');
+    setAfterSaleStep(1);
+    setSelectedIssue('');
+    setSelectedReason('');
+    setCustomReason('');
+    setVideoFile(null);
+    setVideoPreview('');
+    setImageFiles([]);
+    setImagePreviews([]);
+  };
+
+  const submitAfterSale = async () => {
+    try {
+      const orderId = afterSaleDialog.order?.orderID;
+      if (!orderId) return;
+      // Frontend validation
+      if (!selectedIssue) {
+        alert('Please select what happened to the product.');
+        return;
+      }
+      const resolvedReason = selectedIssue === 'others' ? (customReason || '').trim() : (selectedReason || '').trim();
+      if (!resolvedReason) {
+        alert('Please select or enter a reason.');
+        return;
+      }
+      const form = new FormData();
+      form.append('order_id', orderId);
+      form.append('request_type', afterSaleType);
+      form.append('subject', 'After-sale request');
+      form.append('description', afterSaleDescription || 'No additional details provided');
+      form.append('reason', resolvedReason);
+      // Append files from state
+      const hasVideo = !!videoFile;
+      const imageCount = imageFiles.length;
+      if (videoFile) {
+        form.append('video', videoFile);
+      }
+      imageFiles.forEach((file) => form.append('images[]', file));
+      if ((afterSaleType === 'return' || afterSaleType === 'refund') && (!hasVideo || imageCount === 0)) {
+        alert('Unboxing video and at least one photo are required for return/refund requests.');
+        return;
+      }
+      const res = await api.post('/after-sale/requests', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data?.success !== false) {
+        alert('After-sale request submitted. We will get back to you.');
+        setAfterSaleDialog({ open: false, order: null });
+      } else {
+        alert(res.data?.message || 'Failed to submit after-sale request');
+      }
+    } catch (e) {
+      console.error('After-sale submit failed', e);
+      alert('Failed to submit after-sale request');
+    }
+  };
+
   const handleSubmitReview = async () => {
     if (productRating === 0 && sellerRating === 0) {
       alert('Please provide at least one rating');
@@ -285,7 +416,7 @@ const Orders = () => {
       if (productRating > 0 && selectedProduct) {
         await api.post(`/products/${selectedProduct.product_id}/reviews`, {
           rating: productRating,
-          review: reviewText,
+          comment: reviewText,
           order_id: selectedOrder.orderID
         });
       }
@@ -294,7 +425,7 @@ const Orders = () => {
       if (sellerRating > 0 && selectedOrder.seller_id) {
         await api.post(`/sellers/${selectedOrder.seller_id}/reviews`, {
           rating: sellerRating,
-          review: reviewText,
+          comment: reviewText,
           order_id: selectedOrder.orderID
         });
       }
@@ -500,6 +631,25 @@ const Orders = () => {
               >
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 Order Received
+              </Button>
+            </div>
+          )}
+
+          {/* Completed actions: Buy Again / Return-Refund */}
+          {order.status === 'delivered' && (
+            <div className="mt-4 pt-3 border-t border-[#e5ded7] grid grid-cols-1 md:grid-cols-2 gap-2">
+              <Button
+                onClick={() => handleBuyAgain(order)}
+                className="w-full bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white hover:from-[#8f674a] hover:to-[#6a4c34] shadow-md hover:shadow-lg"
+              >
+                Buy Again
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => openAfterSale(order)}
+                className="w-full border-2 border-[#d5bfae] hover:bg-[#f5f0eb]"
+              >
+                Return / Refund
               </Button>
             </div>
           )}
@@ -762,6 +912,226 @@ const Orders = () => {
                 )}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* After-Sale Dialog */}
+      <Dialog open={afterSaleDialog.open} onOpenChange={(open) => setAfterSaleDialog(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-xl bg-gradient-to-br from-white to-[#faf9f8] border-2 border-[#d5bfae]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-[#5c3d28]">Return / Refund Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5">
+            {/* Step indicator */}
+            <div className="flex items-center justify-center gap-3 text-sm">
+              <div className={`px-3 py-1 rounded-full border ${afterSaleStep === 1 ? 'bg-[#a4785a] text-white border-[#a4785a]' : 'bg-white text-[#5c3d28] border-[#d5bfae]'}`}>1. Select Issue</div>
+              <div className={`px-3 py-1 rounded-full border ${afterSaleStep === 2 ? 'bg-[#a4785a] text-white border-[#a4785a]' : 'bg-white text-[#5c3d28] border-[#d5bfae]'}`}>2. Provide Details</div>
+            </div>
+
+            {afterSaleStep === 1 && (
+              <div className="space-y-4">
+                <label className="text-sm font-semibold text-[#5c3d28]">What happened to the product?</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { key: 'received_damaged_items', label: 'Received damaged items' },
+                    { key: 'receive_incorrect_item', label: 'Received incorrect item' },
+                    { key: 'did_not_receive_some_or_all_items', label: 'Did not receive some or all items' },
+                    { key: 'others', label: 'Others' },
+                  ].map(opt => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => { setSelectedIssue(opt.key); setSelectedReason(''); setCustomReason(''); }}
+                      className={`p-4 rounded-xl border-2 text-left ${selectedIssue === opt.key ? 'border-[#a4785a] bg-[#f5f0eb]' : 'border-[#d5bfae] hover:border-[#a4785a]'}`}
+                    >
+                      <div className="font-semibold text-[#5c3d28]">{opt.label}</div>
+                      <div className="text-xs text-[#7b5a3b] mt-1">{opt.key === 'others' ? 'Describe your concern on the next step' : 'We will ask for specific reason next'}</div>
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" className="border-2 border-[#d5bfae]" onClick={() => setAfterSaleDialog({ open: false, order: null })}>Cancel</Button>
+                  <Button onClick={() => {
+                    if (!selectedIssue) { alert('Please select an issue first.'); return; }
+                    setAfterSaleStep(2);
+                  }} className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white">Next</Button>
+                </div>
+              </div>
+            )}
+
+            {afterSaleStep === 2 && (
+              <div className="space-y-5">
+                <div>
+                  <label className="text-sm font-semibold text-[#5c3d28]">Specific Reason</label>
+                  {selectedIssue !== 'others' ? (
+                    <select
+                      className="mt-2 w-full border-2 border-[#d5bfae] rounded-md p-2 text-sm"
+                      value={selectedReason}
+                      onChange={(e) => setSelectedReason(e.target.value)}
+                    >
+                      <option value="">Select a reason</option>
+                      {(reasonOptions[selectedIssue] || []).map(r => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <Textarea
+                      placeholder="Describe your issue"
+                      value={customReason}
+                      onChange={(e) => setCustomReason(e.target.value)}
+                      rows={3}
+                      className="mt-2 border-2 border-[#d5bfae] focus:border-[#a4785a]"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-[#5c3d28]">Request Type</label>
+                  <div className="mt-2 flex gap-2 flex-wrap">
+                    {['return','exchange','refund','support'].map(t => (
+                      <Button key={t} variant={afterSaleType === t ? 'default' : 'outline'} onClick={() => setAfterSaleType(t)}>
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <Card className="bg-white border-2 border-[#d5bfae] shadow-sm">
+                  <CardContent className="p-4">
+                    <label className="text-sm font-semibold text-[#5c3d28]">Describe the issue</label>
+                    <Textarea
+                      placeholder="Provide details that will help us resolve your concern promptly..."
+                      value={afterSaleDescription}
+                      onChange={(e) => setAfterSaleDescription(e.target.value)}
+                      rows={4}
+                      className="mt-2 border-2 border-[#d5bfae] focus:border-[#a4785a] resize-none"
+                    />
+                  </CardContent>
+                </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Video uploader */}
+                  <div>
+                    <label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
+                      <VideoIcon className="h-4 w-4" /> Unboxing/Proof Video {['return','refund'].includes(afterSaleType) && <span className="text-red-600">(required)</span>}
+                    </label>
+                    <div
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) {
+                          setVideoFile(file);
+                          setVideoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                      className="mt-2 border-2 border-dashed border-[#d5bfae] rounded-xl p-4 bg-[#f9f7f5] hover:border-[#a4785a] transition-colors"
+                    >
+                      {videoPreview ? (
+                        <div className="relative">
+                          <video src={videoPreview} controls className="w-full rounded-lg border border-[#d5bfae]" />
+                          <button
+                            type="button"
+                            onClick={() => { setVideoFile(null); setVideoPreview(''); }}
+                            className="absolute top-2 right-2 bg-white/90 border border-[#d5bfae] rounded-full p-1 text-[#5c3d28] hover:bg-white"
+                            aria-label="Remove video"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label htmlFor="afterSaleVideo" className="flex flex-col items-center justify-center cursor-pointer text-center">
+                          <UploadCloud className="h-8 w-8 text-[#a4785a]" />
+                          <span className="mt-2 text-sm text-[#5c3d28] font-medium">Drag & drop or click to upload</span>
+                          <span className="text-xs text-[#7b5a3b]">Max 50MB • mp4, webm, mov, avi</span>
+                          <input
+                            id="afterSaleVideo"
+                            type="file"
+                            accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) {
+                                setVideoFile(f);
+                                setVideoPreview(URL.createObjectURL(f));
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Images uploader */}
+                  <div>
+                    <label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" /> Photos (up to 5) {['return','refund'].includes(afterSaleType) && <span className="text-red-600">(required)</span>}
+                    </label>
+                    <div
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const files = Array.from(e.dataTransfer.files || []).filter(f => f.type.startsWith('image/'));
+                        if (!files.length) return;
+                        const next = [...imageFiles, ...files].slice(0, 5);
+                        setImageFiles(next);
+                        setImagePreviews(next.map(f => URL.createObjectURL(f)));
+                      }}
+                      className="mt-2 border-2 border-dashed border-[#d5bfae] rounded-xl p-4 bg-[#f9f7f5] hover:border-[#a4785a] transition-colors"
+                    >
+                      <label htmlFor="afterSaleImages" className="flex flex-col items-center justify-center cursor-pointer text-center">
+                        <UploadCloud className="h-8 w-8 text-[#a4785a]" />
+                        <span className="mt-2 text-sm text-[#5c3d28] font-medium">Drag & drop or click to upload</span>
+                        <span className="text-xs text-[#7b5a3b]">Max 5 images • 4MB each • jpg, png</span>
+                        <input
+                          id="afterSaleImages"
+                          type="file"
+                          accept="image/jpeg,image/png"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            const next = [...imageFiles, ...files].slice(0, 5);
+                            setImageFiles(next);
+                            setImagePreviews(next.map(f => URL.createObjectURL(f)));
+                          }}
+                        />
+                      </label>
+                      {imagePreviews.length > 0 && (
+                        <div className="mt-4 grid grid-cols-3 gap-2">
+                          {imagePreviews.map((src, idx) => (
+                            <div key={idx} className="relative group">
+                              <img src={src} alt={`evidence-${idx}`} className="w-full h-24 object-cover rounded-lg border border-[#d5bfae]" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextFiles = imageFiles.filter((_, i) => i !== idx);
+                                  setImageFiles(nextFiles);
+                                  setImagePreviews(nextFiles.map(f => URL.createObjectURL(f)));
+                                }}
+                                className="absolute top-1 right-1 bg-white/90 border border-[#d5bfae] rounded-full p-1 text-[#5c3d28] opacity-0 group-hover:opacity-100 transition"
+                                aria-label="Remove image"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between gap-3">
+                  <Button variant="outline" className="border-2 border-[#d5bfae]" onClick={() => setAfterSaleStep(1)}>Back</Button>
+                  <div className="flex gap-3">
+                    <Button variant="outline" className="border-2 border-[#d5bfae] hover:bg-[#f5f0eb]" onClick={() => setAfterSaleDialog({ open: false, order: null })}>Cancel</Button>
+                    <Button className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white" onClick={submitAfterSale}>Submit</Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

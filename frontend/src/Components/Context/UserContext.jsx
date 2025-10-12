@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import api, { setToken } from '../../api';
+import api, { setToken, getToken } from '../../api';
 
 const UserContext = createContext();
 
@@ -43,6 +43,15 @@ export const UserProvider = ({ children }) => {
       }
     }
     
+    // If we have neither a saved user nor a bearer token, skip calling profile
+    // This avoids unnecessary 401s before login
+    const hasBearerToken = !!getToken();
+    if (!savedUser && !hasBearerToken) {
+      setLoading(false);
+      setIsCheckingAuth(false);
+      return;
+    }
+
     try {
       // Verify with backend - cookies are automatically sent with withCredentials: true
       const response = await api.get('/auth/profile', {
@@ -180,7 +189,7 @@ const login = async (credentials) => {
       const response = await api.post('/auth/verify-otp', otpData, {
         withCredentials: true
       });
-      const { user: userData, redirectTo, expires_at, token } = response.data;
+      const { user: userData, expires_at, token } = response.data;
       
       // For cookie-based auth, we don't need to manually set tokens
       // The backend sets httpOnly cookies automatically

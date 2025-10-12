@@ -74,14 +74,14 @@ class SecureAuthController extends Controller
             'userType' => $userType,
             'redirectTo' => $redirectTo,
             'token' => $accessToken, // Include token in response for frontend
-            'expires_at' => now()->addMinutes(config('sanctum.expiration', 60))->toISOString()
+            'expires_at' => now()->addMinutes((int) config('sanctum.expiration', 60))->toISOString()
         ], 200);
 
         // Set httpOnly cookies
         $response->cookie(
             'access_token',
             $accessToken,
-            config('sanctum.expiration', 60), // minutes
+            (int) config('sanctum.expiration', 60), // minutes
             '/',
             null,
             env('APP_ENV') === 'production', // secure only in production
@@ -93,7 +93,7 @@ class SecureAuthController extends Controller
         $response->cookie(
             'refresh_token',
             $refreshToken,
-            config('sanctum.refresh_expiration', 1440), // 24 hours
+            (int) config('sanctum.refresh_expiration', 1440), // 24 hours
             '/',
             null,
             env('APP_ENV') === 'production', // secure only in production
@@ -133,7 +133,7 @@ class SecureAuthController extends Controller
             $response->cookie(
                 'access_token',
                 $result['access_token'],
-                config('sanctum.expiration', 60),
+                (int) config('sanctum.expiration', 60),
                 '/',
                 null,
                 env('APP_ENV') === 'production', // secure only in production
@@ -146,7 +146,7 @@ class SecureAuthController extends Controller
             $response->cookie(
                 'refresh_token',
                 $result['refresh_token'],
-                config('sanctum.refresh_expiration', 1440),
+                (int) config('sanctum.refresh_expiration', 1440),
                 '/',
                 null,
                 env('APP_ENV') === 'production', // secure only in production
@@ -294,14 +294,14 @@ class SecureAuthController extends Controller
             'user' => $user,
             'redirectTo' => $redirectTo,
             'token' => $accessToken, // Include token in response for frontend
-            'expires_at' => now()->addMinutes(config('sanctum.expiration', 60))->toISOString()
+            'expires_at' => now()->addMinutes((int) config('sanctum.expiration', 60))->toISOString()
         ]);
 
         // Set httpOnly cookies
         $response->cookie(
             'access_token',
             $accessToken,
-            config('sanctum.expiration', 60),
+            (int) config('sanctum.expiration', 60),
             '/',
             null,
             env('APP_ENV') === 'production', // secure only in production
@@ -313,7 +313,7 @@ class SecureAuthController extends Controller
         $response->cookie(
             'refresh_token',
             $refreshToken,
-            config('sanctum.refresh_expiration', 1440),
+            (int) config('sanctum.refresh_expiration', 1440),
             '/',
             null,
             env('APP_ENV') === 'production', // secure only in production

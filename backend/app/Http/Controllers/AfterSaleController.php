@@ -20,7 +20,7 @@ class AfterSaleController extends Controller
     {
         try {
             $user = Auth::user();
-            $customer = Customer::where('userID', $user->userID)->first();
+            $customer = Customer::where('user_id', $user->userID)->first();
 
             if (!$customer) {
                 return response()->json(['error' => 'Customer not found'], 404);
@@ -103,14 +103,15 @@ class AfterSaleController extends Controller
     {
         try {
             $validated = $request->validate([
-                'order_id' => 'required|exists:orders,id',
-                'product_id' => 'nullable|exists:products,id',
+                'order_id' => 'required|exists:orders,orderID',
+                'product_id' => 'nullable|exists:products,product_id',
                 'request_type' => 'required|in:return,exchange,refund,support,complaint',
                 'subject' => 'required|string|max:255',
                 'description' => 'required|string|min:20',
                 'reason' => 'nullable|string',
                 'images' => 'nullable|array|max:5',
-                'images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
+                'images.*' => 'image|mimes:jpeg,png,jpg|max:4096',
+                'video' => 'nullable|file|mimes:mp4,mov,avi,webm|max:51200',
             ]);
 
             $user = Auth::user();
@@ -121,12 +122,23 @@ class AfterSaleController extends Controller
             }
 
             // Get order and verify ownership
-            $order = Order::findOrFail($validated['order_id']);
+            $order = Order::where('orderID', $validated['order_id'])->firstOrFail();
             if ($order->customer_id != $customer->customerID) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
 
-            // Handle image uploads
+            // Enforce one after-sale request per order (any status except cancelled)
+            $existing = AfterSaleRequest::where('order_id', $order->orderID)
+                ->whereNotIn('status', ['cancelled', 'rejected', 'completed'])
+                ->first();
+            if ($existing) {
+                return response()->json([
+                    'error' => 'An after-sale request for this order already exists',
+                    'request_id' => $existing->request_id
+                ], 409);
+            }
+
+            // Handle file uploads (images + video)
             $imageUrls = [];
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
@@ -134,18 +146,53 @@ class AfterSaleController extends Controller
                     $imageUrls[] = $path;
                 }
             }
+            $videoPath = null;
+            if ($request->hasFile('video')) {
+                $videoPath = $request->file('video')->store('after-sale-requests/videos', 'public');
+            }
+
+            // Require video + at least 1 image for return/refund requests
+            if (in_array($validated['request_type'], ['return', 'refund'])) {
+                if (!$videoPath || empty($imageUrls)) {
+                    return response()->json([
+                        'error' => 'Unboxing video and at least one photo are required for return/refund requests.'
+                    ], 422);
+                }
+            }
+
+            // Resolve seller ID (fallback if missing on order)
+            $sellerIdForRequest = $order->sellerID;
+            if (!$sellerIdForRequest) {
+                try {
+                    $firstOrderProduct = \App\Models\OrderProduct::where('order_id', $order->orderID)->first();
+                    if ($firstOrderProduct) {
+                        $prod = \App\Models\Product::find($firstOrderProduct->product_id);
+                        if ($prod && $prod->seller_id) {
+                            $sellerIdForRequest = $prod->seller_id;
+                        }
+                    }
+                } catch (\Throwable $t) {
+                    // ignore fallback errors, will validate below
+                }
+            }
+            if (!$sellerIdForRequest) {
+                return response()->json([
+                    'error' => 'Unable to determine seller for this order.'
+                ], 422);
+            }
 
             // Create after-sale request
             $afterSaleRequest = AfterSaleRequest::create([
-                'order_id' => $validated['order_id'],
+                'order_id' => $order->orderID,
                 'product_id' => $validated['product_id'] ?? null,
                 'customer_id' => $customer->customerID,
-                'seller_id' => $order->seller_id,
+                'seller_id' => $sellerIdForRequest,
                 'request_type' => $validated['request_type'],
                 'subject' => $validated['subject'],
                 'description' => $validated['description'],
                 'reason' => $validated['reason'] ?? null,
                 'images' => !empty($imageUrls) ? $imageUrls : null,
+                'video_path' => $videoPath,
                 'status' => 'pending',
             ]);
 
@@ -162,8 +209,13 @@ class AfterSaleController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Error creating after-sale request: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to create request'], 500);
+            Log::error('Error creating after-sale request: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'error' => 'Failed to create request',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 

@@ -21,6 +21,7 @@ class AfterSaleRequest extends Model
         'description',
         'reason',
         'images',
+        'video_path',
         'refund_amount',
         'seller_response',
         'admin_notes',
