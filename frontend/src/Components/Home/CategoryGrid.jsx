@@ -31,64 +31,66 @@ const CategoryGrid = () => {
         ? 'http://localhost:8000/api/products/featured'
         : `http://localhost:8000/api/stores${selectedCategoryData?.queryParam ? `?category=${encodeURIComponent(selectedCategoryData.queryParam)}` : ''}`;
       
-      console.log('Fetching from endpoint:', endpoint);
+      console.log('🔍 Fetching from endpoint:', endpoint);
       const response = await axios.get(endpoint);
+      
       // Ensure we're getting an array from the response
       const data = Array.isArray(response.data) ? response.data : 
                   response.data.data ? response.data.data : [];
+      
+      console.log('📦 Raw API response data:', data);
+      console.log('📊 Number of items:', data.length);
       
       // Transform the data based on whether it's products or stores
       const transformedData = selectedCategory === 'featured'
         ? data.map(item => ({
             storeID: item.seller?.sellerID,
+            seller_id: item.seller?.sellerID,
             store_name: item.productName,
             store_description: item.productDescription,
             category: item.category,
-            logo_path: item.productImage
+            logo_path: item.productImage,
+            followers_count: 0,
+            location: '',
+            years_active: 0
           }))
         : data.map(item => {
-          // Ensure we have the correct seller_id for routing
-          console.log('Store item:', item);
-          console.log('Store name:', item.store_name);
-          console.log('Store ID:', item.storeID);
-          console.log('Seller ID:', item.seller_id);
-          console.log('Logo URL:', item.logo_url);
-          console.log('Logo Path:', item.logo_path);
-          console.log('Followers count:', item.followers_count);
-          console.log('Location:', item.location);
+          console.log('🏪 Store item:', {
+            storeID: item.storeID,
+            store_name: item.store_name,
+            seller_id: item.seller_id,
+            logo_url: item.logo_url,
+            logo_path: item.logo_path,
+            category: item.category,
+            location: item.location,
+            followers_count: item.followers_count
+          });
           
-          // Determine the correct logo URL
-          let logoUrl = null;
-          if (item.logo_url) {
-            logoUrl = item.logo_url;
-          } else if (item.logo_path) {
-            // If logo_path exists but not logo_url, construct the full URL
-            logoUrl = item.logo_path.startsWith('http') 
-              ? item.logo_path 
-              : `http://localhost:8000/storage/${item.logo_path}`;
-          }
+          // Use logo_url from backend (already includes full URL)
+          const logoUrl = item.logo_url || null;
           
-          console.log('Final logo URL:', logoUrl);
+          console.log('✅ Final logo URL:', logoUrl);
           
           return {
-            ...item,
-            // Use seller_id if available, otherwise use seller from relationship
-            seller_id: item.seller_id || item.seller?.sellerID || item.storeID,
             storeID: item.storeID,
+            seller_id: item.seller_id,
             store_name: item.store_name,
             store_description: item.store_description,
             category: item.category,
-            logo_path: logoUrl,
+            logo_path: logoUrl, // Use the full URL from backend
             followers_count: item.followers_count || 0,
             location: item.location || '',
             years_active: item.years_active || 0
           };
         });
       
+      console.log('✨ Final transformed stores data:', transformedData);
+      console.log('✨ Total stores to display:', transformedData.length);
+      
       setStores(transformedData);
-      console.log('Final stores data:', transformedData);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("❌ Error fetching data:", error);
+      console.error("❌ Error details:", error.response?.data);
       setStores([]); // Set empty array on error
     } finally {
       setLoading(false);

@@ -26,8 +26,21 @@ export const FavoritesProvider = ({ children }) => {
     setFavorites((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const toggleFavorite = (product) => {
+    setFavorites((prev) => {
+      const exists = prev.find((item) => item.id === product.id);
+      if (exists) {
+        // Remove from favorites
+        return prev.filter((item) => item.id !== product.id);
+      } else {
+        // Add to favorites
+        return [...prev, product];
+      }
+    });
+  };
+
   return (
-    <FavoritesContext.Provider value={{ favorites, addFavorite, removeFavorite }}>
+    <FavoritesContext.Provider value={{ favorites, addFavorite, removeFavorite, toggleFavorite }}>
       {children}
     </FavoritesContext.Provider>
   );

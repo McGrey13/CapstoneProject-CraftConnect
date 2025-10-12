@@ -20,6 +20,8 @@ use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\SellerFollowController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Work_and_EventsController;
+use App\Http\Controllers\ContactController;
+use App\Http\Controllers\AfterSaleController;
 
 // Public Routes
 Route::middleware([])->group(function () {
@@ -158,7 +160,16 @@ Route::middleware([])->group(function () {
         Route::post('/refresh-token', [SecureAuthController::class, 'refreshToken']);
         Route::get('/profile', [SecureAuthController::class, 'profile'])->middleware('auth:sanctum');
         Route::put('/profile', [AuthController::class, 'updateProfile'])->middleware('auth:sanctum');
+        Route::post('/profile', [AuthController::class, 'updateProfile'])->middleware('auth:sanctum'); // For multipart/form-data with _method override
         Route::post('/logout', [SecureAuthController::class, 'logout'])->middleware('auth:sanctum');
+    });
+    
+    // Customer Profile Routes
+    Route::prefix('customer')->middleware('auth:sanctum')->group(function () {
+        Route::get('/profile', [\App\Http\Controllers\CustomerProfileController::class, 'getProfile']);
+        Route::post('/profile', [\App\Http\Controllers\CustomerProfileController::class, 'updateProfile']);
+        Route::post('/profile-picture', [\App\Http\Controllers\CustomerProfileController::class, 'updateProfilePicture']);
+        Route::delete('/profile-picture', [\App\Http\Controllers\CustomerProfileController::class, 'deleteProfilePicture']);
     });
     
     // Additional profile route for backward compatibility
@@ -169,6 +180,9 @@ Route::middleware([])->group(function () {
     Route::get('/products/approved', [ProductController::class, 'approvedProducts']);
     Route::get('/products/featured', [ProductController::class, 'featuredProducts']);
     Route::get('/products/{id}', [ProductController::class, 'getProductDetails'])->whereNumber('id');
+    
+    // Contact form route
+    Route::post('/contact', [ContactController::class, 'submit']);
     
     // Categories routes
     Route::get('/categories', [App\Http\Controllers\CategoryController::class, 'index']);
@@ -257,13 +271,21 @@ Route::middleware([])->group(function () {
     
     // Public orders endpoint for testing
     Route::get('/orders-test', function() {
-        $orders = App\Models\Order::with(['customer', 'user'])
+        $orders = App\Models\Order::with(['customer.user', 'user'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($order) {
+                // Get customer name from the customer's user relationship
+                $customerName = 'Unknown Customer';
+                if ($order->customer && $order->customer->user) {
+                    $customerName = $order->customer->user->userName;
+                } elseif ($order->user) {
+                    $customerName = $order->user->userName;
+                }
+                
                 return [
                     'id' => $order->orderID,
-                    'customer' => $order->customer ? $order->customer->firstName . ' ' . $order->customer->lastName : 'Unknown Customer',
+                    'customer' => $customerName,
                     'date' => $order->created_at->format('Y-m-d'),
                     'amount' => '₱' . number_format($order->totalAmount, 2),
                     'status' => ucfirst($order->status),
@@ -421,6 +443,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/', [OrderController::class, 'store']);
         Route::post('/{orderId}/mark-received', [OrderController::class, 'markAsReceived']);
         Route::put('/{orderId}/status', [OrderController::class, 'updateStatus']);
+    });
+
+    // After-Sale Support Routes (Returns, Exchanges, Refunds, Support)
+    Route::prefix('after-sale')->group(function () {
+        // Customer routes
+        Route::get('/my-requests', [AfterSaleController::class, 'getCustomerRequests']);
+        Route::post('/requests', [AfterSaleController::class, 'createRequest']);
+        Route::post('/requests/{id}/cancel', [AfterSaleController::class, 'cancelRequest']);
+        Route::get('/requests/{id}', [AfterSaleController::class, 'getRequest']);
+        
+        // Seller routes
+        Route::get('/seller/requests', [AfterSaleController::class, 'getSellerRequests']);
+        Route::post('/seller/requests/{id}/respond', [AfterSaleController::class, 'respondToRequest']);
+        
+        // Admin routes
+        Route::get('/admin/requests', [AfterSaleController::class, 'getAllRequests']);
+        Route::put('/admin/requests/{id}/status', [AfterSaleController::class, 'updateRequestStatus']);
+        Route::get('/admin/statistics', [AfterSaleController::class, 'getStatistics']);
     });
 
     // Payment Method routes
@@ -707,12 +747,14 @@ Route::middleware(['auth:sanctum'])->get('/admin/products', [ProductController::
     Route::post('/payments/webhook', [PaymentController::class, 'handleWebhook']);
     Route::post('/webhooks/paymongo', [PaymentController::class, 'handleWebhook']);
 
-    // Seller Follow Routes
-    Route::post('/sellers/{seller}/follow', [SellerFollowController::class, 'follow']);
-    Route::post('/sellers/{seller}/unfollow', [SellerFollowController::class, 'unfollow']);
-    Route::get('/sellers/{seller}/follow-status', [SellerFollowController::class, 'checkFollowStatus']);
-    Route::get('/user/followed-sellers', [SellerFollowController::class, 'followedSellers']);
-    Route::get('/products/followed-sellers', [ProductController::class, 'followedSellerProducts']);
+    // Seller Follow Routes (protected by auth)
+    Route::middleware(['auth:sanctum'])->group(function () {
+        Route::post('/sellers/{seller}/follow', [SellerFollowController::class, 'follow']);
+        Route::post('/sellers/{seller}/unfollow', [SellerFollowController::class, 'unfollow']);
+        Route::get('/sellers/{seller}/follow-status', [SellerFollowController::class, 'checkFollowStatus']);
+        Route::get('/user/followed-sellers', [SellerFollowController::class, 'followedSellers']);
+        Route::get('/products/followed-sellers', [ProductController::class, 'followedSellerProducts']);
+    });
 
     // Seller dashboard routes
     Route::prefix('seller')->group(function () {

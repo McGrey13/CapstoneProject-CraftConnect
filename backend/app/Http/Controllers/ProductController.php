@@ -510,7 +510,7 @@ class ProductController extends Controller
     public function getProductDetails($id)
     {
         try {
-            $product = Product::with('seller.user')->findOrFail($id);
+            $product = Product::with(['seller.user', 'reviews.user'])->findOrFail($id);
 
             $productImageUrl = $product->productImage
                 ? url('storage/' . ltrim($product->productImage, '/'))
@@ -535,6 +535,27 @@ class ProductController extends Controller
                 }, $productImages);
             }
 
+            // Calculate reviews and ratings
+            $reviews = $product->reviews;
+            $averageRating = $reviews->count() > 0 ? $reviews->avg('rating') : 0;
+            $totalReviews = $reviews->count();
+
+            // Format reviews for frontend
+            $formattedReviews = $reviews->map(function($review) {
+                return [
+                    'review_id' => $review->review_id,
+                    'id' => $review->review_id, // For compatibility
+                    'rating' => $review->rating,
+                    'comment' => $review->comment,
+                    'review_date' => $review->review_date,
+                    'created_at' => $review->created_at,
+                    'user' => $review->user ? [
+                        'userName' => $review->user->userName,
+                        'userEmail' => $review->user->userEmail,
+                    ] : null,
+                ];
+            });
+
             $productData = [
                 'id' => $product->product_id,
                 'productName' => $product->productName,
@@ -551,11 +572,16 @@ class ProductController extends Controller
                 'publish_status' => $product->publish_status,
                 'created_at' => $product->created_at,
                 'updated_at' => $product->updated_at,
+                // Reviews and ratings data
+                'reviews' => $formattedReviews,
+                'average_rating' => round($averageRating, 2),
+                'total_reviews' => $totalReviews,
             ];
 
             if ($product->seller) {
                 $productData['seller'] = [
                     'sellerID' => $product->seller->sellerID,
+                    'businessName' => $product->seller->businessName,
                     'user' => $product->seller->user ? [
                         'userName' => $product->seller->user->userName,
                         'userEmail' => $product->seller->user->userEmail,
@@ -566,6 +592,20 @@ class ProductController extends Controller
                         ? url('storage/' . ltrim($product->seller->profile_picture_path, '/'))
                         : '',
                 ];
+
+                // Include store information if available
+                if ($product->seller->store) {
+                    $productData['seller']['store'] = [
+                        'storeID' => $product->seller->store->storeID,
+                        'store_name' => $product->seller->store->store_name,
+                        'store_description' => $product->seller->store->store_description,
+                        'category' => $product->seller->store->category,
+                        'logo_path' => $product->seller->store->logo_path,
+                        'logo_url' => $product->seller->store->logo_path
+                            ? url('storage/' . ltrim($product->seller->store->logo_path, '/'))
+                            : '',
+                    ];
+                }
             }
 
             return response()->json($productData);
@@ -839,7 +879,7 @@ class ProductController extends Controller
     public function featuredProducts()
     {
         try {
-            $products = Product::with('seller.user')
+            $products = Product::with(['seller.user', 'seller.store'])
                 ->where('approval_status', 'approved')
                 ->where('publish_status', 'published')
                 ->where('is_featured', true)

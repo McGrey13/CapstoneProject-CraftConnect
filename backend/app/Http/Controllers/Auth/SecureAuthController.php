@@ -335,6 +335,15 @@ class SecureAuthController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
+        // Get customer profile picture if user is a customer
+        $profilePicture = null;
+        if ($user->role === 'customer') {
+            $customer = \App\Models\Customer::where('user_id', $user->userID)->first();
+            if ($customer && $customer->profile_picture_path) {
+                $profilePicture = asset('storage/' . $customer->profile_picture_path);
+            }
+        }
+
         return response()->json([
             'id' => $user->userID,
             'userID' => $user->userID,
@@ -348,6 +357,7 @@ class SecureAuthController extends Controller
             'userRegion' => $user->userRegion ?? null,
             'userProvince' => $user->userProvince ?? null,
             'userPostalCode' => $user->userPostalCode ?? null,
+            'profilePicture' => $profilePicture,
         ]);
     }
 }

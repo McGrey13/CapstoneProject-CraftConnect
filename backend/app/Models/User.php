@@ -28,6 +28,7 @@ class User extends Authenticatable
         'otp',
         'otp_expires_at',
         'is_verified',
+        'last_activity_at',
     ];
 
     protected $hidden = [
@@ -41,6 +42,7 @@ class User extends Authenticatable
         'userBirthday' => 'date', 
         'otp_expires_at' => 'datetime',
         'is_verified' => 'boolean',
+        'last_activity_at' => 'datetime',
     ];
 
     /**

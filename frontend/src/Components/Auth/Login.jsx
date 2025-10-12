@@ -98,8 +98,8 @@ useEffect(() => {
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-white font-sans">
       <div className="w-full max-w-sm sm:max-w-md md:max-w-lg bg-white rounded-xl shadow-2xl p-6 sm:p-8 md:p-12">
         <div className="flex flex-col items-center gap-2 pb-6">
-          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-lg">
-            <User className="h-8 w-8 text-white" />
+          <div className="h-24 w-24 rounded-full bg-white flex items-center justify-center shadow-lg p-2">
+            <img src="/logo/_CraftConnect_logo.png" alt="CraftConnect Logo" className="h-24 w-24 object-contain" />
           </div>
           <div className="text-2xl sm:text-3xl font-bold text-[#5c3d28] mt-4 text-center">
             Welcome Back

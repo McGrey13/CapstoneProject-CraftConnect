@@ -50,7 +50,7 @@ function ProductsTable() {
     setLoading(true);
     try {
       const response = await api.get("/admin/products");
-      console.log("Products data:", response.data);
+      // console.log("Products data:", response.data);
       setProducts(response.data);
     } catch (err) {
       console.error("Error fetching products:", err);

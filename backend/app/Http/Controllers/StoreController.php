@@ -270,12 +270,8 @@ class StoreController extends Controller
             'user_id' => Auth::id()
         ]);
 
-        $query = Store::with('seller.user', 'user');
-
-        // Filter by status if provided
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
+        $query = Store::with('seller.user', 'user')
+            ->where('status', 'approved'); // Only show approved stores
 
         // Filter by category if provided
         if ($request->has('category')) {
@@ -287,15 +283,15 @@ class StoreController extends Controller
             $query->where('store_name', 'like', '%' . $request->search . '%');
         }
 
-        $stores = $query->latest()->paginate(10);
+        // Get all stores (not paginated)
+        $stores = $query->latest()->get();
 
         Log::info('Stores query result', [
-            'stores_count' => $stores->count(),
-            'total' => $stores->total()
+            'stores_count' => $stores->count()
         ]);
 
-        // Add full URLs for images and ensure seller_id is available
-        $stores->getCollection()->transform(function ($store) {
+        // Transform stores to include full URLs and additional data
+        $transformedStores = $stores->map(function ($store) {
             // Log the logo_path before transformation
             Log::info('Store logo_path', [
                 'store_id' => $store->storeID,
@@ -304,10 +300,19 @@ class StoreController extends Controller
                 'logo_exists' => !empty($store->logo_path)
             ]);
             
-            $store->logo_url = $store->logo_path ? url('storage/' . $store->logo_path) : null;
-            $store->bir_url = $store->bir_path ? url('storage/' . $store->bir_path) : null;
+            // Generate full URLs for images
+            $logoUrl = null;
+            if ($store->logo_path) {
+                $logoUrl = url('storage/' . ltrim($store->logo_path, '/'));
+            }
+            
+            $birUrl = null;
+            if ($store->bir_path) {
+                $birUrl = url('storage/' . ltrim($store->bir_path, '/'));
+            }
+            
             // Ensure seller_id is available for frontend routing
-            $store->seller_id = $store->seller ? $store->seller->sellerID : null;
+            $sellerId = $store->seller ? $store->seller->sellerID : null;
             
             // Get followers count
             $followersCount = 0;
@@ -321,7 +326,6 @@ class StoreController extends Controller
                     ]);
                 }
             }
-            $store->followers_count = $followersCount;
             
             // Add location information
             $location = '';
@@ -335,15 +339,35 @@ class StoreController extends Controller
                 }
                 $location = implode(', ', $locationParts);
             }
-            $store->location = $location;
             
-            // Add years active
-            $store->years_active = $store->created_at->diffInYears(now());
+            // Calculate years active
+            $yearsActive = $store->created_at->diffInYears(now());
             
-            return $store;
+            Log::info('Store transformed', [
+                'store_id' => $store->storeID,
+                'store_name' => $store->store_name,
+                'logo_url' => $logoUrl,
+                'seller_id' => $sellerId
+            ]);
+            
+            return [
+                'storeID' => $store->storeID,
+                'store_name' => $store->store_name,
+                'store_description' => $store->store_description,
+                'category' => $store->category,
+                'logo_path' => $store->logo_path,
+                'logo_url' => $logoUrl,
+                'bir_url' => $birUrl,
+                'seller_id' => $sellerId,
+                'followers_count' => $followersCount,
+                'location' => $location,
+                'years_active' => $yearsActive,
+                'created_at' => $store->created_at,
+                'updated_at' => $store->updated_at,
+            ];
         });
 
-        return response()->json($stores);
+        return response()->json($transformedStores);
     }
 
     public function destroy(Store $store)

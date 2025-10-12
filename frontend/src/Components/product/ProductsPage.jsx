@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Filter, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Filter, Search, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { Badge } from "../ui/badge";
 import { useNavigate } from "react-router-dom";
 
 // --- ProductsPage Component ---
@@ -21,6 +22,7 @@ const ProductsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
+  const [followedProductIds, setFollowedProductIds] = useState(new Set());
 
   // Fetch products from backend
   useEffect(() => {
@@ -31,6 +33,31 @@ const ProductsPage = () => {
         
         console.log("Fetching products from API...");
         const token = sessionStorage.getItem('auth_token');
+        
+        // Fetch followed sellers' products first (if authenticated)
+        let followedProducts = [];
+        if (token) {
+          try {
+            const followedResponse = await fetch("http://localhost:8000/api/products/followed-sellers", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Authorization": `Bearer ${token}`,
+              },
+            });
+            
+            if (followedResponse.ok) {
+              const followedData = await followedResponse.json();
+              followedProducts = Array.isArray(followedData) ? followedData : (followedData.data || []);
+              console.log("✨ Followed sellers' products:", followedProducts.length);
+            }
+          } catch (err) {
+            console.log("No followed sellers products (user not logged in or none found)");
+          }
+        }
+        
+        // Fetch all approved products
         const response = await fetch("http://localhost:8000/api/products/approved", {
           method: "GET",
           headers: {
@@ -49,13 +76,45 @@ const ProductsPage = () => {
         }
 
         const data = await response.json();
-        console.log("Fetched products:", data);
+        console.log("Fetched all products:", data);
         
         // Handle both array and object responses
-        const productsData = Array.isArray(data) ? data : (data.data || []);
-        console.log("Number of products:", productsData.length);
+        const allProducts = Array.isArray(data) ? data : (data.data || []);
+        console.log("Number of all products:", allProducts.length);
         
-        setProducts(productsData);
+        // Create a Set of followed product IDs for quick lookup
+        const followedIds = new Set(followedProducts.map(p => p.id || p.product_id));
+        setFollowedProductIds(followedIds);
+        
+        // Separate products into followed and non-followed
+        const nonFollowedProducts = allProducts.filter(p => 
+          !followedIds.has(p.id || p.product_id)
+        );
+        
+        // Sort followed products by category
+        const sortedFollowedProducts = [...followedProducts].sort((a, b) => {
+          const catA = a.category || '';
+          const catB = b.category || '';
+          return catA.localeCompare(catB);
+        });
+        
+        // Sort non-followed products by category
+        const sortedNonFollowedProducts = [...nonFollowedProducts].sort((a, b) => {
+          const catA = a.category || '';
+          const catB = b.category || '';
+          return catA.localeCompare(catB);
+        });
+        
+        // Combine: followed products first, then other products (both sorted by category)
+        const sortedProducts = [...sortedFollowedProducts, ...sortedNonFollowedProducts];
+        
+        console.log("🎯 Final product order:", {
+          followedProducts: sortedFollowedProducts.length,
+          nonFollowedProducts: sortedNonFollowedProducts.length,
+          total: sortedProducts.length
+        });
+        
+        setProducts(sortedProducts);
       } catch (err) {
         console.error("Error fetching products:", err);
         setError(err.message);
@@ -216,6 +275,7 @@ const ProductsPage = () => {
             const currentImage = getCurrentImage(product);
             const productId = product.id || product.product_id;
             const currentIndex = currentImageIndex[productId] || 0;
+            const isFromFollowedSeller = followedProductIds.has(productId);
             
             // Debug: Log image information
             console.log(`Product ${product.productName}:`, {
@@ -224,15 +284,22 @@ const ProductsPage = () => {
               allImages: allImages.length,
               allImagesList: allImages.map(img => img.src),
               currentIndex,
-              showButtons: allImages.length > 0
+              showButtons: allImages.length > 0,
+              isFromFollowedSeller
             });
             
             return (
               <div
                 key={product.id}
                 onClick={() => navigate(`/product/${product.id}`)}
-                className="cursor-pointer bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                className="cursor-pointer bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative"
               >
+                {isFromFollowedSeller && (
+                  <Badge className="absolute top-2 left-2 z-20 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-none shadow-lg">
+                    <Star className="h-3 w-3 mr-1 fill-white" />
+                    Followed Seller
+                  </Badge>
+                )}
                 <div className="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden group shadow-sm">
                   {currentImage ? (
                     <img 

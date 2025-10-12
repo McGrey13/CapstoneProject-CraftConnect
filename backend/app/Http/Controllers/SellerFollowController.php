@@ -13,8 +13,8 @@ class SellerFollowController extends Controller
         try {
             $user = $request->user();
             
-            // Check if already following
-            $alreadyFollowing = $user->followedSellers()->where('sellerID', $sellerId)->exists();
+            // Check if already following - use wherePivot to avoid ambiguity
+            $alreadyFollowing = $user->followedSellers()->where('sellers.sellerID', $sellerId)->exists();
             
             if (!$alreadyFollowing) {
                 $user->followedSellers()->attach($sellerId);
@@ -53,8 +53,8 @@ class SellerFollowController extends Controller
         try {
             $user = $request->user();
             
-            // Check if actually following
-            $isFollowing = $user->followedSellers()->where('sellerID', $sellerId)->exists();
+            // Check if actually following - use table prefix to avoid ambiguity
+            $isFollowing = $user->followedSellers()->where('sellers.sellerID', $sellerId)->exists();
             
             if ($isFollowing) {
                 $user->followedSellers()->detach($sellerId);
@@ -97,7 +97,8 @@ class SellerFollowController extends Controller
     {
         try {
             $user = $request->user();
-            $isFollowing = $user->followedSellers()->where('sellerID', $sellerId)->exists();
+            // Use table prefix to avoid ambiguity
+            $isFollowing = $user->followedSellers()->where('sellers.sellerID', $sellerId)->exists();
             
             return response()->json([
                 'is_following' => $isFollowing

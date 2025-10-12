@@ -13,6 +13,8 @@ const ProductCard = ({
   title = "Handcrafted Ceramic Mug",
   price = 24.99,
   artisanName = "Sarah Pottery",
+  storeName = "",
+  storeLogo = "",
   rating = 4.5,
   isNew = false,
   isFeatured = false,
@@ -88,7 +90,17 @@ const ProductCard = ({
       </div>
 
       <CardHeader className="p-3 pb-0">
-        <div className="text-sm text-gray-500">{artisanName}</div>
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+          {storeLogo && (
+            <img 
+              src={storeLogo} 
+              alt={storeName || artisanName} 
+              className="w-5 h-5 rounded-full object-cover border border-gray-200"
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          )}
+          <span className="truncate">{storeName || artisanName}</span>
+        </div>
         <h3 className="font-medium text-base line-clamp-2 h-12">{title}</h3>
       </CardHeader>
 

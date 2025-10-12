@@ -63,13 +63,26 @@ class SellerController extends AuthController
 
       public function getAllSellers()
     {
-        $sellers = Seller::with('user')->get();
+        $sellers = Seller::with(['user', 'products.reviews', 'store'])->get();
         
-        // Transform the data to include profile image URLs
+        // Transform the data to include profile image URLs and ratings
         $sellersWithImages = $sellers->map(function ($seller) {
             $profileImageUrl = $seller->profile_picture_path
                 ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
                 : '';
+            
+            // Calculate average rating from all product reviews
+            $allReviews = $seller->products->flatMap(function($product) {
+                return $product->reviews;
+            });
+            $averageRating = $allReviews->count() > 0 ? $allReviews->avg('rating') : 0;
+            $totalReviews = $allReviews->count();
+            
+            // Get store logo if available
+            $storeLogo = '';
+            if ($seller->store && $seller->store->logo_path) {
+                $storeLogo = url('storage/' . ltrim($seller->store->logo_path, '/'));
+            }
                 
             return [
                 'sellerID' => $seller->sellerID,
@@ -80,8 +93,11 @@ class SellerController extends AuthController
                 'story' => $seller->story ?? '',
                 'video_url' => $seller->video_url ?? '',
                 'featured' => $seller->featured ?? false,
-                'rating' => $seller->rating ?? 0,
+                'rating' => round($averageRating, 2),
+                'total_reviews' => $totalReviews,
                 'productCount' => $seller->products()->count(),
+                'store_logo' => $storeLogo,
+                'store_name' => $seller->store->store_name ?? '',
             ];
         });
 
@@ -90,8 +106,8 @@ class SellerController extends AuthController
 
      public function getSellerById($sellerID)
     {
-        // Fetch seller with their related user info
-        $seller = Seller::with('user')->where('sellerID', $sellerID)->first();
+        // Fetch seller with their related user info and products with reviews
+        $seller = Seller::with(['user', 'products.reviews'])->where('sellerID', $sellerID)->first();
 
         if (!$seller) {
             return response()->json(['message' => 'Seller not found'], 404);
@@ -102,8 +118,37 @@ class SellerController extends AuthController
             ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
             : '';
 
+        // Calculate seller statistics
+        $sellerOrders = $seller->getSellerOrders();
+        $totalRevenue = $sellerOrders->sum(function($order) {
+            return $order->products->sum(function($product) {
+                return $product->pivot->quantity * $product->pivot->price;
+            });
+        });
+        
+        $totalOrders = $sellerOrders->count();
+        $productsCount = $seller->products->count();
+        
+        // Calculate average rating from all product reviews
+        $allReviews = $seller->products->flatMap(function($product) {
+            return $product->reviews;
+        });
+        $averageRating = $allReviews->count() > 0 ? $allReviews->avg('rating') : 0;
+        $totalReviews = $allReviews->count();
+
+        \Log::info('Seller details statistics', [
+            'seller_id' => $seller->sellerID,
+            'products_count' => $productsCount,
+            'total_revenue' => $totalRevenue,
+            'total_orders' => $totalOrders,
+            'average_rating' => $averageRating,
+            'total_reviews' => $totalReviews
+        ]);
+
         return response()->json([
             'sellerID' => $seller->sellerID,
+            'businessName' => $seller->businessName ?? '',
+            'created_at' => $seller->created_at,
             'user' => $seller->user,
             'profile_picture_path' => $seller->profile_picture_path,
             'profile_image_url' => $profileImageUrl,
@@ -111,7 +156,12 @@ class SellerController extends AuthController
             'story' => $seller->story ?? '',
             'video_url' => $seller->video_url ?? '',
             'featured' => $seller->featured ?? false,
-            'rating' => $seller->rating ?? 0,
+            // Statistics
+            'products_count' => $productsCount,
+            'total_revenue' => $totalRevenue,
+            'total_orders' => $totalOrders,
+            'average_rating' => round($averageRating, 2),
+            'total_reviews' => $totalReviews,
         ]);
     }
 
@@ -119,7 +169,7 @@ class SellerController extends AuthController
     {
         $seller = Seller::with(['user', 'products' => function ($q) {
             $q->where('approval_status', 'approved');
-        }])->where('sellerID', $id)->first();
+        }, 'products.reviews'])->where('sellerID', $id)->first();
 
         if (!$seller) {
             return response()->json(['message' => 'Seller not found'], 404);
@@ -130,18 +180,55 @@ class SellerController extends AuthController
             ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
             : '';
 
+        // Calculate seller statistics
+        $sellerOrders = $seller->getSellerOrders();
+        $totalRevenue = $sellerOrders->sum(function($order) {
+            return $order->products->sum(function($product) {
+                return $product->pivot->quantity * $product->pivot->price;
+            });
+        });
+        
+        $totalOrders = $sellerOrders->count();
+        $productsCount = $seller->products->count();
+        
+        // Calculate average rating from all product reviews
+        $allReviews = $seller->products->flatMap(function($product) {
+            return $product->reviews;
+        });
+        $averageRating = $allReviews->count() > 0 ? $allReviews->avg('rating') : 0;
+        $totalReviews = $allReviews->count();
+
+        \Log::info('Artisan details statistics', [
+            'seller_id' => $seller->sellerID,
+            'products_count' => $productsCount,
+            'total_revenue' => $totalRevenue,
+            'total_orders' => $totalOrders,
+            'average_rating' => $averageRating,
+            'total_reviews' => $totalReviews
+        ]);
+
         return response()->json([
             'id' => $seller->sellerID,
+            'businessName' => $seller->businessName ?? '',
+            'created_at' => $seller->created_at,
             'user' => [
                 'userName' => $seller->user->userName,
                 'userAddress' => $seller->user->userAddress,
-                'profile_photo_url' => $profileImageUrl, // Use the constructed URL
+                'userCity' => $seller->user->userCity ?? null,
+                'userProvince' => $seller->user->userProvince ?? null,
+                'profile_photo_url' => $profileImageUrl,
             ],
             'profile_picture_path' => $seller->profile_picture_path,
-            'profile_image_url' => $profileImageUrl, // Add this field for consistency
+            'profile_image_url' => $profileImageUrl,
             'specialty' => $seller->specialty ?? '',
-            'story' => $seller->story ?? '',
             'video_url' => $seller->video_url ?? '',
+            // Statistics
+            'products_count' => $productsCount,
+            'total_revenue' => $totalRevenue,
+            'total_orders' => $totalOrders,
+            'average_rating' => round($averageRating, 2),
+            'total_reviews' => $totalReviews,
+            // Products list
             'products' => $seller->products->map(function ($p) {
                 $image = $p->productImage;
                 $imageUrl = $image && str_starts_with($image, 'http')

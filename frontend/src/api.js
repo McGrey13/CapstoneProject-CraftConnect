@@ -5,9 +5,6 @@ const API_BASE_URL = 'http://localhost:8000/api';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL || API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
   timeout: 30000, // 30 second timeout
   withCredentials: true, // Enable cookies for authentication
 });
@@ -45,6 +42,16 @@ api.interceptors.request.use(
     const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Set Content-Type based on data type
+    if (config.data instanceof FormData) {
+      // Don't set Content-Type for FormData - let axios set it automatically
+      // This ensures multipart/form-data is used with proper boundary
+      delete config.headers['Content-Type'];
+    } else if (config.data && typeof config.data === 'object') {
+      // For JSON requests, set Content-Type
+      config.headers['Content-Type'] = 'application/json';
     }
 
     // Add CSRF token for stateful requests (POST, PUT, DELETE, PATCH)

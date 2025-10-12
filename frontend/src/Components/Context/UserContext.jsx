@@ -3,6 +3,9 @@ import api, { setToken } from '../../api';
 
 const UserContext = createContext();
 
+// Flag to track if CSRF has been initialized (outside component to persist across re-mounts)
+let csrfInitialized = false;
+
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     // Try to restore user from localStorage on mount
@@ -27,6 +30,12 @@ export const UserProvider = ({ children }) => {
       try {
         const userData = JSON.parse(savedUser);
         console.log('📦 Found saved user data:', userData);
+        
+        // Ensure profile picture URL is properly constructed
+        if (userData.profilePicture && !userData.profilePicture.startsWith('http')) {
+          userData.profilePicture = `http://localhost:8000/storage/${userData.profilePicture}`;
+        }
+        
         setUser(userData);
       } catch (e) {
         console.error('Failed to parse saved user data:', e);
@@ -41,18 +50,31 @@ export const UserProvider = ({ children }) => {
       });
       console.log('✅ Authentication successful:', response.data);
       
+      // Construct full profile picture URL if it exists
+      const userData = { ...response.data };
+      if (userData.profilePicture) {
+        userData.profilePicture = `http://localhost:8000/storage/${userData.profilePicture}`;
+      }
+      
       // Save user data to localStorage for persistence
-      localStorage.setItem('user_data', JSON.stringify(response.data));
-      setUser(response.data);
+      localStorage.setItem('user_data', JSON.stringify(userData));
+      setUser(userData);
     } catch (error) {
       console.error('❌ Authentication check failed:', error);
       
-      // Only clear user if we get a definite 401 (Unauthorized)
+      // Only clear user if we get a definite 401 (Unauthorized) AND we don't have a saved user
       if (error.response?.status === 401) {
-        console.log('🚫 401 Unauthorized - clearing user data');
-        setUser(null);
-        localStorage.removeItem('user_data');
-        setToken(null);
+        if (savedUser) {
+          // We have saved user data, so keep it - the user might have just logged in
+          // and the session is still being established
+          console.log('⚠️ 401 but keeping saved user - session may be establishing');
+        } else {
+          // No saved user and 401 - definitely not authenticated
+          console.log('🚫 401 Unauthorized - clearing user data');
+          setUser(null);
+          localStorage.removeItem('user_data');
+          setToken(null);
+        }
       } else {
         // For network errors or other issues, keep the saved user
         console.log('⚠️ Network/Server error, keeping saved user if exists');
@@ -83,6 +105,11 @@ const login = async (credentials) => {
     // Only set token if provided (for backward compatibility)
     if (token) {
       setToken(token);
+    }
+    
+    // Construct full profile picture URL if it exists
+    if (userData.profilePicture) {
+      userData.profilePicture = `http://localhost:8000/storage/${userData.profilePicture}`;
     }
     
     // Save user data to localStorage for persistence across reloads
@@ -162,6 +189,11 @@ const login = async (credentials) => {
         setToken(token);
       }
       
+      // Construct full profile picture URL if it exists
+      if (userData.profilePicture) {
+        userData.profilePicture = `http://localhost:8000/storage/${userData.profilePicture}`;
+      }
+      
       // Save user data to localStorage for persistence
       localStorage.setItem('user_data', JSON.stringify(userData));
       setUser(userData);
@@ -188,21 +220,34 @@ const login = async (credentials) => {
     // Initialize CSRF token and check auth status
     const initializeAuth = async () => {
       try {
-        // Initialize CSRF token for session-based authentication
-        console.log('🔐 Initializing CSRF token...');
-        const response = await api.get('/sanctum/csrf-cookie', {
-          withCredentials: true
-        });
-        
-        if (response.data.csrf_token) {
-          sessionStorage.setItem('csrf_token', response.data.csrf_token);
-          console.log('✅ CSRF token initialized:', response.data.csrf_token);
+        // Only initialize CSRF once per session
+        if (!csrfInitialized) {
+          console.log('🔐 Initializing CSRF token...');
+          const response = await api.get('/sanctum/csrf-cookie', {
+            withCredentials: true
+          });
+          
+          if (response.data.csrf_token) {
+            sessionStorage.setItem('csrf_token', response.data.csrf_token);
+            console.log('✅ CSRF token initialized:', response.data.csrf_token);
+          }
+          
+          csrfInitialized = true;
+          console.log('✅ CSRF initialization complete');
+        } else {
+          console.log('ℹ️ CSRF already initialized, skipping...');
         }
         
         // Check authentication status
         await checkAuthStatus();
       } catch (error) {
         console.error('Failed to initialize authentication:', error);
+        // Reset flag on error so it can retry later
+        if (error.response?.status === 429) {
+          console.warn('⚠️ Rate limit hit - will retry on next mount');
+        } else {
+          csrfInitialized = false; // Allow retry for non-rate-limit errors
+        }
         setLoading(false);
       }
     };

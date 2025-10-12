@@ -77,18 +77,24 @@ class RouteServiceProvider extends ServiceProvider
      */
     protected function configureRateLimiting()
     {
+        // General API rate limit - increased for development
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
+            return Limit::perMinute(300)->by(optional($request->user())->id ?: $request->ip());
         });
 
         // Rate limiting for login attempts
         RateLimiter::for('login', function (Request $request) {
-            return Limit::perMinute(5)->by($request->input('email').'|'.$request->ip());
+            return Limit::perMinute(10)->by($request->input('email').'|'.$request->ip());
         });
 
         // Rate limiting for verification attempts
         RateLimiter::for('verification', function (Request $request) {
-            return Limit::perMinute(3)->by($request->ip());
+            return Limit::perMinute(10)->by($request->ip());
+        });
+        
+        // Rate limiting for CSRF cookie endpoint - very permissive for SPAs
+        RateLimiter::for('csrf', function (Request $request) {
+            return Limit::perMinute(100)->by($request->ip());
         });
     }
 }

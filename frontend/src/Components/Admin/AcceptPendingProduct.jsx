@@ -5,6 +5,7 @@ import {
   Eye,
   MoreHorizontal,
   Filter,
+  Clock,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -31,6 +32,7 @@ import "./AdminTableDesign.css";
 function AcceptPendingProduct() {
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
 
   // Fetch products for admin
   const fetchProducts = async () => {
@@ -38,6 +40,7 @@ function AcceptPendingProduct() {
       const response = await api.get("/products");
       // Only keep approved products
       setProducts(response.data.filter((p) => p.approval_status === "approved"));
+      setLastUpdated(new Date());
     } catch (err) {
       console.error("Error fetching products:", err);
     }
@@ -45,6 +48,16 @@ function AcceptPendingProduct() {
 
   useEffect(() => {
     fetchProducts();
+  }, []);
+
+  // Auto-refresh every 1 minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('Auto-refreshing products list...');
+      fetchProducts();
+    }, 60000); // 60 seconds = 1 minute
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleSearch = (e) => {
@@ -79,7 +92,17 @@ function AcceptPendingProduct() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Approved Products</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Approved Products</h1>
+          <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+            Auto-refreshing every 1 minute
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+          <Clock className="h-4 w-4 text-[#a4785a]" />
+          <span className="font-medium">Last updated: {lastUpdated.toLocaleTimeString()}</span>
+        </div>
       </div>
 
       <div className="flex items-center justify-between">

@@ -13,25 +13,37 @@ const VerificationPendingPage = () => {
     const fetchStoreData = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/stores/me');
+        // Try to get seller profile first, which includes store info
+        const response = await api.get('/sellers/profile');
         
         if (response.data && response.data.store) {
+          const store = response.data.store;
           setStoreData({
-            storeName: response.data.store.store_name,
-            category: response.data.store.category,
-            ownerName: response.data.store.owner_name,
-            ownerEmail: response.data.store.owner_email,
-            status: response.data.store.status
+            storeName: store.store_name,
+            category: store.category,
+            ownerName: store.owner_name,
+            ownerEmail: store.owner_email || response.data.userEmail,
+            status: store.status,
+            rejection_reason: store.rejection_reason
           });
+          
+          // If store is approved, redirect immediately to seller dashboard
+          if (store.status === 'approved') {
+            console.log('Store already approved, redirecting to dashboard...');
+            navigate('/seller', { replace: true });
+          }
         } else {
           // No store found, redirect to create store
-          navigate('/create-store');
+          console.log('No store found, redirecting to create store...');
+          navigate('/create-store', { replace: true });
         }
       } catch (error) {
         console.error('Error fetching store data:', error);
         setError('Failed to load store information');
-        // If there's an error, redirect to create store
-        navigate('/create-store');
+        // If there's a 404, no store exists - redirect to create store
+        if (error.response?.status === 404) {
+          navigate('/create-store', { replace: true });
+        }
       } finally {
         setLoading(false);
       }
@@ -42,24 +54,21 @@ const VerificationPendingPage = () => {
 
   const handleCheckStatus = async () => {
     try {
-      const response = await api.get('/stores/me');
+      const response = await api.get('/sellers/profile');
       
       if (response.data && response.data.store) {
-        const status = response.data.store.status;
+        const store = response.data.store;
+        const status = store.status;
         
-        if (status === 'approved') {
-          // Store approved, redirect to seller dashboard
-          navigate('/seller');
-        } else if (status === 'rejected') {
-          // Store rejected, redirect to create store to resubmit
-          navigate('/create-store');
-        }
-        
-        // Update store data with new status
+        // Update store data with new status and rejection reason
         setStoreData(prev => ({
           ...prev,
-          status: status
+          status: status,
+          rejection_reason: store.rejection_reason
         }));
+        
+        // Note: The VerificationPending component now handles redirects
+        // We don't redirect here anymore to avoid conflicts
       }
     } catch (error) {
       console.error('Error checking store status:', error);

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../layout/Navbar";
 import Footer from "../layout/Footer";
 import { Button } from "../ui/button";
@@ -7,9 +7,14 @@ import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Label } from "../ui/label";
 import { Card, CardContent } from "../ui/card";
-import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Send, AlertCircle } from "lucide-react";
+import api from "../../api";
+import { useUser } from "../Context/UserContext";
 
 const ContactPage = () => {
+  const { user } = useUser();
+  const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -19,6 +24,41 @@ const ContactPage = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  // Auto-fill name and email if user is logged in, or restore saved form data
+  useEffect(() => {
+    if (user) {
+      // Check if there's saved form data from before login
+      const savedFormData = sessionStorage.getItem('contactFormData');
+      if (savedFormData) {
+        try {
+          const parsed = JSON.parse(savedFormData);
+          setFormData({
+            name: user.userName || "",
+            email: user.userEmail || "",
+            subject: parsed.subject || "",
+            message: parsed.message || "",
+          });
+          sessionStorage.removeItem('contactFormData');
+        } catch (e) {
+          // If parsing fails, just auto-fill name and email
+          setFormData(prev => ({
+            ...prev,
+            name: user.userName || "",
+            email: user.userEmail || "",
+          }));
+        }
+      } else {
+        // Auto-fill name and email from user data
+        setFormData(prev => ({
+          ...prev,
+          name: user.userName || "",
+          email: user.userEmail || "",
+        }));
+      }
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,14 +68,64 @@ const ContactPage = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  // Validate message has at least 10 words
+  const validateMessage = (message) => {
+    const words = message.trim().split(/\s+/).filter(word => word.length > 0);
+    return words.length >= 10;
+  };
+
+  // Count words in message
+  const countWords = (message) => {
+    const words = message.trim().split(/\s+/).filter(word => word.length > 0);
+    return words.length;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check if user is logged in before submitting
+    if (!user) {
+      // Store the current page to redirect back after login
+      sessionStorage.setItem('redirectAfterLogin', '/contact');
+      // Store the form data so user doesn't lose their message
+      sessionStorage.setItem('contactFormData', JSON.stringify(formData));
+      navigate('/login');
+      return;
+    }
+    
     setIsSubmitting(true);
-    setTimeout(() => {
+    setError("");
+
+    // Validate message word count
+    if (!validateMessage(formData.message)) {
+      setError("Message must contain at least 10 words.");
       setIsSubmitting(false);
-      setIsSubmitted(true);
-      setFormData({ name: "", email: "", subject: "", message: "" });
-    }, 1500);
+      return;
+    }
+
+    try {
+      const response = await api.post("/contact", formData);
+      
+      if (response.data.success) {
+        setIsSubmitted(true);
+        // Clear saved form data
+        sessionStorage.removeItem('contactFormData');
+        // Reset only subject and message, keep name and email if logged in
+        setFormData(prev => ({ 
+          ...prev,
+          subject: "", 
+          message: "" 
+        }));
+      }
+    } catch (err) {
+      console.error("Contact form error:", err);
+      setError(
+        err.response?.data?.message || 
+        "Failed to send message. Please try again later."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Define the FAQs data with both questions and answers
@@ -57,6 +147,9 @@ const ContactPage = () => {
       answer: "We want you to be completely satisfied with your purchase. If you receive a damaged or incorrect item, you can request a return or exchange within 7 days of delivery. The item must be in its original packaging."
     }
   ];
+
+  const wordCount = countWords(formData.message);
+  const isMessageValid = wordCount >= 10;
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -84,21 +177,21 @@ const ContactPage = () => {
                     <div className="mr-3 mt-1"><MapPin className="h-5 w-5 text-[#a47c68]" /></div>
                     <div>
                       <h3 className="font-medium">Our Location</h3>
-                      <p className="text-gray-600 text-sm">123 Artisan Street, Calamba City, Laguna</p>
+                      <p className="text-gray-600 text-sm">BLK 71 Lot 52 Mabuhay City Phase 1, Barangay Baclaran, Cabuyao</p>
                     </div>
                   </div>
-                  <div className="flex items-start">
+                  <div className="flex items-start">6
                     <div className="mr-3 mt-1"><Phone className="h-5 w-5 text-[#a47c68]" /></div>
                     <div>
                       <h3 className="font-medium">Phone Number</h3>
-                      <p className="text-gray-600 text-sm">+63 (49) 123 4567</p>
+                      <p className="text-gray-600 text-sm">+63 921 226 6566</p>
                     </div>
                   </div>
                   <div className="flex items-start">
                     <div className="mr-3 mt-1"><Mail className="h-5 w-5 text-[#a47c68]" /></div>
                     <div>
                       <h3 className="font-medium">Email Address</h3>
-                      <p className="text-gray-600 text-sm">info@craftconnect.com</p>
+                      <p className="text-gray-600 text-sm">craftconnect49@gmail.com</p>
                     </div>
                   </div>
                   <div className="flex items-start">
@@ -137,15 +230,47 @@ const ContactPage = () => {
                     <Button onClick={() => setIsSubmitted(false)} variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">Send Another</Button>
                   </div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                  <>
+                    {error && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                        <p className="text-red-700 text-sm">{error}</p>
+                      </div>
+                    )}
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                    {!user && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <p className="text-blue-800 text-sm">
+                          📝 You can fill out the form, but you'll need to log in to submit it.
+                        </p>
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="name">Your Name</Label>
-                        <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
+                        <Input 
+                          id="name" 
+                          name="name" 
+                          value={formData.name} 
+                          onChange={handleChange} 
+                          required 
+                          disabled={user ? true : false}
+                          className={user ? "bg-gray-50 cursor-not-allowed" : ""}
+                        />
+                        {user && <p className="text-xs text-gray-500">Auto-filled from your account</p>}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
+                        <Input 
+                          id="email" 
+                          name="email" 
+                          type="email" 
+                          value={formData.email} 
+                          onChange={handleChange} 
+                          required 
+                          disabled={user ? true : false}
+                          className={user ? "bg-gray-50 cursor-not-allowed" : ""}
+                        />
+                        {user && <p className="text-xs text-gray-500">Auto-filled from your account</p>}
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -153,13 +278,56 @@ const ContactPage = () => {
                       <Input id="subject" name="subject" value={formData.subject} onChange={handleChange} required />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="message">Message</Label>
-                      <Textarea id="message" name="message" rows="6" value={formData.message} onChange={handleChange} required />
+                      <Label htmlFor="message">
+                        Message
+                        <span className="ml-2 text-sm font-normal text-gray-500">
+                          ({wordCount}/10 words minimum)
+                        </span>
+                      </Label>
+                      <Textarea 
+                        id="message" 
+                        name="message" 
+                        rows="6" 
+                        value={formData.message} 
+                        onChange={handleChange} 
+                        required 
+                        className={wordCount > 0 && !isMessageValid ? "border-red-300 focus:border-red-500" : ""}
+                      />
+                      {wordCount > 0 && !isMessageValid && (
+                        <div className="flex items-center text-xs text-red-600 mt-1">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          <span>Please write at least {10 - wordCount} more word{10 - wordCount > 1 ? 's' : ''}</span>
+                        </div>
+                      )}
+                      {isMessageValid && (
+                        <p className="text-xs text-green-600 mt-1">✓ Message length is sufficient</p>
+                      )}
                     </div>
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
-                      {isSubmitting ? "Sending..." : <><Send className="mr-2 h-4 w-4" /> Send Message</>}
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={isSubmitting || (!user ? false : !isMessageValid)}
+                    >
+                      {isSubmitting ? "Sending..." : (
+                        !user ? (
+                          <><Send className="mr-2 h-4 w-4" /> Login to Send Message</>
+                        ) : (
+                          <><Send className="mr-2 h-4 w-4" /> Send Message</>
+                        )
+                      )}
                     </Button>
+                    {user && !isMessageValid && wordCount > 0 && (
+                      <p className="text-xs text-center text-gray-500 mt-2">
+                        Complete the message requirement to send
+                      </p>
+                    )}
+                    {!user && (
+                      <p className="text-xs text-center text-blue-600 mt-2">
+                        Click submit to log in and send your message
+                      </p>
+                    )}
                   </form>
+                  </>
                 )}
               </CardContent>
             </Card>

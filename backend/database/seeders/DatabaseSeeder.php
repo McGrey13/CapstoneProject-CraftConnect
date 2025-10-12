@@ -56,7 +56,7 @@ class DatabaseSeeder extends Seeder
             ],
 
             [
-                'userName' => 'Kuya Galan',
+                'userName' => 'Galan Joaquin',
                 'userEmail' => 'kuyagala@example.com',
                 'role' => 'seller',
                 'userContactNumber' => '09567890123',
@@ -66,7 +66,7 @@ class DatabaseSeeder extends Seeder
             ],
 
             [
-                'userName' => 'Renel',
+                'userName' => 'Renel Baltralo',
                 'userEmail' => 'renel@example.com',
                 'role' => 'seller',
                 'userContactNumber' => '09678901234',
@@ -201,6 +201,11 @@ class DatabaseSeeder extends Seeder
             echo "API Token: {$token}\n";
             echo "=================================\n";
         }
+        
+        // Run customer seeder to create additional customers
+        $this->call([
+            \Database\Seeders\CustomerSeeder::class,
+        ]);
         
         // Run product seeder after creating users and sellers
         $this->call([

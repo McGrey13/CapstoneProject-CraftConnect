@@ -65,7 +65,7 @@ const Dashboard = () => {
     const fetchAnalyticsData = async () => {
       try {
         setLoading(true);
-        console.log('Fetching analytics data...', { token: sessionStorage.getItem('auth_token') });
+        // console.log('Fetching analytics data...', { token: sessionStorage.getItem('auth_token') });
         
         // Add retry logic for timeout errors
         let retries = 3;
@@ -74,7 +74,7 @@ const Dashboard = () => {
         while (retries > 0) {
           try {
             const response = await api.get('/analytics/admin');
-            console.log('Analytics data response:', response.data);
+            // console.log('Analytics data response:', response.data);
             setAnalyticsData(response.data);
             return; // Success, exit retry loop
           } catch (error) {
@@ -137,6 +137,21 @@ const Dashboard = () => {
   const orders = analyticsData?.orders || {};
   const products = analyticsData?.products || {};
   const reviews = analyticsData?.reviews || {};
+  
+  // Calculate current month revenue from trend data
+  const getCurrentMonthRevenue = () => {
+    if (revenue.trend_data && revenue.trend_data.length > 0) {
+      // Get the latest month from trend data
+      const latestMonth = revenue.trend_data[revenue.trend_data.length - 1];
+      const monthlyRevenue = parseFloat(latestMonth.revenue) || 0;
+      return monthlyRevenue;
+    }
+    // Fallback to summary total revenue if no trend data
+    const fallbackRevenue = summary.total_revenue || 0;
+    return fallbackRevenue;
+  };
+  
+  const currentMonthRevenue = getCurrentMonthRevenue();
 
   return (
     <div className="space-y-6">
@@ -148,18 +163,6 @@ const Dashboard = () => {
             Welcome back, Admin User! Here's what's happening on your platform today.
           </p>
           <div className="flex items-center justify-between mt-4">
-            <div className="admin-table-stats">
-              <div className="admin-table-stat">
-                <div className="admin-table-stat-icon">📊</div>
-                <div>
-                  <div className="admin-table-stat-label">Live Data</div>
-                  <div className="text-xs text-gray-500">Real-time metrics</div>
-                </div>
-              </div>
-            </div>
-            <div className="text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
-              Last updated: {now.toLocaleDateString()} {now.toLocaleTimeString()}
-            </div>
           </div>
         </div>
       </div>
@@ -267,7 +270,7 @@ const Dashboard = () => {
               <div className="admin-table-stat">
                 <DollarSign className="admin-table-stat-icon" />
                 <div className="flex-1">
-                  <div className="admin-table-stat-value">₱{revenue.current_month?.toLocaleString() || '0'}</div>
+                  <div className="admin-table-stat-value">₱{currentMonthRevenue.toLocaleString()}</div>
                   <div className="admin-table-stat-label">Monthly Revenue</div>
                   <div className="text-xs text-gray-500 mt-1">Current month</div>
                 </div>

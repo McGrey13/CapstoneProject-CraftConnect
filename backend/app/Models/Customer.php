@@ -57,7 +57,7 @@ class Customer extends Model
      */
     protected $fillable = [
         'user_id',
-        // If you had specific customer-only fields not in User, they would go here.
+        'profile_picture_path',
     ];
 
     /**

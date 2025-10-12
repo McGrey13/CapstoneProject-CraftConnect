@@ -290,45 +290,19 @@ class AnalyticsDataSeeder extends Seeder
 
     private function createSampleCustomers()
     {
-        $this->command->info('Creating sample customers...');
+        $this->command->info('Using existing customers for analytics data...');
 
-        $customerData = [
-            ['name' => 'John Smith', 'email' => 'john.smith@example.com'],
-            ['name' => 'Sarah Johnson', 'email' => 'sarah.johnson@example.com'],
-            ['name' => 'Mike Davis', 'email' => 'mike.davis@example.com'],
-            ['name' => 'Emily Wilson', 'email' => 'emily.wilson@example.com'],
-            ['name' => 'David Brown', 'email' => 'david.brown@example.com'],
-            ['name' => 'Lisa Anderson', 'email' => 'lisa.anderson@example.com'],
-            ['name' => 'Tom Miller', 'email' => 'tom.miller@example.com'],
-            ['name' => 'Jennifer Taylor', 'email' => 'jennifer.taylor@example.com'],
-        ];
-
-        $customers = [];
-        foreach ($customerData as $data) {
-            // Check if user already exists
-            $existingUser = User::where('userEmail', $data['email'])->first();
-            
-            if ($existingUser) {
-                $customers[] = $existingUser;
-                continue;
-            }
-            
-            $user = User::create([
-                'userName' => $data['name'],
-                'userEmail' => $data['email'],
-                'userPassword' => bcrypt('password123'),
-                'role' => 'customer',
-                'userContactNumber' => '09' . rand(100000000, 999999999),
-                'userAddress' => 'Sample Address',
-                'userCity' => 'Sample City',
-                'userProvince' => 'Sample Province',
-                'is_verified' => true,
-                'created_at' => Carbon::now()->subDays(rand(30, 90)),
-            ]);
-            $customers[] = $user;
+        // Get all existing customer users instead of creating new ones
+        $customers = User::where('role', 'customer')->get()->toArray();
+        
+        if (empty($customers)) {
+            $this->command->warn('No customers found. Please run CustomerSeeder first.');
+            return;
         }
+        
+        $this->command->info('Found ' . count($customers) . ' existing customers.');
 
-        // Create sample orders
+        // Create sample orders using existing customers
         $this->createSampleOrders($customers);
     }
 

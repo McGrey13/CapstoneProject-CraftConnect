@@ -44,6 +44,8 @@ const FeaturedProducts = ({
         price: parseFloat(product.productPrice),
         artisanName: product.seller?.user?.userName || 'Unknown Artisan',
         artisanId: product.seller?.sellerID,
+        storeName: product.seller?.store?.store_name || '',
+        storeLogo: product.seller?.store?.logo_url || '',
         rating: 4.5, // You might want to fetch actual ratings from the API
         isNew: false, // You might want to calculate this based on created_at
         isFeatured: true,

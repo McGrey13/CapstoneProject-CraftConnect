@@ -65,6 +65,12 @@ class AuthController extends Controller
                         }
                     }
 
+                    // Construct profile image URL
+                    $profileImageUrl = null;
+                    if ($customer && $customer->profile_picture_path) {
+                        $profileImageUrl = asset('storage/' . $customer->profile_picture_path);
+                    }
+
                     return [
                         'userID' => $user->userID,
                         'userName' => $user->userName,
@@ -73,7 +79,7 @@ class AuthController extends Controller
                         'userContactNumber' => $user->userContactNumber,
                         'created_at' => $user->created_at,
                         'updated_at' => $user->updated_at,
-                        'profile_image_url' => $customer ? $customer->profile_picture_path : null,
+                        'profile_image_url' => $profileImageUrl,
                         'total_spent' => $totalSpent,
                         'last_purchase' => $lastPurchase,
                         'status' => $status,

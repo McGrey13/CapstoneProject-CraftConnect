@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Edit, User, Mail, Phone, MapPin, Calendar, Store, Package, DollarSign } from "lucide-react";
+import { X, Edit, User, Mail, Phone, MapPin, Calendar, Store, Package, TrendingUp, Award, Star } from "lucide-react";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -10,6 +10,7 @@ import {
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import api from "../../api";
 
 const SellerDetail = ({ sellerId, isOpen, onClose, onEdit }) => {
   const [seller, setSeller] = useState(null);
@@ -27,22 +28,19 @@ const SellerDetail = ({ sellerId, isOpen, onClose, onEdit }) => {
     setError(null);
     
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:8000/api/sellers/${sellerId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
+      console.log('🔍 Fetching seller details for ID:', sellerId);
+      const response = await api.get(`/sellers/${sellerId}`);
+      console.log('✅ Seller details received:', response.data);
+      console.log('📊 Seller Statistics:', {
+        products_count: response.data.products_count,
+        total_revenue: response.data.total_revenue,
+        total_orders: response.data.total_orders,
+        average_rating: response.data.average_rating,
+        total_reviews: response.data.total_reviews
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setSeller(data);
+      setSeller(response.data);
     } catch (err) {
-      console.error("Error fetching seller details:", err);
+      console.error("❌ Error fetching seller details:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -53,26 +51,35 @@ const SellerDetail = ({ sellerId, isOpen, onClose, onEdit }) => {
     switch (status) {
       case "active":
         return <Badge className="bg-green-500">Active</Badge>;
+      case "inactive":
+        return <Badge variant="outline" className="text-gray-500">Inactive</Badge>;
       case "pending":
         return <Badge className="bg-yellow-500">Pending</Badge>;
       case "suspended":
-        return <Badge variant="destructive">Suspended</Badge>;
+        return <Badge className="bg-red-500">Suspended</Badge>;
+      case "dormant":
+        return <Badge variant="outline" className="text-orange-500">Dormant</Badge>;
       default:
-        return <Badge variant="outline">Unknown</Badge>;
+        return null; // Don't show badge if status is unknown
     }
   };
 
   if (loading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Seller Details</DialogTitle>
+        <DialogContent className="max-w-7xl bg-white border-2 border-[#d5bfae] rounded-xl shadow-2xl">
+          <DialogHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-t-xl p-6 border-b border-[#e5ddd4]">
+            <DialogTitle className="text-2xl font-bold text-[#5c3d28] flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
+                <Store className="h-4 w-4 text-white" />
+              </div>
+              Seller Details
+            </DialogTitle>
           </DialogHeader>
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading seller details...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#a4785a] mx-auto"></div>
+              <p className="mt-4 text-[#7b5a3b] text-lg">Loading seller details...</p>
             </div>
           </div>
         </DialogContent>
@@ -83,13 +90,26 @@ const SellerDetail = ({ sellerId, isOpen, onClose, onEdit }) => {
   if (error) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Seller Details</DialogTitle>
+        <DialogContent className="max-w-7xl bg-white border-2 border-[#d5bfae] rounded-xl shadow-2xl">
+          <DialogHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-t-xl p-6 border-b border-[#e5ddd4]">
+            <DialogTitle className="text-2xl font-bold text-[#5c3d28] flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
+                <Store className="h-4 w-4 text-white" />
+              </div>
+              Seller Details
+            </DialogTitle>
           </DialogHeader>
-          <div className="text-center py-8">
-            <p className="text-red-600">Error loading seller details: {error}</p>
-            <Button onClick={fetchSellerDetails} className="mt-4">Retry</Button>
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <X className="h-8 w-8 text-red-600" />
+            </div>
+            <p className="text-red-600 text-lg mb-6">Error loading seller details: {error}</p>
+            <Button 
+              onClick={fetchSellerDetails} 
+              className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white px-6 py-3 rounded-lg shadow-md transition-all"
+            >
+              Try Again
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -98,179 +118,176 @@ const SellerDetail = ({ sellerId, isOpen, onClose, onEdit }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto bg-white border-2 border-[#d5bfae] rounded-xl shadow-2xl">
+        <DialogHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-t-xl p-6 border-b border-[#e5ddd4]">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl font-bold">Seller Details</DialogTitle>
-            <div className="flex gap-2">
-              <Button onClick={() => onEdit(seller)} variant="outline">
+            <DialogTitle className="text-2xl font-bold text-[#5c3d28] flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
+                <Store className="h-4 w-4 text-white" />
+              </div>
+              Seller Details
+            </DialogTitle>
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => onEdit(seller)} 
+                className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white px-4 py-2 rounded-lg shadow-md transition-all"
+              >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Seller
               </Button>
-              <Button onClick={onClose} variant="ghost" size="sm">
-                <X className="h-4 w-4" />
-        </Button>
             </div>
-      </div>
+          </div>
         </DialogHeader>
 
         {seller && (
-          <div className="space-y-6">
-            {/* Profile Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Store className="h-5 w-5" />
-                  Seller Profile
-                </CardTitle>
-          </CardHeader>
-          <CardContent>
-                <div className="flex items-start gap-6">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage 
-                      src={seller.profile_image_url || seller.profile_picture_path} 
+          <div className="p-6 space-y-8">
+            {/* Profile Header */}
+            <div className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-xl p-6 border border-[#e5ddd4]">
+              <div className="flex items-center gap-6">
+                <div className="w-90 h-20 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center shadow-lg">
+                  {seller.profile_image_url ? (
+                    <img
+                      src={seller.profile_image_url}
                       alt={seller.user?.userName}
+                      className="w-20 h-20 object-cover rounded-full"
                     />
-                    <AvatarFallback>
-                      {seller.user?.userName?.slice(0, 2).toUpperCase() || "SE"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-bold">{seller.user?.userName || "N/A"}</h2>
-                    <p className="text-gray-600">Seller ID: {seller.sellerID}</p>
-                    <div className="mt-2">{getStatusBadge(seller.status || "active")}</div>
+                  ) : (
+                    <Store className="h-10 w-10 text-white" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-[#5c3d28]">{seller.user?.userName || "N/A"}</h2>
+                  <p className="text-[#7b5a3b] text-lg">{seller.businessName || "No Business Name"}</p>
+                  {seller.status && <div className="mt-2">{getStatusBadge(seller.status)}</div>}
+                </div>
               </div>
             </div>
-              </CardContent>
-            </Card>
 
-            {/* Basic Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Basic Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Seller ID</label>
-                  <p className="text-lg">{seller.sellerID}</p>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-gradient-to-br from-[#f8f6f4] to-[#f0ebe7] rounded-xl p-4 border border-[#e5ddd4] text-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Package className="h-6 w-6 text-white" />
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Status</label>
-                  <div className="mt-1">{getStatusBadge(seller.status || "active")}</div>
+                <p className="text-2xl font-bold text-[#5c3d28]">{seller.products_count || 0}</p>
+                <p className="text-[#7b5a3b] text-sm">Products</p>
+              </div>
+              <div className="bg-gradient-to-br from-[#f8f6f4] to-[#f0ebe7] rounded-xl p-4 border border-[#e5ddd4] text-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center mx-auto mb-3">
+                  <TrendingUp className="h-6 w-6 text-white" />
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Full Name</label>
-                  <p className="text-lg">{seller.user?.userName || "N/A"}</p>
+                <p className="text-2xl font-bold text-[#5c3d28]">₱{(seller.total_revenue || 0).toLocaleString()}</p>
+                <p className="text-[#7b5a3b] text-sm">Total Revenue</p>
+              </div>
+              <div className="bg-gradient-to-br from-[#f8f6f4] to-[#f0ebe7] rounded-xl p-4 border border-[#e5ddd4] text-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center mx-auto mb-3">
+                  <TrendingUp className="h-6 w-6 text-white" />
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Email</label>
-                  <p className="text-lg flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    {seller.user?.userEmail || "N/A"}
-                  </p>
+                <p className="text-2xl font-bold text-[#5c3d28]">{seller.total_orders || 0}</p>
+                <p className="text-[#7b5a3b] text-sm">Total Orders</p>
+              </div>
+              <div className="bg-gradient-to-br from-[#f8f6f4] to-[#f0ebe7] rounded-xl p-4 border border-[#e5ddd4] text-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Star className="h-6 w-6 text-white" />
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Phone Number</label>
-                  <p className="text-lg flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    {seller.user?.userContactNumber || "N/A"}
-                  </p>
+                <div className="flex items-center justify-center gap-1">
+                  <p className="text-2xl font-bold text-[#5c3d28]">{seller.average_rating?.toFixed(1) || "0.0"}</p>
+                  <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Address</label>
-                  <p className="text-lg flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    {seller.user?.userAddress || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Birthday</label>
-                  <p className="text-lg flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    {seller.user?.userBirthday ? new Date(seller.user.userBirthday).toLocaleDateString() : "N/A"}
-                  </p>
-                </div>
-                  <div>
-                  <label className="text-sm font-medium text-gray-500">Age</label>
-                  <p className="text-lg">{seller.user?.userAge || "N/A"}</p>
-                </div>
-              </CardContent>
-            </Card>
+                <p className="text-[#7b5a3b] text-sm">({seller.total_reviews || 0} reviews)</p>
+              </div>
+            </div>
 
             {/* Business Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Business Information</CardTitle>
+            <Card className="border-2 border-[#d5bfae] rounded-xl shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-t-xl border-b border-[#e5ddd4]">
+                <CardTitle className="text-xl font-bold text-[#5c3d28] flex items-center gap-3">
+                  <div className="w-6 h-6 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
+                    <Store className="h-3 w-3 text-white" />
+                  </div>
+                  Business Information
+                </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Business Name</label>
-                  <p className="text-lg">{seller.businessName || "N/A"}</p>
-                </div>
-                  <div>
-                  <label className="text-sm font-medium text-gray-500">Specialty</label>
-                  <p className="text-lg">{seller.specialty || "N/A"}</p>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-[#7b5a3b] flex items-center gap-2 mb-2">
+                        <Store className="h-4 w-4" />
+                        Business Name
+                      </label>
+                      <p className="text-lg text-[#5c3d28] bg-[#f8f6f4] p-3 rounded-lg border border-[#e5ddd4]">
+                        {seller.businessName || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-[#7b5a3b] flex items-center gap-2 mb-2">
+                        <MapPin className="h-4 w-4" />
+                        Location
+                      </label>
+                      <p className="text-lg text-[#5c3d28] bg-[#f8f6f4] p-3 rounded-lg border border-[#e5ddd4]">
+                        {seller.user?.userAddress || "N/A"}
+                      </p>
+                    </div>
                   </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Website</label>
-                  <p className="text-lg">{seller.website || "N/A"}</p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-[#7b5a3b] flex items-center gap-2 mb-2">
+                        <Calendar className="h-4 w-4" />
+                        Join Date
+                      </label>
+                      <p className="text-lg text-[#5c3d28] bg-[#f8f6f4] p-3 rounded-lg border border-[#e5ddd4]">
+                        {seller.created_at ? new Date(seller.created_at).toLocaleDateString() : "N/A"}
+                      </p>
+                    </div>
                   </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Story</label>
-                  <p className="text-lg">{seller.story || "No story provided"}</p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Statistics */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Statistics</CardTitle>
+            {/* Contact Information */}
+            <Card className="border-2 border-[#d5bfae] rounded-xl shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-t-xl border-b border-[#e5ddd4]">
+                <CardTitle className="text-xl font-bold text-[#5c3d28] flex items-center gap-3">
+                  <div className="w-6 h-6 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
+                    <User className="h-3 w-3 text-white" />
+                  </div>
+                  Contact Information
+                </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{seller.productCount || 0}</div>
-                  <div className="text-sm text-gray-600">Total Products</div>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-[#7b5a3b] flex items-center gap-2 mb-2">
+                        <Mail className="h-4 w-4" />
+                        Email Address
+                      </label>
+                      <p className="text-lg text-[#5c3d28] bg-[#f8f6f4] p-3 rounded-lg border border-[#e5ddd4]">
+                        {seller.user?.userEmail || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-[#7b5a3b] flex items-center gap-2 mb-2">
+                        <Phone className="h-4 w-4" />
+                        Phone Number
+                      </label>
+                      <p className="text-lg text-[#5c3d28] bg-[#f8f6f4] p-3 rounded-lg border border-[#e5ddd4]">
+                        {seller.user?.userContactNumber || "N/A"}
+                      </p>
+                    </div>
                   </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">₱0.00</div>
-                  <div className="text-sm text-gray-600">Total Revenue</div>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">0</div>
-                  <div className="text-sm text-gray-600">Total Orders</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Account Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Account Information</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Role</label>
-                  <p className="text-lg">{seller.user?.role || "Seller"}</p>
-                </div>
-                  <div>
-                  <label className="text-sm font-medium text-gray-500">Member Since</label>
-                  <p className="text-lg">
-                    {seller.created_at ? new Date(seller.created_at).toLocaleDateString() : "N/A"}
-                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-[#7b5a3b] flex items-center gap-2 mb-2">
+                        <MapPin className="h-4 w-4" />
+                        Address
+                      </label>
+                      <p className="text-lg text-[#5c3d28] bg-[#f8f6f4] p-3 rounded-lg border border-[#e5ddd4]">
+                        {seller.user?.userAddress || "N/A"}
+                      </p>
+                    </div>
                   </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Last Updated</label>
-                  <p className="text-lg">
-                    {seller.updated_at ? new Date(seller.updated_at).toLocaleDateString() : "N/A"}
-                  </p>
-                  </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Featured</label>
-                  <p className="text-lg">{seller.featured ? "Yes" : "No"}</p>
                 </div>
               </CardContent>
             </Card>

@@ -41,88 +41,25 @@ class AnalyticsController extends Controller
 
             // Cache for 5 minutes (300 seconds)
             $data = Cache::remember($cacheKey, 300, function() use ($periodType, $startDate, $endDate) {
+                // Get actual analytics data with trend information
+                $revenueAnalytics = $this->getRevenueAnalytics($periodType, $startDate, $endDate);
+                $orderAnalytics = $this->getOrderAnalytics($periodType, $startDate, $endDate);
+                $reviewAnalytics = $this->getReviewAnalytics($periodType, $startDate, $endDate);
+                $productAnalytics = $this->getProductAnalytics($periodType, $startDate, $endDate);
+                $moderationAnalytics = $this->getModerationAnalytics($periodType, $startDate, $endDate);
+                $sellerRevenueAnalytics = $this->getSellerRevenueAnalytics($periodType, $startDate, $endDate);
+                
                 // Optimize by loading summary first (lightweight)
                 $summary = $this->getSummaryMetrics($periodType, $startDate, $endDate);
                 
                 return [
                     'summary' => $summary,
-                    'revenue' => [
-                        'total_revenue' => $summary['total_revenue'] ?? 0,
-                        'growth_rate' => 0,
-                        'trend_data' => [],
-                        'platform_commission' => ($summary['total_revenue'] ?? 0) * 0.1,
-                        'payment_fees' => ($summary['total_revenue'] ?? 0) * 0.029,
-                        'net_revenue' => ($summary['total_revenue'] ?? 0) * 0.971,
-                        'growth_percentage' => 0,
-                        'current_month' => $summary['total_revenue'] ?? 0
-                    ],
-                    'orders' => [
-                        'total_orders' => $summary['total_orders'] ?? 0,
-                        'completion_rate' => $summary['completion_rate'] ?? 0,
-                        'average_order_value' => $summary['average_order_value'] ?? 0,
-                        'status_distribution' => [
-                            'total' => $summary['total_orders'] ?? 0,
-                            'completed' => 0,
-                            'pending' => 0,
-                            'processing' => 0,
-                            'shipped' => 0,
-                            'cancelled' => 0,
-                            'refunded' => 0
-                        ],
-                        'trend_data' => []
-                    ],
-                    'reviews' => [
-                        'total_reviews' => 0,
-                        'average_rating' => $summary['average_rating'] ?? 0,
-                        'response_rate' => 0,
-                        'score_distribution' => [
-                            'total' => 0,
-                            'five_star' => 0,
-                            'four_star' => 0,
-                            'three_star' => 0,
-                            'two_star' => 0,
-                            'one_star' => 0
-                        ],
-                        'trend_data' => []
-                    ],
-                    'products' => [
-                        'total_products' => $summary['total_products'] ?? 0,
-                        'average_rating' => $summary['average_rating'] ?? 0,
-                        'status_distribution' => [
-                            'total' => $summary['total_products'] ?? 0,
-                            'active' => 0,
-                            'inactive' => 0,
-                            'out_of_stock' => 0,
-                            'low_stock' => 0,
-                            'featured' => 0
-                        ],
-                        'image_quality' => [
-                            'total_products' => $summary['total_products'] ?? 0,
-                            'products_with_images' => 0,
-                            'products_with_videos' => 0,
-                            'products_without_images' => 0
-                        ],
-                        'trend_data' => []
-                    ],
-                    'seller_revenue' => [
-                        'top_sellers' => [],
-                        'average_revenue_per_seller' => 0,
-                        'total_sellers' => $summary['total_sellers'] ?? 0,
-                        'active_sellers' => $summary['active_sellers'] ?? 0,
-                        'total_seller_revenue' => 0
-                    ],
-                    'moderation' => [
-                        'statistics' => [
-                            'products' => [
-                                'pending' => $summary['pending_products'] ?? 0,
-                                'approved' => 0,
-                                'rejected' => 0,
-                                'approval_rate' => 0
-                            ]
-                        ],
-                        'total_submissions' => 0,
-                        'approval_rate' => 0
-                    ],
+                    'revenue' => $revenueAnalytics,
+                    'orders' => $orderAnalytics,
+                    'reviews' => $reviewAnalytics,
+                    'products' => $productAnalytics,
+                    'moderation' => $moderationAnalytics,
+                    'seller_revenue' => $sellerRevenueAnalytics,
                     'micro_analytics' => [
                         'detailed_reviews' => [
                             'rating_distribution' => [],
@@ -307,34 +244,71 @@ class AnalyticsController extends Controller
             $query->where('is_verified', true);
         })->count();
 
-        // Calculate total revenue from all sellers
-        $totalSellerRevenue = $sellerRevenueData->sum('total_revenue');
-        $averageRevenuePerSeller = $totalSellers > 0 ? $totalSellerRevenue / $totalSellers : 0;
+        // If still no data from seeded analytics, calculate from real orders
+        if ($sellerRevenueData->isEmpty() || $sellerRevenueData->sum('total_revenue') == 0) {
+            // Calculate seller revenue from real orders data
+            $realSellerData = Order::selectRaw('
+                sellerID,
+                SUM(totalAmount) as total_revenue,
+                COUNT(*) as total_orders,
+                AVG(totalAmount) as average_order_value
+            ')
+            ->where('status', 'delivered')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereNotNull('sellerID')
+            ->where('sellerID', '!=', '')
+            ->groupBy('sellerID')
+            ->orderBy('total_revenue', 'desc')
+            ->get();
 
-        // Get top performing sellers by revenue
-        $topSellers = $sellerRevenueData->groupBy('seller_id')
-            ->map(function($sellerData) {
-                $seller = $sellerData->first()->seller;
+            $totalSellerRevenue = $realSellerData->sum('total_revenue');
+            $averageRevenuePerSeller = $totalSellers > 0 ? $totalSellerRevenue / $totalSellers : 0;
+
+            // Get top performing sellers from real data
+            $topSellers = $realSellerData->map(function($sellerData) {
+                $seller = Seller::find($sellerData->sellerID);
                 return [
-                    'seller_id' => $sellerData->first()->seller_id,
+                    'seller_id' => $sellerData->sellerID,
                     'seller' => $seller ? [
                         'businessName' => $seller->businessName ?? 'Unknown Seller'
                     ] : null,
-                    'total_revenue' => $sellerData->sum('total_revenue'),
-                    'total_orders' => $sellerData->sum('total_orders'),
-                    'products_sold' => $sellerData->sum('products_sold'),
-                    'average_order_value' => $sellerData->avg('average_order_value')
+                    'total_revenue' => $sellerData->total_revenue,
+                    'total_orders' => $sellerData->total_orders,
+                    'products_sold' => 0, // Not available from orders table
+                    'average_order_value' => $sellerData->average_order_value
                 ];
-            })
-            ->sortByDesc('total_revenue')
-            ->take(5)
-            ->values();
+            })->take(5)->values();
+
+        } else {
+            // Use seeded analytics data
+            $totalSellerRevenue = $sellerRevenueData->sum('total_revenue');
+            $averageRevenuePerSeller = $totalSellers > 0 ? $totalSellerRevenue / $totalSellers : 0;
+
+            // Get top performing sellers by revenue
+            $topSellers = $sellerRevenueData->groupBy('seller_id')
+                ->map(function($sellerData) {
+                    $seller = $sellerData->first()->seller;
+                    return [
+                        'seller_id' => $sellerData->first()->seller_id,
+                        'seller' => $seller ? [
+                            'businessName' => $seller->businessName ?? 'Unknown Seller'
+                        ] : null,
+                        'total_revenue' => $sellerData->sum('total_revenue'),
+                        'total_orders' => $sellerData->sum('total_orders'),
+                        'products_sold' => $sellerData->sum('products_sold'),
+                        'average_order_value' => $sellerData->avg('average_order_value')
+                    ];
+                })
+                ->sortByDesc('total_revenue')
+                ->take(5)
+                ->values();
+        }
 
         // Get seller performance metrics
         $sellerPerformance = [
-            'high_performers' => $sellerRevenueData->where('total_revenue', '>', $averageRevenuePerSeller * 1.5)->count(),
-            'average_performers' => $sellerRevenueData->whereBetween('total_revenue', [$averageRevenuePerSeller * 0.5, $averageRevenuePerSeller * 1.5])->count(),
-            'low_performers' => $sellerRevenueData->where('total_revenue', '<', $averageRevenuePerSeller * 0.5)->count(),
+            'high_performers' => 0,
+            'average_performers' => 0,
+            'low_performers' => 0,
         ];
 
         return [
@@ -346,8 +320,8 @@ class AnalyticsController extends Controller
             'seller_performance' => $sellerPerformance,
             'revenue_distribution' => [
                 'top_20_percent' => $topSellers->take(2)->sum('total_revenue'),
-                'middle_60_percent' => $sellerRevenueData->sortByDesc('total_revenue')->skip(2)->take(4)->sum('total_revenue'),
-                'bottom_20_percent' => $sellerRevenueData->sortByDesc('total_revenue')->skip(6)->sum('total_revenue')
+                'middle_60_percent' => 0,
+                'bottom_20_percent' => 0
             ]
         ];
     }

@@ -589,35 +589,6 @@ const CommissionDashboard = () => {
           </Card>
         )}
 
-        {/* Commission Rate Info */}
-        <Card className="admin-table-container">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Commission Rate Information
-              </h3>
-              <p className="text-gray-600 mb-4">
-                The platform automatically deducts <strong>{summary.commission_rate}</strong> commission 
-                from each online payment (GCash, PayMaya). Sellers receive the remaining amount 
-                directly to their accounts.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <p className="font-medium text-blue-900">Customer Payment</p>
-                  <p className="text-blue-700">₱1,000.00</p>
-                </div>
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <p className="font-medium text-green-900">Platform Commission</p>
-                  <p className="text-green-700">₱20.00 (2%)</p>
-                </div>
-                <div className="p-4 bg-purple-50 rounded-lg">
-                  <p className="font-medium text-purple-900">Seller Receives</p>
-                  <p className="text-purple-700">₱980.00 (98%)</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

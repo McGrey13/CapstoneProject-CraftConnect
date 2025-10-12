@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, User, Mail, Phone, MapPin, Calendar } from "lucide-react";
+import { X, Save, User, Mail, Phone, MapPin, Calendar, AlertCircle } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -52,7 +52,7 @@ const CustomerEdit = ({ customer, isOpen, onClose, onSave }) => {
       onClose();
     } catch (err) {
       console.error("Error updating customer:", err);
-      setError(err.message);
+      setError(err.response?.data?.message || "Failed to update customer");
     } finally {
       setLoading(false);
     }
@@ -69,164 +69,216 @@ const CustomerEdit = ({ customer, isOpen, onClose, onSave }) => {
     }
   };
 
+  if (!customer) return null;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-white border-2 border-[#d5bfae] rounded-xl shadow-2xl">
+        <DialogHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-t-xl p-6 border-b border-[#e5ddd4]">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl font-bold">Edit Customer</DialogTitle>
-            <Button onClick={onClose} variant="ghost" size="sm">
-              <X className="h-4 w-4" />
-            </Button>
+            <DialogTitle className="text-2xl font-bold text-[#5c3d28] flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
+                <User className="h-4 w-4 text-white" />
+              </div>
+              Edit Customer
+            </DialogTitle>
           </div>
         </DialogHeader>
 
-        {customer && (
+        <div className="p-6">
+          {/* Profile Header */}
+          <div className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-xl p-6 border border-[#e5ddd4] mb-6">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center shadow-lg">
+                {customer.profile_image_url ? (
+                  <img
+                    src={customer.profile_image_url}
+                    alt={customer.userName}
+                    className="w-16 h-16 object-cover rounded-full"
+                  />
+                ) : (
+                  <User className="h-8 w-8 text-white" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-[#5c3d28]">Editing: {customer.userName}</h2>
+                <p className="text-[#7b5a3b]">{customer.userEmail}</p>
+                <div className="mt-2">{getStatusBadge(customer.status)}</div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-[#7b5a3b]">Customer ID</p>
+                <p className="text-lg font-bold text-[#5c3d28]">#{customer.userID}</p>
+              </div>
+            </div>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                <p className="text-red-800 font-medium">Error</p>
+              </div>
+              <p className="text-red-700 mt-1">{error}</p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
+            <Card className="border-2 border-[#d5bfae] rounded-xl shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-t-xl border-b border-[#e5ddd4]">
+                <CardTitle className="text-xl font-bold text-[#5c3d28] flex items-center gap-3">
+                  <div className="w-6 h-6 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
+                    <User className="h-3 w-3 text-white" />
+                  </div>
                   Basic Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="userName">Full Name</Label>
-                  <Input
-                    id="userName"
-                    name="userName"
-                    value={formData.userName}
-                    onChange={handleInputChange}
-                    placeholder="Enter full name"
-                  />
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="userName" className="text-[#7b5a3b] font-medium flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Full Name
+                    </Label>
+                    <Input
+                      id="userName"
+                      name="userName"
+                      value={formData.userName}
+                      onChange={handleInputChange}
+                      className="border-[#d5bfae] focus:border-[#a4785a] focus:ring-[#a4785a]/20 bg-white"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userEmail" className="text-[#7b5a3b] font-medium flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Email Address
+                    </Label>
+                    <Input
+                      id="userEmail"
+                      name="userEmail"
+                      type="email"
+                      value={formData.userEmail}
+                      onChange={handleInputChange}
+                      className="border-[#d5bfae] focus:border-[#a4785a] focus:ring-[#a4785a]/20 bg-white"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userContactNumber" className="text-[#7b5a3b] font-medium flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      Phone Number
+                    </Label>
+                    <Input
+                      id="userContactNumber"
+                      name="userContactNumber"
+                      value={formData.userContactNumber}
+                      onChange={handleInputChange}
+                      className="border-[#d5bfae] focus:border-[#a4785a] focus:ring-[#a4785a]/20 bg-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userAge" className="text-[#7b5a3b] font-medium">
+                      Age
+                    </Label>
+                    <Input
+                      id="userAge"
+                      name="userAge"
+                      type="number"
+                      value={formData.userAge}
+                      onChange={handleInputChange}
+                      className="border-[#d5bfae] focus:border-[#a4785a] focus:ring-[#a4785a]/20 bg-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userBirthday" className="text-[#7b5a3b] font-medium flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Birthday
+                    </Label>
+                    <Input
+                      id="userBirthday"
+                      name="userBirthday"
+                      type="date"
+                      value={formData.userBirthday}
+                      onChange={handleInputChange}
+                      className="border-[#d5bfae] focus:border-[#a4785a] focus:ring-[#a4785a]/20 bg-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="status" className="text-[#7b5a3b] font-medium">
+                      Status
+                    </Label>
+                    <select
+                      id="status"
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-[#d5bfae] rounded-lg focus:border-[#a4785a] focus:ring-[#a4785a]/20 bg-white text-[#5c3d28]"
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="userEmail">Email</Label>
-                  <Input
-                    id="userEmail"
-                    name="userEmail"
-                    type="email"
-                    value={formData.userEmail}
-                    onChange={handleInputChange}
-                    placeholder="Enter email address"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="userContactNumber">Phone Number</Label>
-                  <Input
-                    id="userContactNumber"
-                    name="userContactNumber"
-                    value={formData.userContactNumber}
-                    onChange={handleInputChange}
-                    placeholder="Enter phone number"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="userAge">Age</Label>
-                  <Input
-                    id="userAge"
-                    name="userAge"
-                    type="number"
-                    value={formData.userAge}
-                    onChange={handleInputChange}
-                    placeholder="Enter age"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="userBirthday">Birthday</Label>
-                  <Input
-                    id="userBirthday"
-                    name="userBirthday"
-                    type="date"
-                    value={formData.userBirthday}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <Label htmlFor="userAddress">Address</Label>
+              </CardContent>
+            </Card>
+
+            {/* Address Information */}
+            <Card className="border-2 border-[#d5bfae] rounded-xl shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-t-xl border-b border-[#e5ddd4]">
+                <CardTitle className="text-xl font-bold text-[#5c3d28] flex items-center gap-3">
+                  <div className="w-6 h-6 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
+                    <MapPin className="h-3 w-3 text-white" />
+                  </div>
+                  Address Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-2">
+                  <Label htmlFor="userAddress" className="text-[#7b5a3b] font-medium flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Address
+                  </Label>
                   <Input
                     id="userAddress"
                     name="userAddress"
                     value={formData.userAddress}
                     onChange={handleInputChange}
-                    placeholder="Enter full address"
+                    className="border-[#d5bfae] focus:border-[#a4785a] focus:ring-[#a4785a]/20 bg-white"
                   />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Current Information Display */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Current Information</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Customer ID</label>
-                  <p className="text-lg">{customer.userID}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Role</label>
-                  <p className="text-lg">{customer.role || "Customer"}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Member Since</label>
-                  <p className="text-lg">
-                    {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Last Updated</label>
-                  <p className="text-lg">
-                    {customer.updated_at ? new Date(customer.updated_at).toLocaleDateString() : "N/A"}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                <p className="text-sm">{error}</p>
-              </div>
-            )}
-
             {/* Action Buttons */}
-            <div className="flex justify-end gap-3">
-              <Button type="button" onClick={onClose} variant="outline">
+            <div className="flex justify-end gap-4 pt-6 border-t border-[#e5ddd4]">
+              <Button
+                type="button"
+                onClick={onClose}
+                className="bg-white border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f6f4] px-6 py-3 rounded-lg shadow-md transition-all"
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white px-6 py-3 rounded-lg shadow-md transition-all flex items-center gap-2"
+              >
                 {loading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     Saving...
                   </>
                 ) : (
                   <>
-                    <Save className="h-4 w-4 mr-2" />
+                    <Save className="h-4 w-4" />
                     Save Changes
                   </>
                 )}
               </Button>
             </div>
           </form>
-        )}
+        </div>
       </DialogContent>
     </Dialog>
   );

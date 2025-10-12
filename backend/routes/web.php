@@ -3,7 +3,16 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AdminAuthController;
 use Illuminate\Support\Facades\Auth;
-use  App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductController;
+
+// Sanctum CSRF Cookie Route (required for SPA authentication)
+Route::middleware(['web', 'throttle:csrf'])->group(function () {
+    Route::get('/sanctum/csrf-cookie', function () {
+        return response()->json([
+            'message' => 'CSRF cookie set successfully'
+        ]);
+    });
+});
 // Public routes
 Route::get('/', function () {
     return view('welcome');
