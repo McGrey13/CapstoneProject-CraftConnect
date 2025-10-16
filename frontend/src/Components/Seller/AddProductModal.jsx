@@ -166,6 +166,29 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
     return 'Add Product';
   };
 
+  // Merge API categories with required static categories for reliability
+  const staticCategoryNames = [
+    'Miniatures & Souvenirs',
+    'Rubber Stamp Engraving',
+    'Traditional Accessories',
+    'Statuary & Sculpture',
+    'Basketry & Weaving'
+  ];
+  const normalizedApiCategories = (apiCategories || []).map((c) => ({
+    id: c.category_id || c.id || (c.category_name || c.name),
+    name: c.category_name || c.name,
+  })).filter((c) => !!c.name);
+  const mergedCategories = (() => {
+    const names = new Set(normalizedApiCategories.map((c) => c.name));
+    const merged = [...normalizedApiCategories];
+    staticCategoryNames.forEach((name) => {
+      if (!names.has(name)) {
+        merged.push({ id: name, name });
+      }
+    });
+    return merged;
+  })();
+
   if (!isOpen) return null;
 
   return (
@@ -479,21 +502,11 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                       required
                     >
                       <option value="" disabled>Choose a category...</option>
-                      {apiCategories.length > 0 ? (
-                        apiCategories.map(category => (
-                          <option key={category.id} value={category.category_id || category.id}>
-                            {category.category_name || category.name}
-                          </option>
-                        ))
-                      ) : (
-                        <>
-                          <option value="Basketry & Weaving">Basketry & Weaving</option>
-                          <option value="Miniatures & Souvenirs">Miniatures & Souvenirs</option>
-                          <option value="Rubber Stamp Engraving">Rubber Stamp Engraving</option>
-                          <option value="Traditional Accessories">Traditional Accessories</option>
-                          <option value="Statuary & Sculpture">Statuary & Sculpture</option>
-                        </>
-                      )}
+                      {mergedCategories.map((category) => (
+                        <option key={category.id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
                     </select>
                     <p className="text-xs text-[#7b5a3b] mt-3">🎨 Select the best category for your product</p>
                   </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
@@ -15,7 +15,9 @@ import {
   CreditCard,
   Eye,
   Filter,
-  Calendar
+  Calendar,
+  Check,
+  Package
 } from "lucide-react";
 import api from "../../api";
 import LoadingSpinner from "../ui/LoadingSpinner";
@@ -25,7 +27,7 @@ import EmptyState from "../ui/EmptyState";
 const PaymentTracking = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [_error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentTypeFilter, setPaymentTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -38,12 +40,16 @@ const PaymentTracking = () => {
     gcashPayments: 0,
     paymayaPayments: 0
   });
+  const [codOrders, setCodOrders] = useState([]);
+  const [codStats, setCodStats] = useState({
+    totalCOD: 0,
+    totalPaid: 0,
+    totalPending: 0,
+    totalOrders: 0
+  });
+  const [activeTab, setActiveTab] = useState("ewallet");
 
-  useEffect(() => {
-    fetchPayments();
-  }, []);
-
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -51,59 +57,22 @@ const PaymentTracking = () => {
       
       if (response.data && response.data.success) {
         setPayments(response.data.payments || []);
-        setStats(response.data.stats || stats);
+        setStats(s => response.data.stats || s);
+        setCodOrders(response.data.cod_orders || []);
+        setCodStats(cs => response.data.cod_stats || cs);
       }
     } catch (error) {
       console.error("Error fetching payments:", error);
+      console.error("Error response:", error.response?.data);
       setError("Failed to fetch payments. Please try again.");
-      
-      // Mock data for demonstration
-      const mockPayments = [
-        {
-          id: 1,
-          payment_id: 1,
-          reference_number: "PAY-20251009-GCAS-A1B2C3",
-          order_id: "ORD-20251009-X1Y2Z3",
-          customer_name: "Maria Santos",
-          amount: 1250.00,
-          payment_method: "gcash",
-          payment_status: "paid",
-          created_at: "2025-10-09 10:30:00"
-        },
-        {
-          id: 2,
-          payment_id: 2,
-          reference_number: "PAY-20251009-PAYM-B4C5D6",
-          order_id: "ORD-20251009-Y3Z4W5",
-          customer_name: "Juan Dela Cruz",
-          amount: 850.50,
-          payment_method: "paymaya",
-          payment_status: "paid",
-          created_at: "2025-10-09 11:45:00"
-        },
-        {
-          id: 3,
-          payment_id: 3,
-          reference_number: "PAY-20251009-GCAS-E7F8G9",
-          order_id: "ORD-20251009-Z6W7V8",
-          customer_name: "Anna Reyes",
-          amount: 2100.00,
-          payment_method: "gcash",
-          payment_status: "processing",
-          created_at: "2025-10-09 14:20:00"
-        }
-      ];
-      setPayments(mockPayments);
-      setStats({
-        totalEarnings: 4200.50,
-        pendingPayouts: 850.00,
-        gcashPayments: 3350.00,
-        paymayaPayments: 850.50
-      });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPayments();
+  }, [fetchPayments]);
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -111,6 +80,9 @@ const PaymentTracking = () => {
       case "processing": return "bg-blue-100 text-blue-800";
       case "pending": return "bg-yellow-100 text-yellow-800";
       case "failed": return "bg-red-100 text-red-800";
+      case "delivered": return "bg-green-100 text-green-800";
+      case "out_for_delivery": return "bg-blue-100 text-blue-800";
+      case "pending_delivery": return "bg-yellow-100 text-yellow-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
@@ -136,6 +108,20 @@ const PaymentTracking = () => {
     
     const matchesStatus = statusFilter === "all" || 
       payment.payment_status?.toLowerCase() === statusFilter.toLowerCase();
+    
+    return matchesSearch && matchesType && matchesStatus;
+  });
+
+  const filteredCodOrders = codOrders.filter(order => {
+    const matchesSearch = 
+      order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.order_id?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesType = paymentTypeFilter === "all" || 
+      order.payment_method?.toLowerCase() === paymentTypeFilter.toLowerCase();
+    
+    const matchesStatus = statusFilter === "all" || 
+      order.payment_status?.toLowerCase() === statusFilter.toLowerCase();
     
     return matchesSearch && matchesType && matchesStatus;
   });
@@ -185,12 +171,31 @@ const PaymentTracking = () => {
           Payment Tracking
         </h1>
         <p className="text-white/90 mt-2 text-lg">
-          Track all e-wallet payments from your customers
+          Track all payments and COD deliveries from your customers
         </p>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-[#f8f1ec] border-2 border-[#e5ded7]">
+          <TabsTrigger 
+            value="ewallet" 
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white"
+          >
+            E-Wallet Payments
+          </TabsTrigger>
+          <TabsTrigger 
+            value="cod" 
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white"
+          >
+            COD Payments
+          </TabsTrigger>
+        </TabsList>
+
+        {/* E-Wallet Tab */}
+        <TabsContent value="ewallet" className="space-y-6">
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-[#e5ded7] shadow-lg hover:shadow-xl transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -217,7 +222,7 @@ const PaymentTracking = () => {
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-yellow-600" />
+              ₱
               </div>
             </div>
           </CardContent>
@@ -420,6 +425,175 @@ const PaymentTracking = () => {
           </Table>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {/* COD Tracking Tab */}
+        <TabsContent value="cod" className="space-y-6">
+          {/* COD Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-[#e5ded7] shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total COD Amount</p>
+                    <p className="text-2xl font-bold text-[#5c3d28]">
+                      ₱{parseFloat(codStats.totalCOD).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#e5ded7] shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Paid COD</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      ₱{parseFloat(codStats.totalPaid).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <Check className="h-6 w-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#e5ded7] shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Pending COD</p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      ₱{parseFloat(codStats.totalPending).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                    <Calendar className="h-6 w-6 text-yellow-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#e5ded7] shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total COD Orders</p>
+                    <p className="text-2xl font-bold text-[#5c3d28]">
+                      {codStats.totalOrders}
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center">
+                    <Package className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* COD Filters and Search */}
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-3 h-5 w-5 text-[#a4785a]" />
+              <Input
+                placeholder="Search by order ID or customer..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2.5 border-2 border-[#d5bfae] rounded-lg focus:border-[#a4785a] focus:ring-2 focus:ring-[#a4785a]/20 transition-all"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={fetchPayments}
+                className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+
+          {/* COD Orders Table */}
+          <Card className="border-[#e5ded7] shadow-xl">
+            <CardHeader className="pb-4 border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+              <CardTitle className="text-[#5c3d28] text-xl">COD Payments</CardTitle>
+              <CardDescription className="text-[#7b5a3b]">
+                Track all Cash on Delivery orders
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Payment Method</TableHead>
+                    <TableHead>Payment Status</TableHead>
+                    <TableHead>Order Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCodOrders.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <EmptyState
+                          icon="📦"
+                          title="No Orders Found"
+                          description={searchTerm ? "No orders match your search criteria" : "You haven't received any orders yet"}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredCodOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.order_id}</TableCell>
+                        <TableCell>{order.customer_name}</TableCell>
+                        <TableCell className="font-semibold text-[#5c3d28]">
+                          ₱{parseFloat(order.amount).toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          {order.payment_method === 'cod' ? (
+                            <Badge className="bg-amber-500 text-white">COD</Badge>
+                          ) : (
+                            getPaymentMethodBadge(order.payment_method)
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(order.payment_status)} variant="outline">
+                            {order.payment_status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedPayment(order);
+                              setIsViewModalOpen(true);
+                            }}
+                            className="text-[#a4785a] hover:bg-[#f8f1ec] hover:text-[#5c3d28] transition-all duration-200"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* View Payment Modal */}
       {isViewModalOpen && selectedPayment && (
@@ -427,7 +601,9 @@ const PaymentTracking = () => {
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="sticky top-0 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-6 rounded-t-2xl">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-white">Payment Details</h2>
+                <h2 className="text-2xl font-bold text-white">
+                  {activeTab === "ewallet" ? "Payment Details" : "COD Order Details"}
+                </h2>
                 <button
                   onClick={() => setIsViewModalOpen(false)}
                   className="text-white hover:bg-white/20 rounded-full p-2 transition-all"
@@ -438,45 +614,106 @@ const PaymentTracking = () => {
             </div>
 
             <div className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1 col-span-2">
-                  <p className="text-sm text-gray-500 font-medium">Payment Reference</p>
-                  <p className="text-lg font-bold text-[#a4785a]">{selectedPayment.reference_number}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-500 font-medium">Order ID</p>
-                  <p className="text-lg font-semibold text-[#5c3d28]">{selectedPayment.order_id}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-500 font-medium">Customer</p>
-                  <p className="text-lg font-semibold text-[#5c3d28]">{selectedPayment.customer_name}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-500 font-medium">Payment Method</p>
-                  {getPaymentMethodBadge(selectedPayment.payment_method)}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-500 font-medium">Status</p>
-                  <Badge className={getStatusColor(selectedPayment.payment_status)}>
-                    {selectedPayment.payment_status}
-                  </Badge>
-                </div>
-              </div>
+              {activeTab === "ewallet" ? (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1 col-span-2">
+                      <p className="text-sm text-gray-500 font-medium">Payment Reference</p>
+                      <p className="text-lg font-bold text-[#a4785a]">
+                        {selectedPayment.reference_number || 'N/A - Payment not completed'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500 font-medium">Order ID</p>
+                      <p className="text-lg font-semibold text-[#5c3d28]">{selectedPayment.order_id}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500 font-medium">Customer</p>
+                      <p className="text-lg font-semibold text-[#5c3d28]">{selectedPayment.customer_name}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500 font-medium">Payment Method</p>
+                      {getPaymentMethodBadge(selectedPayment.payment_method)}
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500 font-medium">Status</p>
+                      <Badge className={getStatusColor(selectedPayment.payment_status)}>
+                        {selectedPayment.payment_status}
+                      </Badge>
+                    </div>
+                  </div>
 
-              <div className="border-t border-[#e5ded7] pt-4">
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-gray-500 font-medium">Amount Paid</p>
-                  <p className="text-3xl font-bold text-[#a4785a]">
-                    ₱{parseFloat(selectedPayment.amount).toFixed(2)}
-                  </p>
-                </div>
-                <div className="flex justify-between items-center mt-2">
-                  <p className="text-sm text-gray-500 font-medium">Date & Time</p>
-                  <p className="text-sm text-[#5c3d28]">
-                    {new Date(selectedPayment.created_at).toLocaleString()}
-                  </p>
-                </div>
-              </div>
+                  <div className="border-t border-[#e5ded7] pt-4">
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-gray-500 font-medium">Amount Paid</p>
+                      <p className="text-3xl font-bold text-[#a4785a]">
+                        ₱{parseFloat(selectedPayment.amount).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <p className="text-sm text-gray-500 font-medium">Payment Date & Time</p>
+                      <p className="text-sm text-[#5c3d28]">
+                        {new Date(selectedPayment.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1 col-span-2">
+                      <p className="text-sm text-gray-500 font-medium">Order ID</p>
+                      <p className="text-lg font-bold text-[#a4785a]">{selectedPayment.order_id}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500 font-medium">Customer</p>
+                      <p className="text-lg font-semibold text-[#5c3d28]">{selectedPayment.customer_name}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500 font-medium">Payment Method</p>
+                      {selectedPayment.payment_method === 'cod' ? (
+                        <Badge className="bg-amber-500 text-white text-base px-3 py-1">COD</Badge>
+                      ) : (
+                        getPaymentMethodBadge(selectedPayment.payment_method)
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500 font-medium">Payment Status</p>
+                      <Badge className={getStatusColor(selectedPayment.payment_status)}>
+                        {selectedPayment.payment_status}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500 font-medium">Order Status</p>
+                      <Badge className={getStatusColor(selectedPayment.order_status)} variant="outline">
+                        {selectedPayment.order_status}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500 font-medium">Order Date</p>
+                      <p className="text-lg font-semibold text-[#5c3d28]">
+                        {new Date(selectedPayment.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-[#e5ded7] pt-4">
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-gray-500 font-medium">Order Amount</p>
+                      <p className="text-3xl font-bold text-[#a4785a]">
+                        ₱{parseFloat(selectedPayment.amount).toFixed(2)}
+                      </p>
+                    </div>
+                    {selectedPayment.payment_method === 'cod' && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
+                        <p className="text-xs text-yellow-800">
+                          <strong>Note:</strong> This is a Cash on Delivery order. Payment will be collected upon delivery.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               <div className="flex gap-3 pt-4 border-t border-[#e5ded7]">
                 <Button

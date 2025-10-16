@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->string('paymongo_payment_method_id')->unique();
-            $table->string('type'); // card, gcash, grab_pay, paymaya
+            $table->string('type'); // card, gcash, paymaya
             $table->json('details'); // Store payment method details
             $table->json('billing'); // Store billing information
             $table->boolean('is_default')->default(false);

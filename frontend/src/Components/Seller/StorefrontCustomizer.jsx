@@ -31,6 +31,7 @@
     MapPin,
     Calendar,
     Users,
+    AlertCircle,
   } from "lucide-react";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import ErrorState from "../ui/ErrorState";
@@ -81,6 +82,7 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [authError, setAuthError] = useState(false);
+    const [discountCodes, setDiscountCodes] = useState([]);
     const [customization, setCustomization] = useState({
       primary_color: "#6366f1",
       secondary_color: "#f43f5e",
@@ -122,6 +124,26 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
     useEffect(() => {
       fetchStoreData();
     }, []);
+
+    // Fetch discount codes once store data (and seller ID) is available
+    useEffect(() => {
+      const fetchDiscounts = async () => {
+        try {
+          const sellerId = storeData?.seller?.sellerID;
+          if (!sellerId) return;
+          const response = await fetch(`http://localhost:8000/api/analytics/seller/${sellerId}`);
+          if (response.ok) {
+            const data = await response.json();
+            setDiscountCodes(Array.isArray(data?.discount_codes) ? data.discount_codes : []);
+          } else {
+            setDiscountCodes([]);
+          }
+        } catch {
+          setDiscountCodes([]);
+        }
+      };
+      fetchDiscounts();
+    }, [storeData?.seller?.sellerID]);
 
     // No need to fetch real products since we're using mock products for preview
     // useEffect(() => {
@@ -485,6 +507,7 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
                   customization={customization}
                   imagePreviews={imagePreviews}
                   setPreviewMode={setPreviewMode}
+                  discountCodes={discountCodes}
                 />
               ) : (
               <div className="text-center py-20">
@@ -1007,7 +1030,7 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
   };
 
   // Store Preview Component with StoreView Design
-  const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode }) => {
+  const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode, discountCodes = [] }) => {
     // Debug logging
     console.log("🔍 StorePreview - storeData:", storeData);
     console.log("🔍 StorePreview - logo_url:", storeData?.logo_url);
@@ -1402,6 +1425,40 @@ import { setupTestSellerAuth } from "../../utils/sellerAuthHelper";
                 </div>
               </div>
             </div>
+
+        {/* Seller Discounts Section */}
+        <div className="max-w-5xl mx-auto mt-6 z-10 relative">
+          <div
+            className="rounded-2xl shadow p-6"
+            style={{ backgroundColor: customization.background_color }}
+          >
+            <div 
+              className="w-full rounded-xl border p-4"
+              style={{ borderColor: customization.accent_color, backgroundColor: customization.background_color }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-base font-bold" style={{ color: customization.primary_color }}>Seller Discounts</span>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-auto pr-1">
+                {discountCodes && discountCodes.length > 0 ? (
+                  discountCodes.map((dc) => (
+                    <div key={dc.id} className="rounded-lg border px-3 py-2"
+                         style={{ borderColor: `${customization.accent_color}55` }}>
+                      <div className="text-sm font-semibold" style={{ color: customization.primary_color }}>
+                        {dc.code || dc.name || 'DISCOUNT'}
+                      </div>
+                      <div className="text-xs" style={{ color: customization.text_color }}>
+                        {(dc.type === 'percentage' || dc.type === 'percent') ? `${dc.value}% off` : `₱${Number(dc.value).toFixed(2)} off`}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm" style={{ color: customization.text_color }}>No discount codes yet.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Featured Products Section */}
         <div className="max-w-5xl mx-auto mt-16 mb-12">

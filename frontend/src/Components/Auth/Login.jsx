@@ -9,6 +9,7 @@ import {
   Mail,
 } from "lucide-react";
 import { useUser } from "../Context/UserContext";
+import { setToken } from "../../api";
 import api from "../../api";
 import "./Login.css";
 
@@ -18,6 +19,10 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [role, setRole] = useState("");
   const [error, setError] = useState("");
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [oauthRole, setOauthRole] = useState(null);
+  const [oauthProvider, setOauthProvider] = useState(null); // 'google' or 'facebook'
+  const [roleError, setRoleError] = useState("");
   const navigate = useNavigate();
   const { login } = useUser();
 
@@ -60,41 +65,125 @@ const Login = () => {
     }
   };
 
-  // 🔹 Handle Google Login Redirect
+// 🔹 Handle OAuth (Google/Facebook) Login Redirect
 useEffect(() => {
+  // Remove Facebook's #_=_ hash fragment if present
+  if (window.location.hash === '#_=_') {
+    window.history.replaceState(null, null, window.location.pathname + window.location.search);
+  }
+
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token");
+  const userId = params.get("user_id");
   const userType = params.get("user_type");
   const redirectTo = params.get("redirect_to");
+  const errorParam = params.get("error");
+  const errorMessage = params.get("message");
 
-  if (token) {
-    // For Google OAuth, we still need to handle the token from URL
-    // This is a temporary solution until Google OAuth is updated to use cookies
-    // Clear any existing localStorage to prevent conflicts with secure auth
-    localStorage.clear();
-    sessionStorage.clear();
-    localStorage.setItem("auth_token", token);
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  console.log("🔐 OAuth callback params:", { hasToken: !!token, userId, userType, redirectTo, error: errorParam, url: window.location.href });
 
-    // Check if there's a specific redirect path (e.g., for sellers without stores)
-    if (redirectTo) {
-      navigate(redirectTo);
-    } else if (userType === "admin") {
-      navigate("/admin");
-    } else if (userType === "seller") {
-      navigate("/seller");
-    } else {
-      navigate("/home");
-    }
+  // Handle OAuth errors
+  if (errorParam) {
+    setError(decodeURIComponent(errorMessage || 'OAuth login failed. Please try again.'));
+    // Clean URL
+    window.history.replaceState(null, null, window.location.pathname);
+    return;
   }
-  }, [navigate]);
+
+  if (token && userId) {
+    const fetchUserDataAndLogin = async () => {
+      try {
+        console.log("🔄 Starting OAuth login process...");
+        
+        // Clear any existing storage to prevent conflicts
+        sessionStorage.clear();
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_data");
+
+        console.log("🔑 Setting token:", token.substring(0, 20) + "...");
+        
+        // Store token in sessionStorage and set Authorization header
+        setToken(token);
+
+        console.log("📡 Fetching user profile...");
+        
+        // Fetch user profile data using the token
+        const response = await api.get('/auth/profile');
+        const userData = response.data;
+        
+        console.log("👤 User profile received:", userData);
+        
+        // Construct full profile picture URL if it exists
+        if (userData.profilePicture && !userData.profilePicture.startsWith('http')) {
+          userData.profilePicture = `http://localhost:8000/storage/${userData.profilePicture}`;
+        }
+
+        // Save user data to localStorage and context
+        localStorage.setItem('user_data', JSON.stringify(userData));
+        console.log('✅ OAuth login successful, user data saved to localStorage');
+
+        // Navigate to appropriate dashboard
+        // Use window.location for full page reload to ensure UserContext initializes
+        const targetPath = redirectTo || (userType === "admin" ? "/admin" : userType === "seller" ? "/seller" : "/home");
+        
+        console.log('🚀 Redirecting to:', targetPath);
+        
+        window.location.href = targetPath;
+      } catch (e) {
+        console.error("❌ Failed to process OAuth login:", e);
+        console.error("Error details:", e.response?.data || e.message);
+        setError(`Login failed: ${e.response?.data?.message || e.message}. Please try again.`);
+        // Clear token on error
+        setToken(null);
+        localStorage.clear();
+        sessionStorage.clear();
+      }
+    };
+
+    fetchUserDataAndLogin();
+  } else if (window.location.search && !token) {
+    // We were redirected back but without a token parameter
+    console.warn("⚠️ OAuth redirect received without token param.");
+  }
+}, [navigate]);
 
   // 🔹 Trigger Google OAuth
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:8000/api/auth/google";
+    setRoleError("");
+    setOauthRole(null);
+    setOauthProvider('google');
+    setIsRoleModalOpen(true);
+  };
+
+  // 🔹 Trigger Facebook OAuth
+  const handleFacebookLogin = () => {
+    setRoleError("");
+    setOauthRole(null);
+    setOauthProvider('facebook');
+    setIsRoleModalOpen(true);
+  };
+
+  const handleConfirmOAuthRole = () => {
+    if (!oauthRole) {
+      setRoleError(`Please select a role to continue with ${oauthProvider === 'google' ? 'Google' : 'Facebook'}.`);
+      return;
+    }
+    
+    const authUrl = oauthProvider === 'google' 
+      ? `http://localhost:8000/api/auth/google/redirect?role=${oauthRole}`
+      : `http://localhost:8000/api/auth/facebook/redirect?role=${oauthRole}`;
+    
+    window.location.href = authUrl;
+  };
+
+  const handleCancelOAuthRole = () => {
+    setIsRoleModalOpen(false);
+    setOauthProvider(null);
+    setOauthRole(null);
   };
 
   return (
+    <>
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-white font-sans">
       <div className="w-full max-w-sm sm:max-w-md md:max-w-lg bg-white rounded-xl shadow-2xl p-6 sm:p-8 md:p-12">
         <div className="flex flex-col items-center gap-2 pb-6">
@@ -239,6 +328,7 @@ useEffect(() => {
 
             <button
               type="button"
+              onClick={handleFacebookLogin}
               className="w-full bg-white text-[#5c3d28] font-medium py-3 rounded-md text-lg shadow-md flex items-center justify-center gap-3 transition-all hover:bg-gray-50"
             >
               <svg
@@ -267,6 +357,59 @@ useEffect(() => {
         </form>
       </div>
     </div>
+
+    {/* Role selection modal for OAuth (Google/Facebook) */}
+    {isRoleModalOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white w-11/12 max-w-md rounded-xl shadow-2xl p-6">
+          <div className="text-xl font-semibold text-[#5c3d28] mb-4 text-center">
+            Continue with {oauthProvider === 'google' ? 'Google' : 'Facebook'}
+          </div>
+          <div className="text-sm text-[#7b5a3b] mb-4 text-center">Choose how you want to use CraftConnect</div>
+
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <button
+              type="button"
+              className={`flex flex-col items-center gap-2 py-3 rounded-md border transition-all ${oauthRole === 'customer' ? 'bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white' : 'bg-white text-[#5c3d28] border-[#d5bfae]'}`}
+              onClick={() => setOauthRole('customer')}
+            >
+              <ShoppingBag className="h-5 w-5" />
+              <span className="text-sm font-medium">Customer</span>
+            </button>
+            <button
+              type="button"
+              className={`flex flex-col items-center gap-2 py-3 rounded-md border transition-all ${oauthRole === 'seller' ? 'bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white' : 'bg-white text-[#5c3d28] border-[#d5bfae]'}`}
+              onClick={() => setOauthRole('seller')}
+            >
+              <Store className="h-5 w-5" />
+              <span className="text-sm font-medium">Seller</span>
+            </button>
+          </div>
+
+          {roleError && (
+            <div className="text-red-500 text-sm text-center mb-3">{roleError}</div>
+          )}
+
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              className="px-4 py-2 rounded-md text-[#5c3d28] bg-gray-100 hover:bg-gray-200"
+              onClick={handleCancelOAuthRole}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 rounded-md text-white bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34]"
+              onClick={handleConfirmOAuthRole}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 

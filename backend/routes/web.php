@@ -24,14 +24,17 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', function () {
         return response()->json([
             'message' => 'Please use the frontend login page',
-            'redirect_url' => 'http://localhost:3000/login'
+            'redirect_url' => 'http://localhost:5173/login'
         ], 200);
     })->name('login');
     
-    // Google OAuth redirect
-    Route::get('/api/auth/google', function () {
-        return redirect('http://localhost:3000/login');
-    });
+    // Google OAuth redirect and callback
+    Route::get('/api/auth/google', [\App\Http\Controllers\Auth\AuthController::class, 'redirectToGoogle']);
+    Route::get('/api/auth/google/callback', [\App\Http\Controllers\Auth\AuthController::class, 'handleGoogleCallback']);
+    
+    // Facebook OAuth redirect and callback
+    Route::get('/api/auth/facebook', [\App\Http\Controllers\Auth\AuthController::class, 'redirectToFacebook']);
+    Route::get('/api/auth/facebook/callback', [\App\Http\Controllers\Auth\AuthController::class, 'handleFacebookCallback']);
 
     // Registration Routes
     // Route::get('/register', function () {
@@ -125,3 +128,8 @@ Route::post('/product', [ProductController::class, 'store'])->name('product.stor
 Route::get('/product/{product}/edit', [ProductController::class, 'edit'])->name('product.edit');
 Route::put('/product/{product}/update', [ProductController::class, 'update'])->name('product.update');
 Route::delete('/product/{product}/delete', [ProductController::class, 'destroy'])->name('product.destroy');
+
+// Debug routes (remove in production)
+if (app()->environment('local')) {
+    require __DIR__.'/debug.php';
+}

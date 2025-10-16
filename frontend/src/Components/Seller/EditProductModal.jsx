@@ -198,6 +198,29 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
     return 'Update Product';
   };
 
+  // Ensure required static categories are always present alongside API categories
+  const staticCategoryNames = [
+    'Miniatures & Souvenirs',
+    'Rubber Stamp Engraving',
+    'Traditional Accessories',
+    'Statuary & Sculpture',
+    'Basketry & Weaving',
+  ];
+  const normalizedCategories = (categories || []).map((c) => ({
+    id: c.id || c.category_id || (c.name || ''),
+    name: c.name || c.category_name || '',
+  })).filter((c) => !!c.name);
+  const mergedCategories = (() => {
+    const names = new Set(normalizedCategories.map((c) => c.name));
+    const merged = [...normalizedCategories];
+    staticCategoryNames.forEach((name) => {
+      if (!names.has(name)) {
+        merged.push({ id: name, name });
+      }
+    });
+    return merged;
+  })();
+
   const handleVideoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -443,13 +466,13 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                       required
                     >
                       <option value="">Choose a category...</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
+                      {mergedCategories.map((category) => (
+                        <option key={category.id} value={category.name}>
                           {category.name}
                         </option>
                       ))}
                     </select>
-                    <p className="text-xs text-[#7b5a3b] mt-2">🎨 {categories.length > 0 ? `${categories.length} categories available` : 'Loading categories...'}</p>
+                    <p className="text-xs text-[#7b5a3b] mt-2"> {mergedCategories.length > 0 ? `${mergedCategories.length} categories available` : 'Loading categories...'}</p>
                   </div>
 
                   <div>

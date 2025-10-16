@@ -24,6 +24,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Work_and_EventsController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\AfterSaleController;
+use App\Http\Controllers\Social\FacebookController;
 
 // Public Routes
 Route::middleware([])->group(function () {
@@ -476,6 +477,27 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', [PaymentMethodController::class, 'destroy']);
         Route::post('/{id}/set-default', [PaymentMethodController::class, 'setDefault']);
     });
+
+    // Facebook & Google Authentication (Login/Register)
+    Route::prefix('auth')->group(function () {
+        Route::get('/facebook/redirect', [AuthController::class, 'redirectToFacebook'])->withoutMiddleware(['auth:sanctum']);
+        Route::get('/facebook/callback', [AuthController::class, 'handleFacebookCallback'])->withoutMiddleware(['auth:sanctum']);
+        Route::get('/google/redirect', [AuthController::class, 'redirectToGoogle'])->withoutMiddleware(['auth:sanctum']);
+        Route::get('/google/callback', [AuthController::class, 'handleGoogleCallback'])->withoutMiddleware(['auth:sanctum']);
+    });
+
+    // Social: Facebook integration
+    Route::prefix('social/facebook')->group(function () {
+        Route::get('/status', [FacebookController::class, 'status']);
+        Route::get('/redirect', [FacebookController::class, 'redirect']);
+        Route::get('/callback', [FacebookController::class, 'callback'])->withoutMiddleware(['auth:sanctum']);
+        Route::get('/pages', [FacebookController::class, 'pages']);
+        Route::get('/debug-permissions', [FacebookController::class, 'debugPermissions']);
+        Route::post('/select-page', [FacebookController::class, 'selectPage']);
+        Route::post('/disconnect', [FacebookController::class, 'disconnect']);
+        Route::post('/post', [FacebookController::class, 'post']);
+        Route::post('/instagram-post', [FacebookController::class, 'postToInstagram']);
+    });
     
     // Chat routes
     // Route::prefix('chat')->group(function () {
@@ -486,10 +508,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // });
     
     // Product management routes (for sellers with verified stores)
-    Route::middleware(['role:seller', 'verified.store'])->group(function () {
+    Route::middleware(['auth:sanctum'])->group(function () {
         Route::apiResource('products', ProductController::class)->except(['index', 'show']);
         Route::get('/seller/products', [ProductController::class, 'sellerProducts']);
-        Route::get('/seller/payments', [SellerController::class, 'getPayments']);
+        Route::get('/seller/payments', [\App\Http\Controllers\SellerControllerMain::class, 'getPayments']);
     });
     
     // Admin routes
@@ -690,6 +712,20 @@ Route::get('/analytics/seller/{seller_id}', function($seller_id) {
             'best_sellers' => $bestSellers,
             'low_performers' => $lowPerformers,
             'discount_stats' => $discountStats,
+            'discount_codes' => $discountCodes->map(function($code) {
+                return [
+                    'id' => $code->id,
+                    'code' => $code->code ?? $code->code_name ?? ($code->name ?? 'CODE'),
+                    'name' => $code->name ?? $code->code_name ?? null,
+                    'type' => $code->type ?? ($code->is_percentage ? 'percent' : 'amount'),
+                    'value' => (float) ($code->value ?? 0),
+                    'usage_limit' => $code->usage_limit ?? null,
+                    'times_used' => $code->times_used ?? 0,
+                    'expires_at' => $code->expires_at ? $code->expires_at->toIso8601String() : null,
+                    'active' => (!isset($code->expires_at) || ($code->expires_at && $code->expires_at->isFuture())) 
+                        && (!isset($code->usage_limit) || ($code->usage_limit && $code->times_used < $code->usage_limit)),
+                ];
+            })->values(),
             'order_metrics' => $orderStatusMetrics,
             'peak_periods' => $peakPeriods
         ]);

@@ -378,52 +378,260 @@ public function getSellers()
             'message' => 'Logged out successfully'
         ]);
     }
-    public function redirectToGoogle()
+    public function redirectToGoogle(Request $request)
     {
-        return Socialite::driver('google')->stateless()->redirect();
+        // Capture desired role from query (?role=seller|customer) and pass via OAuth state
+        $selectedRole = $request->query('role');
+        $statePayload = base64_encode(json_encode([
+            'role' => in_array($selectedRole, ['seller', 'customer']) ? $selectedRole : null,
+            'purpose' => 'login_register' // Different from social_connect
+        ]));
+
+        return Socialite::driver('google')
+            ->stateless()
+            ->with([
+                'state' => $statePayload,
+                // Force Google to show the account chooser every time
+                'prompt' => 'select_account'
+            ])
+            ->redirect();
     }
 
-    public function handleGoogleCallback()
+    public function handleGoogleCallback(Request $request)
     {
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
     
             $user = User::where('userEmail', $googleUser->getEmail())->first();
     
+            // Extract selected role and purpose from OAuth state (if provided)
+            $stateRole = null;
+            $purpose = 'login_register';
+            $stateRaw = $request->get('state');
+            if ($stateRaw) {
+                $decoded = json_decode(base64_decode($stateRaw), true);
+                if (is_array($decoded)) {
+                    if (isset($decoded['role']) && in_array($decoded['role'], ['seller', 'customer'])) {
+                        $stateRole = $decoded['role'];
+                    }
+                    if (isset($decoded['purpose'])) {
+                        $purpose = $decoded['purpose'];
+                    }
+                }
+            }
+
             if (!$user) {
+                $newUserRole = $stateRole ?: 'customer';
                 $user = User::create([
                     'userName'      => $googleUser->getName(),
                     'userEmail'     => $googleUser->getEmail(),
                     'userPassword'  => bcrypt(Str::random(16)),
-                    'role'          => 'customer',
+                    'role'          => $newUserRole,
                 ]);
+
+                // Create role relationship for new users
+                if ($newUserRole === 'seller') {
+                    Seller::create(['user_id' => $user->userID]);
+                } else {
+                    Customer::create(['user_id' => $user->userID]);
+                }
+            }
+
+            // Link Google account to user (for both new and existing users)
+            if ($purpose === 'login_register') {
+                \App\Models\SocialAccount::updateOrCreate(
+                    ['user_id' => $user->userID, 'provider' => 'google'],
+                    [
+                        'provider_user_id' => (string) $googleUser->getId(),
+                        'access_token' => $googleUser->token,
+                    ]
+                );
             }
     
             $token = $user->createToken('auth_token')->plainTextToken;
     
-            // Check if user is a seller and has a store
-            $redirectTo = null;
+            // Determine the final destination after login
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            $finalPath = '/home'; // Default for customers
+            
             if ($user->role === 'seller') {
                 $seller = Seller::where('user_id', $user->userID)->first();
                 if (!$seller || !$seller->store) {
-                    $redirectTo = '/create-store';
+                    $finalPath = '/create-store';
+                } else {
+                    $finalPath = '/seller';
                 }
+            } elseif ($user->role === 'administrator') {
+                $finalPath = '/admin';
             }
     
-            // Determine user type for frontend routing
-            $userType = $user->role === 'administrator'
-                ? 'admin'
-                : $user->role;
-    
-            // Build redirect URL with parameters
-            $redirectUrl = "http://localhost:5173/login?token={$token}&user_type={$userType}";
-            if ($redirectTo) {
-                $redirectUrl .= "&redirect_to={$redirectTo}";
-            }
+            // IMPORTANT: Redirect to /login so Login.jsx can process the OAuth callback
+            $redirectUrl = "{$frontendUrl}/login?token={$token}&user_id={$user->userID}&user_type={$user->role}&redirect_to=" . urlencode($finalPath);
     
             return redirect($redirectUrl);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function redirectToFacebook(Request $request)
+    {
+        // Capture desired role from query (?role=seller|customer) and pass via OAuth state
+        $selectedRole = $request->query('role');
+        $statePayload = base64_encode(json_encode([
+            'role' => in_array($selectedRole, ['seller', 'customer']) ? $selectedRole : null,
+            'purpose' => 'login_register' // Different from social_connect
+        ]));
+
+        return Socialite::driver('facebook')
+            ->stateless()
+            ->scopes(['email', 'public_profile']) // Explicitly request email and public profile
+            ->with([
+                'state' => $statePayload,
+            ])
+            ->redirect();
+    }
+
+    public function handleFacebookCallback(Request $request)
+    {
+        try {
+            Log::info('Facebook OAuth callback started', [
+                'has_code' => $request->has('code'),
+                'has_state' => $request->has('state'),
+                'has_error' => $request->has('error'),
+                'session_id' => session()->getId(),
+                'fb_client_id' => config('services.facebook.client_id'),
+                'fb_redirect' => config('services.facebook.redirect')
+            ]);
+
+            // Check for errors from Facebook
+            if ($request->has('error')) {
+                Log::error('Facebook returned error', [
+                    'error' => $request->get('error'),
+                    'error_description' => $request->get('error_description')
+                ]);
+                return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?error=facebook&message=' . urlencode($request->get('error_description', 'Facebook authentication failed')));
+            }
+
+            // Get the Facebook user - using stateless to avoid session issues
+            $facebookUser = Socialite::driver('facebook')
+                ->fields(['name', 'email', 'id'])
+                ->stateless()
+                ->user();
+            
+            Log::info('Facebook user retrieved', [
+                'has_email' => !empty($facebookUser->getEmail()),
+                'user_id' => $facebookUser->getId()
+            ]);
+            
+            // Check if email is available
+            if (!$facebookUser->getEmail()) {
+                Log::warning('Facebook did not provide email');
+                return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?error=no_email&message=' . urlencode('Facebook did not provide your email. Please ensure your Facebook account has a verified email address.'));
+            }
+    
+            $user = User::where('userEmail', $facebookUser->getEmail())->first();
+    
+            // Extract selected role and purpose from OAuth state (if provided)
+            $stateRole = null;
+            $purpose = 'login_register';
+            $stateRaw = $request->get('state');
+            if ($stateRaw) {
+                $decoded = json_decode(base64_decode($stateRaw), true);
+                if (is_array($decoded)) {
+                    if (isset($decoded['role']) && in_array($decoded['role'], ['seller', 'customer'])) {
+                        $stateRole = $decoded['role'];
+                    }
+                    if (isset($decoded['purpose'])) {
+                        $purpose = $decoded['purpose'];
+                    }
+                }
+            }
+
+            if (!$user) {
+                $newUserRole = $stateRole ?: 'customer';
+                $user = User::create([
+                    'userName'      => $facebookUser->getName(),
+                    'userEmail'     => $facebookUser->getEmail(),
+                    'userPassword'  => bcrypt(Str::random(16)),
+                    'role'          => $newUserRole,
+                    'is_verified'   => true,  // Auto-verify for OAuth users
+                ]);
+
+                Log::info('New user created via Facebook', [
+                    'user_id' => $user->userID,
+                    'role' => $newUserRole,
+                    'email' => $facebookUser->getEmail()
+                ]);
+
+                // Create role relationship for new users
+                if ($newUserRole === 'seller') {
+                    Seller::create(['user_id' => $user->userID]);
+                } else {
+                    Customer::create(['user_id' => $user->userID]);
+                }
+            }
+            
+            // Also ensure existing users are verified
+            if (!$user->is_verified) {
+                $user->is_verified = true;
+                $user->save();
+                Log::info('Verified existing user via Facebook', ['user_id' => $user->userID]);
+            }
+
+            // Link Facebook account to user (for both new and existing users)
+            if ($purpose === 'login_register') {
+                \App\Models\SocialAccount::updateOrCreate(
+                    ['user_id' => $user->userID, 'provider' => 'facebook'],
+                    [
+                        'provider_user_id' => (string) $facebookUser->getId(),
+                        'access_token' => $facebookUser->token,
+                    ]
+                );
+            }
+    
+            $token = $user->createToken('auth_token')->plainTextToken;
+            
+            Log::info('Token generated for Facebook user', [
+                'user_id' => $user->userID,
+                'token_length' => strlen($token),
+                'user_role' => $user->role,
+                'is_verified' => $user->is_verified
+            ]);
+    
+            // Determine the final destination after login
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            $finalPath = '/home'; // Default for customers
+            
+            if ($user->role === 'seller') {
+                $seller = Seller::where('user_id', $user->userID)->first();
+                if (!$seller || !$seller->store) {
+                    $finalPath = '/create-store';
+                } else {
+                    $finalPath = '/seller';
+                }
+            } elseif ($user->role === 'administrator') {
+                $finalPath = '/admin';
+            }
+    
+            // IMPORTANT: Redirect to /login so Login.jsx can process the OAuth callback
+            // Login.jsx will then redirect to the final destination
+            $redirectUrl = "{$frontendUrl}/login?token={$token}&user_id={$user->userID}&user_type={$user->role}&redirect_to=" . urlencode($finalPath);
+            
+            Log::info('Facebook login successful - Redirecting to /login for processing', [
+                'redirect_url' => substr($redirectUrl, 0, 100) . '...',
+                'user_id' => $user->userID,
+                'final_destination' => $finalPath
+            ]);
+    
+            return redirect($redirectUrl);
+        } catch (Exception $e) {
+            Log::error('Facebook OAuth callback error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?error=facebook_error&message=' . urlencode('Failed to login with Facebook: ' . $e->getMessage()));
         }
     }
     
