@@ -46,6 +46,12 @@ return [
         'client_secret' => env('FB_CLIENT_SECRET'),
         'redirect' => env('FB_REDIRECT_URI', 'http://localhost:8000/api/auth/facebook/callback'),
     ],
+
+    'facebook_posting' => [
+        'client_id' => env('FB_POSTING_CLIENT_ID'),
+        'client_secret' => env('FB_POSTING_CLIENT_SECRET'),
+        'redirect' => env('FB_POSTING_REDIRECT_URI', 'http://localhost:8000/api/social/facebook/callback'),
+    ],
     
     'paymongo' => [
         'secret_key' => env('PAYMONGO_SECRET_KEY'),

@@ -116,10 +116,11 @@ class FacebookController extends Controller
 
         try {
             // Exchange code for access token - MUST use the exact same redirect_uri as the initial request
-            $redirectUri = 'http://localhost:8000/api/social/facebook/callback';
+            // Use POSTING app credentials (NOT auth credentials)
+            $redirectUri = config('services.facebook_posting.redirect');
             $tokenResponse = Http::timeout(30)->asForm()->get(self::GRAPH_BASE . '/oauth/access_token', [
-                'client_id' => config('services.facebook.client_id'),
-                'client_secret' => config('services.facebook.client_secret'),
+                'client_id' => config('services.facebook_posting.client_id'),
+                'client_secret' => config('services.facebook_posting.client_secret'),
                 'redirect_uri' => $redirectUri,
                 'code' => $code,
             ]);
@@ -148,11 +149,12 @@ class FacebookController extends Controller
             $userData = $userResponse->json();
 
             // Try to exchange for long-lived token (optional, don't fail if it times out)
+            // Use POSTING app credentials (NOT auth credentials)
             try {
                 $exchange = Http::timeout(10)->asForm()->get(self::GRAPH_BASE . '/oauth/access_token', [
                     'grant_type' => 'fb_exchange_token',
-                    'client_id' => config('services.facebook.client_id'),
-                    'client_secret' => config('services.facebook.client_secret'),
+                    'client_id' => config('services.facebook_posting.client_id'),
+                    'client_secret' => config('services.facebook_posting.client_secret'),
                     'fb_exchange_token' => $accessToken,
                 ]);
                 
@@ -226,6 +228,7 @@ class FacebookController extends Controller
             'page' => $account ? [
                 'id' => $account->page_id,
                 'name' => $account->page_name,
+                'url' => $account->page_id ? 'https://www.facebook.com/' . $account->page_id : null,
             ] : null,
         ]);
     }
@@ -419,6 +422,7 @@ class FacebookController extends Controller
         return response()->json(['success' => true, 'page' => [
             'id' => $account->page_id,
             'name' => $account->page_name,
+            'url' => 'https://www.facebook.com/' . $account->page_id, // Facebook page URL
         ]]);
     }
 

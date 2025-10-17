@@ -38,6 +38,7 @@
             const [error, setError] = useState("");
             const [success, setSuccess] = useState("");
             const [postToInstagram, setPostToInstagram] = useState(false);
+            const [activeTab, setActiveTab] = useState("accounts");
 
             const fetchStatus = async () => {
               try {
@@ -57,8 +58,62 @@
 
             useEffect(() => {
               fetchStatus();
+              
               // Handle OAuth callback parameters
               const params = new URLSearchParams(window.location.search);
+              
+              // Handle tab parameter
+              const tabParam = params.get("tab");
+              if (tabParam === "posts") {
+                setActiveTab("posts");
+              }
+              
+              // Handle platform parameter
+              const platformParam = params.get("platform");
+              if (platformParam === "instagram") {
+                setPostToInstagram(true);
+              }
+              
+              // Handle pending post from product share
+              const pendingPost = sessionStorage.getItem('pendingPost');
+              if (pendingPost) {
+                try {
+                  const postData = JSON.parse(pendingPost);
+                  
+                  // Set message and link
+                  setMessage(postData.message || "");
+                  setLink(postData.link || "");
+                  
+                  // Set platform
+                  if (postData.platform === "instagram") {
+                    setPostToInstagram(true);
+                  }
+                  
+                  // Convert base64 image to File object
+                  if (postData.imageData) {
+                    fetch(postData.imageData)
+                      .then(res => res.blob())
+                      .then(blob => {
+                        const file = new File([blob], `${postData.productName || 'product'}-preview.png`, { type: 'image/png' });
+                        setSelectedImage(file);
+                        setImagePreview(postData.imageData);
+                      })
+                      .catch(err => console.error('Error loading preview image:', err));
+                  }
+                  
+                  // Clear pending post from storage
+                  sessionStorage.removeItem('pendingPost');
+                  
+                  // Switch to posts tab
+                  setActiveTab("posts");
+                  
+                  // Show success message
+                  setSuccess(`Product preview loaded! Review and click "Post to ${postData.platform === 'instagram' ? 'Instagram' : 'Facebook'}" when ready.`);
+                  
+                } catch (error) {
+                  console.error('Error loading pending post:', error);
+                }
+              }
               
               // Handle successful connection
               if (params.get("connected") === "facebook") {
@@ -281,7 +336,7 @@
                   </div>
                 </div>
 
-                <Tabs defaultValue="accounts" className="w-full">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="accounts">Connected Accounts</TabsTrigger>
                     <TabsTrigger value="posts">Create Posts</TabsTrigger>
@@ -348,7 +403,21 @@
                                 <span className="text-gray-500 font-medium">Not Connected</span>
                               )}
                               {fbStatus.page?.name && (
-                                <div className="text-xs text-gray-600 mt-1">Page: {fbStatus.page.name}</div>
+                                <div className="text-xs text-gray-600 mt-1">
+                                  Page: 
+                                  {fbStatus.page.url ? (
+                                    <a 
+                                      href={fbStatus.page.url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 underline ml-1"
+                                    >
+                                      {fbStatus.page.name}
+                                    </a>
+                                  ) : (
+                                    <span className="ml-1">{fbStatus.page.name}</span>
+                                  )}
+                                </div>
                               )}
                             </div>
                             {!fbStatus.connected ? (
@@ -371,14 +440,23 @@
                               <div className="text-sm font-medium">Select a Page</div>
                               <div className="flex flex-wrap gap-2">
                                 {pages.map((p) => (
-                                  <Button
-                                    key={p.id}
-                                    size="sm"
-                                    variant={fbStatus.page?.id === p.id ? "default" : "outline"}
-                                    onClick={() => selectPage(p.id)}
-                                  >
-                                    {p.name}
-                                  </Button>
+                                  <div key={p.id} className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant={fbStatus.page?.id === p.id ? "default" : "outline"}
+                                      onClick={() => selectPage(p.id)}
+                                    >
+                                      {p.name}
+                                    </Button>
+                                    <a
+                                      href={`https://www.facebook.com/${p.id}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 text-sm underline"
+                                    >
+                                      View Page
+                                    </a>
+                                  </div>
                                 ))}
                               </div>
                             </div>
@@ -473,6 +551,18 @@
                           />
                         </div>
 
+                        <div className="space-y-2">
+                          <Label htmlFor="post-link">Link (Optional)</Label>
+                          <Input
+                            id="post-link"
+                            placeholder="https://example.com/your-product"
+                            value={link}
+                            onChange={(e) => setLink(e.target.value)}
+                            className="w-full"
+                          />
+                          <p className="text-xs text-gray-500">Add a link to your product or website that will be included in the post</p>
+                        </div>
+
                         <div className="flex items-center space-x-4">
                           <div className="relative">
                             <input
@@ -491,10 +581,6 @@
                               Add Image
                             </Button>
                           </div>
-                          <Button variant="outline" className="flex items-center">
-                            <Link className="h-4 w-4 mr-2" />
-                            Add Link
-                          </Button>
                         </div>
 
                         {/* Image Preview */}
@@ -571,18 +657,10 @@
                           </div>
                         </div>
                       </CardContent>
-                      <CardFooter className="flex justify-between">
-                        <div className="flex-1" />
-                        <div className="flex items-center gap-3">
-                          <Input
-                            placeholder="Optional link (https://...)"
-                            value={link}
-                            onChange={(e) => setLink(e.target.value)}
-                          />
-                          <Button onClick={createPost} disabled={!fbStatus.connected || !fbStatus.page || posting || (postToInstagram && !selectedImage)}>
-                            {posting ? "Posting..." : `Post to ${postToInstagram ? 'Instagram' : 'Facebook'}`}
-                          </Button>
-                        </div>
+                      <CardFooter className="flex justify-end">
+                        <Button onClick={createPost} disabled={!fbStatus.connected || !fbStatus.page || posting || (postToInstagram && !selectedImage)}>
+                          {posting ? "Posting..." : `Post to ${postToInstagram ? 'Instagram' : 'Facebook'}`}
+                        </Button>
                       </CardFooter>
                     </Card>
                   </TabsContent>

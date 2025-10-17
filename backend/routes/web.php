@@ -18,6 +18,12 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
+// Image serving route with CORS headers
+Route::options('/images/{path}', [App\Http\Controllers\ImageController::class, 'handleOptions']);
+Route::get('/images/{path}', [App\Http\Controllers\ImageController::class, 'serve'])
+    ->where('path', '.*')
+    ->name('images.serve');
+
 // Authentication Routes
 Route::middleware('guest')->group(function () {
     // Login Routes - Return JSON instead of redirect to avoid CORS issues

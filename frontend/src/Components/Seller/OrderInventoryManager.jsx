@@ -12,7 +12,7 @@ import { Button } from "../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
-import { Search, Filter, Plus, Download, RefreshCw, Edit, Trash2, Image as ImageIcon, ShoppingBag } from "lucide-react";
+import { Search, Filter, Plus, Download, RefreshCw, Edit, Trash2, Image as ImageIcon, ShoppingBag, Share2 } from "lucide-react";
 import { AddProductModal } from "./AddProductModal";
 import EditProductModal from "./EditProductModal";
 import { useOrdersData } from "../../hooks/useOrdersData";
@@ -73,6 +73,7 @@ const OrdersTab = () => {
     setOrderToUpdate(order);
     setIsStatusChangeOpen(true);
   };
+
 
   const updateOrderStatus = async (newStatus) => {
     try {
@@ -441,6 +442,7 @@ const OrdersTab = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };
@@ -465,6 +467,9 @@ const InventoryTab = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
+  const [isViewProductOpen, setIsViewProductOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [productToShare, setProductToShare] = useState(null);
 
   // Fetch products from backend
   useEffect(() => {
@@ -606,6 +611,511 @@ const InventoryTab = () => {
   const handleDeleteClick = (product) => {
     setCurrentProduct(product);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleViewProduct = (product) => {
+    setCurrentProduct(product);
+    setIsViewProductOpen(true);
+  };
+
+  const handleShareProduct = (product) => {
+    setProductToShare(product);
+    setIsShareModalOpen(true);
+  };
+
+  const copyProductLink = () => {
+    if (productToShare) {
+      // Use product_id for the customer-facing product detail page
+      const productId = productToShare.product_id || productToShare.id;
+      const productLink = `${window.location.origin}/product/${productId}`;
+      navigator.clipboard.writeText(productLink).then(() => {
+        alert('Product link copied to clipboard!');
+      }).catch(() => {
+        alert('Failed to copy link. Please try again.');
+      });
+    }
+  };
+
+  const handlePostToSocialMedia = async (platform) => {
+    if (!productToShare) return;
+
+    try {
+      // Generate preview image first
+      const previewCanvas = await generateProductPreviewCanvas();
+      
+      if (!previewCanvas) {
+        alert('Failed to generate preview image. Please try again.');
+        return;
+      }
+
+      // Convert canvas to blob
+      const previewBlob = await new Promise((resolve) => {
+        previewCanvas.toBlob(resolve, 'image/png');
+      });
+
+      // Prepare post data
+      const productId = productToShare.product_id || productToShare.id;
+      const productLink = `${window.location.origin}/product/${productId}`;
+      const message = `Check out this handcrafted product: ${productToShare.productName}\n\n${productToShare.productDescription || 'Handmade with love and care!'}\n\nCategory: ${productToShare.category}`;
+
+      // Store data in sessionStorage to pass to SocialMedia page
+      const postData = {
+        message: message,
+        link: productLink,
+        platform: platform,
+        productName: productToShare.productName,
+      };
+
+      // Store preview image as base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        postData.imageData = reader.result;
+        sessionStorage.setItem('pendingPost', JSON.stringify(postData));
+        
+        // Navigate to Social Media page
+        window.location.href = '/seller/social-media?tab=posts&platform=' + platform;
+      };
+      reader.readAsDataURL(previewBlob);
+
+    } catch (error) {
+      console.error('Error preparing post:', error);
+      alert('Failed to prepare post. Please try again.');
+    }
+  };
+
+  const generateProductPreviewCanvas = async () => {
+    if (!productToShare) return null;
+
+    try {
+      // Fetch seller and store information
+      const [sellerResponse, storeResponse] = await Promise.all([
+        api.get('/sellers/profile').catch(() => ({ data: null })),
+        api.get('/store/me').catch(() => ({ data: null }))
+      ]);
+
+      const sellerData = sellerResponse.data;
+      const storeData = storeResponse.data;
+
+      // Create a canvas element for the preview
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Add roundRect method to canvas context (not available by default)
+      if (!ctx.roundRect) {
+        ctx.roundRect = function(x, y, width, height, radius) {
+          this.beginPath();
+          this.moveTo(x + radius, y);
+          this.lineTo(x + width - radius, y);
+          this.quadraticCurveTo(x + width, y, x + width, y + radius);
+          this.lineTo(x + width, y + height - radius);
+          this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+          this.lineTo(x + radius, y + height);
+          this.quadraticCurveTo(x, y + height, x, y + height - radius);
+          this.lineTo(x, y + radius);
+          this.quadraticCurveTo(x, y, x + radius, y);
+          this.closePath();
+        };
+      }
+      
+      // Set canvas size (Instagram post size: 1080x1080)
+      canvas.width = 1080;
+      canvas.height = 1080;
+      
+      // Professional background gradient
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, '#f8f6f0');
+      gradient.addColorStop(0.3, '#e8e2d5');
+      gradient.addColorStop(1, '#d4c4a8');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Add subtle pattern overlay
+      ctx.fillStyle = 'rgba(164, 120, 90, 0.05)';
+      for (let i = 0; i < canvas.width; i += 40) {
+        for (let j = 0; j < canvas.height; j += 40) {
+          ctx.fillRect(i, j, 1, 1);
+        }
+      }
+      
+      // Load store logo if available
+      let storeLogo = null;
+      if (storeData?.logo_url) {
+        try {
+          storeLogo = await loadImage(storeData.logo_url);
+        } catch (error) {
+          console.warn('Could not load store logo:', error);
+        }
+      }
+      
+      // Add store logo at top
+      if (storeLogo) {
+        const logoSize = 80;
+        const logoX = 50;
+        const logoY = 50;
+        ctx.drawImage(storeLogo, logoX, logoY, logoSize, logoSize);
+      }
+      
+      // Add product image if available
+      if (productToShare.productImage) {
+        try {
+          let imageUrl = productToShare.productImage;
+          if (imageUrl.includes('/storage/')) {
+            imageUrl = imageUrl.replace('/storage/', '/images/');
+          }
+          
+          const productImg = await loadImage(imageUrl);
+          
+          const imageSize = 500;
+          const x = (canvas.width - imageSize) / 2;
+          const y = 180;
+          
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+          ctx.shadowBlur = 20;
+          ctx.shadowOffsetX = 10;
+          ctx.shadowOffsetY = 10;
+          
+          ctx.fillStyle = '#ffffff';
+          ctx.roundRect(x - 20, y - 20, imageSize + 40, imageSize + 40, 20);
+          ctx.fill();
+          
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+          
+          ctx.drawImage(productImg, x, y, imageSize, imageSize);
+          
+        } catch (error) {
+          console.warn('Could not load image:', error);
+          
+          const placeholderSize = 500;
+          const x = (canvas.width - placeholderSize) / 2;
+          const y = 180;
+          
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.roundRect(x, y, placeholderSize, placeholderSize, 20);
+          ctx.fill();
+          
+          ctx.fillStyle = '#a4785a';
+          ctx.font = '48px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('📦', canvas.width / 2, canvas.height / 2 - 20);
+          
+          ctx.fillStyle = '#7b5a3b';
+          ctx.font = '24px Arial';
+          ctx.fillText('Product Image', canvas.width / 2, canvas.height / 2 + 40);
+        }
+      }
+      
+      // Add professional text overlay
+      await addProfessionalTextOverlay(ctx, canvas, sellerData, storeData);
+      
+      return canvas;
+    } catch (error) {
+      console.error('Error generating preview canvas:', error);
+      return null;
+    }
+  };
+
+  const shareProductViaSocial = (platform) => {
+    if (!productToShare) return;
+    
+    // Use product_id for the customer-facing product detail page
+    const productId = productToShare.product_id || productToShare.id;
+    const productLink = `${window.location.origin}/product/${productId}`;
+    const shareText = `Check out this handcrafted product: ${productToShare.productName}`;
+    
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(productLink)}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText + '\n' + productLink)}`;
+        break;
+      case 'telegram':
+        shareUrl = `https://t.me/share/url?url=${encodeURIComponent(productLink)}&text=${encodeURIComponent(shareText)}`;
+        break;
+      case 'messenger':
+        shareUrl = `https://www.facebook.com/dialog/send?link=${encodeURIComponent(productLink)}&app_id=YOUR_APP_ID&redirect_uri=${encodeURIComponent(window.location.origin)}`;
+        break;
+      default:
+        return;
+    }
+    
+    // Open in a properly sized popup window
+    const width = 600;
+    const height = 600;
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
+    
+    window.open(
+      shareUrl, 
+      'share-dialog',
+      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+    );
+  };
+
+  const generateProductPreview = async () => {
+    if (!productToShare) return;
+
+    try {
+      // Fetch seller and store information
+      const [sellerResponse, storeResponse] = await Promise.all([
+        api.get('/sellers/profile').catch(() => ({ data: null })),
+        api.get('/store/me').catch(() => ({ data: null }))
+      ]);
+
+      const sellerData = sellerResponse.data;
+      const storeData = storeResponse.data;
+
+      // Create a canvas element for the preview
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Add roundRect method to canvas context (not available by default)
+      if (!ctx.roundRect) {
+        ctx.roundRect = function(x, y, width, height, radius) {
+          this.beginPath();
+          this.moveTo(x + radius, y);
+          this.lineTo(x + width - radius, y);
+          this.quadraticCurveTo(x + width, y, x + width, y + radius);
+          this.lineTo(x + width, y + height - radius);
+          this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+          this.lineTo(x + radius, y + height);
+          this.quadraticCurveTo(x, y + height, x, y + height - radius);
+          this.lineTo(x, y + radius);
+          this.quadraticCurveTo(x, y, x + radius, y);
+          this.closePath();
+        };
+      }
+      
+      // Set canvas size (Instagram post size: 1080x1080)
+      canvas.width = 1080;
+      canvas.height = 1080;
+      
+      // Professional background gradient
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, '#f8f6f0');
+      gradient.addColorStop(0.3, '#e8e2d5');
+      gradient.addColorStop(1, '#d4c4a8');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Add subtle pattern overlay
+      ctx.fillStyle = 'rgba(164, 120, 90, 0.05)';
+      for (let i = 0; i < canvas.width; i += 40) {
+        for (let j = 0; j < canvas.height; j += 40) {
+          ctx.fillRect(i, j, 1, 1);
+        }
+      }
+      
+      // Load store logo if available
+      let storeLogo = null;
+      if (storeData?.logo_url) {
+        try {
+          storeLogo = await loadImage(storeData.logo_url);
+        } catch (error) {
+          console.warn('Could not load store logo:', error);
+        }
+      }
+      
+      // Add store logo at top
+      if (storeLogo) {
+        const logoSize = 80;
+        const logoX = 50;
+        const logoY = 50;
+        ctx.drawImage(storeLogo, logoX, logoY, logoSize, logoSize);
+      }
+      
+      // Add product image if available
+      if (productToShare.productImage) {
+        try {
+          // Convert storage URL to our CORS-enabled URL
+          let imageUrl = productToShare.productImage;
+          if (imageUrl.includes('/storage/')) {
+            imageUrl = imageUrl.replace('/storage/', '/images/');
+          }
+          
+          // Try to load image with CORS
+          const productImg = await loadImage(imageUrl);
+          
+          // Draw product image with professional styling
+          const imageSize = 500;
+          const x = (canvas.width - imageSize) / 2;
+          const y = 180;
+          
+          // Add shadow effect
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+          ctx.shadowBlur = 20;
+          ctx.shadowOffsetX = 10;
+          ctx.shadowOffsetY = 10;
+          
+          // Draw rounded rectangle background
+          ctx.fillStyle = '#ffffff';
+          ctx.roundRect(x - 20, y - 20, imageSize + 40, imageSize + 40, 20);
+          ctx.fill();
+          
+          // Reset shadow
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+          
+          // Draw product image
+          ctx.drawImage(productImg, x, y, imageSize, imageSize);
+          
+        } catch (error) {
+          console.warn('Could not load image with CORS, generating preview without image:', error);
+          
+          // Add elegant placeholder
+          const placeholderSize = 500;
+          const x = (canvas.width - placeholderSize) / 2;
+          const y = 180;
+          
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.roundRect(x, y, placeholderSize, placeholderSize, 20);
+          ctx.fill();
+          
+          ctx.fillStyle = '#a4785a';
+          ctx.font = '48px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('📦', canvas.width / 2, canvas.height / 2 - 20);
+          
+          ctx.fillStyle = '#7b5a3b';
+          ctx.font = '24px Arial';
+          ctx.fillText('Product Image', canvas.width / 2, canvas.height / 2 + 40);
+        }
+      }
+      
+      // Add professional text overlay
+      await addProfessionalTextOverlay(ctx, canvas, sellerData, storeData);
+      
+      // Trigger download
+      downloadPreview(canvas);
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      alert('Error generating preview image. Please try again.');
+    }
+  };
+
+  const loadImage = (src) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  };
+
+  const addProfessionalTextOverlay = async (ctx, canvas, sellerData, storeData) => {
+    const startY = 720;
+    let currentY = startY;
+    
+    // Product name with elegant styling
+    ctx.fillStyle = '#2c1810';
+    ctx.font = 'bold 42px "Arial", sans-serif';
+    ctx.textAlign = 'center';
+    
+    // Add text shadow for depth
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 1;
+    
+    // Split long product names into multiple lines
+    const productName = productToShare.productName;
+    const maxWidth = canvas.width - 100;
+    const words = productName.split(' ');
+    let line = '';
+    let lines = [];
+    
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + ' ';
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && n > 0) {
+        lines.push(line);
+        line = words[n] + ' ';
+      } else {
+        line = testLine;
+      }
+    }
+    lines.push(line);
+    
+    // Draw product name lines
+    lines.forEach((line, index) => {
+      ctx.fillText(line.trim(), canvas.width / 2, currentY + (index * 50));
+    });
+    currentY += (lines.length * 50) + 20;
+    
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // Category with elegant styling
+    ctx.font = '28px "Arial", sans-serif';
+    ctx.fillStyle = '#a4785a';
+    ctx.fillText(productToShare.category.toUpperCase(), canvas.width / 2, currentY);
+    currentY += 60;
+    
+    // Store name and seller info
+    const storeName = storeData?.store?.store_name || sellerData?.businessName || 'CraftConnect Store';
+    const sellerName = sellerData?.userName || 'Artisan';
+    
+    ctx.font = '24px "Arial", sans-serif';
+    ctx.fillStyle = '#7b5a3b';
+    ctx.fillText(`by ${sellerName}`, canvas.width / 2, currentY);
+    currentY += 40;
+    
+    ctx.font = '22px "Arial", sans-serif';
+    ctx.fillStyle = '#8b6f47';
+    ctx.fillText(storeName, canvas.width / 2, currentY);
+    currentY += 50;
+    
+    // Decorative line
+    ctx.strokeStyle = '#d4c4a8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2 - 100, currentY);
+    ctx.lineTo(canvas.width / 2 + 100, currentY);
+    ctx.stroke();
+    currentY += 30;
+    
+    // CraftConnect branding
+    ctx.font = '26px "Arial", sans-serif';
+    ctx.fillStyle = '#a4785a';
+    ctx.fillText('CraftConnect', canvas.width / 2, currentY);
+    currentY += 35;
+    
+    ctx.font = '18px "Arial", sans-serif';
+    ctx.fillStyle = '#8b6f47';
+    ctx.fillText('Handmade with Love & Care', canvas.width / 2, currentY);
+    
+    // Add QR code placeholder area (optional)
+    const qrSize = 60;
+    const qrX = canvas.width - qrSize - 50;
+    const qrY = canvas.height - qrSize - 50;
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.roundRect(qrX, qrY, qrSize, qrSize, 8);
+    ctx.fill();
+    
+    ctx.fillStyle = '#a4785a';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('QR', qrX + qrSize/2, qrY + qrSize/2 + 3);
+  };
+
+  const downloadPreview = (canvas) => {
+    const link = document.createElement('a');
+    link.download = `${productToShare.productName}-preview.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   };
 
   const handleTogglePublishStatus = async (product) => {
@@ -836,15 +1346,23 @@ const InventoryTab = () => {
                     <TableCell>
                       {product.productImage ? (
                         <img 
-                          src={product.productImage} 
+                          src={product.productImage.includes('/storage/') 
+                            ? product.productImage.replace('/storage/', '/images/')
+                            : product.productImage
+                          } 
                           alt={product.productName} 
                           className="h-10 w-10 object-cover rounded"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
                         />
-                      ) : (
-                        <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
-                          <ImageIcon className="h-5 w-5 text-gray-400" />
-                        </div>
-                      )}
+                      ) : null}
+                      <div 
+                        className={`h-10 w-10 bg-gray-200 rounded flex items-center justify-center ${product.productImage ? 'hidden' : ''}`}
+                      >
+                        <ImageIcon className="h-5 w-5 text-gray-400" />
+                      </div>
                     </TableCell>
                     <TableCell>{product.productName}</TableCell>
                     <TableCell>{product.category}</TableCell>
@@ -867,6 +1385,22 @@ const InventoryTab = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center gap-2 justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewProduct(product)}
+                          className="text-[#a4785a] hover:bg-[#f8f1ec] hover:text-[#5c3d28] transition-all duration-200"
+                        >
+                          View
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleShareProduct(product)}
+                          className="text-[#7b5a3b] hover:bg-[#f8f1ec] hover:text-[#5c3d28] transition-all duration-200"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="sm" 
@@ -918,6 +1452,276 @@ const InventoryTab = () => {
                   >
                     Delete
                   </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* View Product Modal */}
+          {isViewProductOpen && currentProduct && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+                <div className="sticky top-0 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-6 rounded-t-2xl">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-white">Product Details</h2>
+                    <button 
+                      onClick={() => setIsViewProductOpen(false)}
+                      className="text-white hover:bg-white/20 rounded-full p-2 transition-all"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="p-6 space-y-6">
+                  {/* Product Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-500 font-medium">Product Name</p>
+                        <p className="text-lg font-semibold text-[#5c3d28]">{currentProduct.productName}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-500 font-medium">Category</p>
+                        <p className="text-base font-semibold text-[#5c3d28]">{currentProduct.category}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-500 font-medium">Price</p>
+                        <p className="text-2xl font-bold text-[#a4785a]">₱{currentProduct.productPrice}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-500 font-medium">Stock Quantity</p>
+                        <p className="text-lg font-semibold text-[#5c3d28]">{currentProduct.productQuantity}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-500 font-medium">Stock Status</p>
+                        <Badge className={getStockColor(currentProduct.status)} variant="outline">
+                          {currentProduct.status}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-500 font-medium">Publish Status</p>
+                        <Badge className={getPublishColor(currentProduct.publish_status)} variant="outline">
+                          {currentProduct.publish_status || 'draft'}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-500 font-medium">Approval Status</p>
+                        <Badge className={getApprovalColor(currentProduct.approval_status)} variant="outline">
+                          {currentProduct.approval_status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Product Image */}
+                  {currentProduct.productImage && (
+                    <div className="border-t border-[#e5ded7] pt-4">
+                      <h3 className="text-lg font-semibold text-[#5c3d28] mb-3">Product Image</h3>
+                      <div className="flex justify-center">
+                        <img 
+                          src={currentProduct.productImage.includes('/storage/') 
+                            ? currentProduct.productImage.replace('/storage/', '/images/')
+                            : currentProduct.productImage
+                          } 
+                          alt={currentProduct.productName}
+                          className="max-w-full h-64 object-cover rounded-lg border border-[#e5ded7]"
+                          onError={(e) => {
+                            console.warn('Image failed to load, showing placeholder');
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div 
+                          className="hidden h-64 w-full bg-gray-200 rounded-lg border border-[#e5ded7] items-center justify-center text-gray-500"
+                          style={{display: 'none'}}
+                        >
+                          <div className="text-center">
+                            <div className="text-4xl mb-2">📷</div>
+                            <div>Image not available</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Product Description */}
+                  {currentProduct.productDescription && (
+                    <div className="border-t border-[#e5ded7] pt-4">
+                      <h3 className="text-lg font-semibold text-[#5c3d28] mb-3">Description</h3>
+                      <div className="bg-[#faf9f8] rounded-lg border border-[#e5ded7] p-4">
+                        <p className="text-[#5c3d28] whitespace-pre-wrap">{currentProduct.productDescription}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-3 pt-4 border-t border-[#e5ded7]">
+                    <Button 
+                      onClick={() => setIsViewProductOpen(false)}
+                      variant="outline"
+                      className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec]"
+                    >
+                      Close
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setIsViewProductOpen(false);
+                        handleShareProduct(currentProduct);
+                      }}
+                      variant="outline"
+                      className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] flex items-center gap-2"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share Product
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setIsViewProductOpen(false);
+                        handleEditClick(currentProduct);
+                      }}
+                      className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white hover:from-[#8f674a] hover:to-[#6a4c34] flex items-center gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit Product
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Share Product Modal */}
+          {isShareModalOpen && productToShare && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+                <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-6 rounded-t-2xl">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                      <Share2 className="h-6 w-6" />
+                      Share Product
+                    </h2>
+                    <button 
+                      onClick={() => setIsShareModalOpen(false)}
+                      className="text-white hover:bg-white/20 rounded-full p-2 transition-all"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="p-6 space-y-4">
+                  {/* Product Info */}
+                  <div className="bg-[#f8f1ec] border-2 border-[#e5ded7] rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">Product Name</p>
+                    <p className="text-lg font-bold text-[#5c3d28]">{productToShare.productName}</p>
+                    <p className="text-sm text-gray-600 mt-2">Category</p>
+                    <p className="text-base font-semibold text-[#5c3d28]">{productToShare.category}</p>
+                    <p className="text-sm text-gray-600 mt-2">Product Link</p>
+                    <div className="bg-white px-3 py-2 rounded border border-[#d5bfae] mt-1">
+                      <p className="text-xs text-[#7b5a3b] break-all">
+                        {`${window.location.origin}/product/${productToShare.product_id || productToShare.id}`}
+                      </p>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      This link will take customers to your product detail page
+                    </p>
+                  </div>
+
+                  {/* Share Options */}
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-[#5c3d28]">Share Options</h3>
+                    
+                    {/* Generate Preview Image */}
+                    <Button
+                      onClick={generateProductPreview}
+                      className="w-full bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white hover:from-[#8f674a] hover:to-[#6a4c34] justify-start"
+                    >
+                      🖼️ Generate & Save Preview Image
+                    </Button>
+
+                    {/* Copy Link */}
+                    <Button
+                      onClick={copyProductLink}
+                      variant="outline"
+                      className="w-full border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] justify-start"
+                    >
+                      📋 Copy Product Link
+                    </Button>
+
+                    <div className="border-t border-[#e5ded7] my-3"></div>
+                    
+                    {/* Post to Social Media */}
+                    <h3 className="text-sm font-semibold text-[#5c3d28]">Post to Your Social Media</h3>
+                    <p className="text-xs text-gray-500">Create a post with product image and link</p>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        onClick={() => handlePostToSocialMedia('facebook')}
+                        variant="outline"
+                        className="border-2 border-[#1877f2] text-[#1877f2] hover:bg-[#1877f2] hover:text-white justify-start"
+                      >
+                        📘 Post to Facebook
+                      </Button>
+                      <Button
+                        onClick={() => handlePostToSocialMedia('instagram')}
+                        variant="outline"
+                        className="border-2 border-[#E4405F] text-[#E4405F] hover:bg-[#E4405F] hover:text-white justify-start"
+                      >
+                        📷 Post to Instagram
+                      </Button>
+                    </div>
+
+                    <div className="border-t border-[#e5ded7] my-3"></div>
+                    
+                    <h3 className="text-sm font-semibold text-[#5c3d28]">Quick Share via Link</h3>
+                    <p className="text-xs text-gray-500">Share product link on other platforms</p>
+                    
+                    {/* Social Media Quick Share */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        onClick={() => shareProductViaSocial('twitter')}
+                        variant="outline"
+                        className="border-2 border-[#1da1f2] text-[#1da1f2] hover:bg-[#1da1f2] hover:text-white justify-start"
+                      >
+                        🐦 Twitter
+                      </Button>
+                      <Button
+                        onClick={() => shareProductViaSocial('whatsapp')}
+                        variant="outline"
+                        className="border-2 border-[#25d366] text-[#25d366] hover:bg-[#25d366] hover:text-white justify-start"
+                      >
+                        💬 WhatsApp
+                      </Button>
+                      <Button
+                        onClick={() => shareProductViaSocial('telegram')}
+                        variant="outline"
+                        className="border-2 border-[#0088cc] text-[#0088cc] hover:bg-[#0088cc] hover:text-white justify-start"
+                      >
+                        📱 Telegram
+                      </Button>
+                      <Button
+                        onClick={() => shareProductViaSocial('messenger')}
+                        variant="outline"
+                        className="border-2 border-[#0084FF] text-[#0084FF] hover:bg-[#0084FF] hover:text-white justify-start"
+                      >
+                        💬 Messenger
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4 border-t border-[#e5ded7]">
+                    <Button 
+                      onClick={() => setIsShareModalOpen(false)}
+                      variant="outline"
+                      className="flex-1 border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec]"
+                    >
+                      Close
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
