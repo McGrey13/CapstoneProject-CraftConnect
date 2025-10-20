@@ -4,7 +4,7 @@ import { Loader2, ArrowLeft, Clock, Package, Truck, CheckCircle2, RotateCcw, XCi
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Textarea } from '../ui/textarea';
 import api from '../../api';
 import { useUser } from '../Context/UserContext';
@@ -16,6 +16,9 @@ const Orders = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated } = useUser();
+  
+  // Toast notification state
+  const [toast, setToast] = useState({ show: false, message: '' });
   
   // Rating & Review states
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -38,6 +41,33 @@ const Orders = () => {
   const [videoPreview, setVideoPreview] = useState('');
   const [imageFiles, setImageFiles] = useState([]); // File[]
   const [imagePreviews, setImagePreviews] = useState([]); // string[]
+
+  // Helper function to convert image URLs to relative paths
+  const fixImageUrl = (url) => {
+    if (!url) return url;
+    // If it's already a full URL with localhost, convert to relative path
+    if (url.includes('localhost:8000') || url.includes('localhost:8080')) {
+      const path = new URL(url).pathname;
+      return path;
+    }
+    // If it's already a relative path, return as is
+    if (url.startsWith('/storage/') || url.startsWith('/images/')) {
+      return url;
+    }
+    // If it's just a filename, prepend /storage/
+    if (url && !url.startsWith('http') && !url.startsWith('/')) {
+      return `/storage/${url}`;
+    }
+    return url;
+  };
+
+  // Show toast notification
+  const showToast = (message) => {
+    setToast({ show: true, message });
+    setTimeout(() => {
+      setToast({ show: false, message: '' });
+    }, 10000); // 10 seconds
+  };
 
   const reasonOptions = {
     received_damaged_items: [
@@ -85,34 +115,16 @@ const Orders = () => {
 
   const fetchOrders = async () => {
     if (!isAuthenticated) {
-      console.log('User not authenticated, redirecting to login');
       navigate('/login');
       return;
     }
 
     try {
-      console.log('🔍 Fetching orders for user:', user?.userName, 'User ID:', user?.userID);
       const response = await api.get('/orders');
-      console.log('📦 Orders API response:', response.data);
-      console.log('📦 Response is array?', Array.isArray(response.data));
       
       // Handle different response structures
       const ordersData = Array.isArray(response.data) ? response.data : response.data.data || [];
       
-      // Log each order's details for debugging
-      console.log('✅ Total orders received:', ordersData.length);
-      ordersData.forEach(order => {
-        console.log(`📋 Order #${order.orderID} (${order.order_number}):`, {
-          status: order.status,
-          paymentStatus: order.paymentStatus,
-          payment_method: order.payment_method,
-          created: order.orderDate,
-          totalAmount: order.totalAmount,
-          itemsCount: order.items?.length
-        });
-      });
-      
-      console.log('💾 Setting orders state with', ordersData.length, 'orders');
       setOrders(ordersData);
       // Build product id list from delivered orders for review check
       const productIds = ordersData
@@ -126,17 +138,13 @@ const Orders = () => {
             setUserReviewedMap(res.data.reviewed);
           }
         } catch (e) {
-          console.warn('Failed to fetch user reviewed map', e);
+          // Failed to fetch user reviewed map
         }
       } else {
         setUserReviewedMap({});
       }
-      console.log('✅ Orders state updated!');
     } catch (error) {
-      console.error('Error fetching orders:', error);
-      
       if (error.response?.status === 401) {
-        console.log('Authentication failed, redirecting to login');
         alert('Your session has expired. Please log in again.');
         navigate('/login');
       } else {
@@ -246,19 +254,11 @@ const Orders = () => {
   // Group orders by status
   const groupedOrders = {
     'To Package': orders.filter(order => {
-      // Debug each order
       const shouldShow = 
         order.status === 'processing' ||
         (order.status === 'pending' && order.paymentStatus === 'paid') ||
         (order.status === 'pending' && order.payment_method === 'cod') ||
         (order.status === 'pending' && (order.payment_method === 'gcash' || order.payment_method === 'paymaya'));
-      
-      console.log(`Order #${order.orderID} - To Package filter:`, {
-        status: order.status,
-        paymentStatus: order.paymentStatus,
-        payment_method: order.payment_method,
-        shouldShow: shouldShow
-      });
       
       return shouldShow;
     }),
@@ -289,32 +289,15 @@ const Orders = () => {
     { key: 'Return/Refund', title: 'Return/Refund', icon: RotateCcw, color: 'orange' }
   ];
 
-  // Log grouped orders count for debugging
-  console.log('📊 Grouped orders count:', {
-    'To Package': groupedOrders['To Package'].length,
-    'To Ship': groupedOrders['To Ship'].length,
-    'To Receive': groupedOrders['To Receive'].length,
-    'Completed': groupedOrders['Completed'].length,
-    'Return/Refund': groupedOrders['Return/Refund'].length
-  });
-  console.log('📊 Total orders in state:', orders.length);
-  
-  // List all orders by status
-  console.log('📊 Orders by status breakdown:');
-  orders.forEach(order => {
-    console.log(`  - Order ${order.order_number}: status="${order.status}", payment="${order.paymentStatus}", method="${order.payment_method}"`);
-  });
-
   const handleMarkAsReceived = async (orderId) => {
     try {
       const response = await api.post(`/orders/${orderId}/mark-received`);
       if (response.data.success) {
-        alert('Order marked as received! Thank you for your purchase.');
+        showToast('Order marked as received! Thank you for your purchase.');
         // Refresh orders
         fetchOrders();
       }
     } catch (error) {
-      console.error('Error marking order as received:', error);
       alert(error.response?.data?.message || 'Failed to mark order as received');
     }
   };
@@ -337,7 +320,6 @@ const Orders = () => {
       alert('Items added to cart. You can review your cart now.');
       navigate('/cart');
     } catch (e) {
-      console.error('Buy again failed', e);
       alert('Failed to add items to cart.');
     }
   };
@@ -398,7 +380,6 @@ const Orders = () => {
         alert(res.data?.message || 'Failed to submit after-sale request');
       }
     } catch (e) {
-      console.error('After-sale submit failed', e);
       alert('Failed to submit after-sale request');
     }
   };
@@ -430,11 +411,10 @@ const Orders = () => {
         });
       }
 
-      alert('Thank you for your review!');
+      showToast('Thank you for your review!');
       setShowReviewDialog(false);
       fetchOrders();
     } catch (error) {
-      console.error('Error submitting review:', error);
       alert(error.response?.data?.message || 'Failed to submit review');
     } finally {
       setSubmittingReview(false);
@@ -474,7 +454,7 @@ const Orders = () => {
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-sm text-[#7b5a3b] font-medium">Order Number:</span>
                 <span className="font-bold text-[#5c3d28] bg-white px-3 py-1 rounded-lg border-2 border-[#d5bfae] shadow-sm">
-                  {order.order_number || `ORD-${order.orderID}`}
+                  {order.order_number}
                 </span>
               </div>
               <div className="text-xs text-[#7b5a3b] mt-2 flex items-center gap-2">
@@ -497,7 +477,7 @@ const Orders = () => {
                   <div className="w-24 h-24 flex-shrink-0 bg-gray-100 rounded-xl overflow-hidden border-2 border-[#d5bfae] shadow-sm">
                     {item.product_image ? (
                       <img
-                        src={`http://localhost:8000/storage/${item.product_image}`}
+                        src={fixImageUrl(item.product_image)}
                         alt={item.product_name}
                         className="w-full h-full object-cover"
                       />
@@ -540,7 +520,7 @@ const Orders = () => {
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-sm text-gray-500">Order Number:</span>
                 <span className="font-bold text-[#5c3d28] bg-white px-2 py-1 rounded border border-[#e5ded7]">
-                  {order.order_number || `ORD-${order.orderID}`}
+                  {order.order_number}
                 </span>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -591,7 +571,7 @@ const Orders = () => {
               <div className="w-12 h-12 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
                 {item.product_image ? (
                   <img
-                    src={`http://localhost:8000/storage/${item.product_image}`}
+                    src={fixImageUrl(item.product_image)}
                     alt={item.product_name}
                     className="w-full h-full object-cover"
                   />
@@ -793,6 +773,9 @@ const Orders = () => {
               <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
               Rate Your Experience
             </DialogTitle>
+            <DialogDescription className="text-[#7b5a3b]">
+              Share your honest feedback to help other shoppers make informed decisions
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6 py-4">
@@ -812,7 +795,7 @@ const Orders = () => {
                   <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border-2 border-[#d5bfae]">
                     {selectedProduct.product_image ? (
                       <img
-                        src={`http://localhost:8000/storage/${selectedProduct.product_image}`}
+                        src={fixImageUrl(selectedProduct.product_image)}
                         alt={selectedProduct.product_name}
                         className="w-full h-full object-cover"
                       />
@@ -921,6 +904,9 @@ const Orders = () => {
         <DialogContent className="max-w-xl bg-gradient-to-br from-white to-[#faf9f8] border-2 border-[#d5bfae]">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-[#5c3d28]">Return / Refund Request</DialogTitle>
+            <DialogDescription className="text-[#7b5a3b]">
+              Please provide details about your concern so we can assist you promptly
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-5">
             {/* Step indicator */}
@@ -1135,6 +1121,18 @@ const Orders = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed top-24 right-4 z-50 animate-in slide-in-from-top-5 fade-in duration-500">
+          <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3 border-2 border-[#5c3d28]">
+            <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 className="h-5 w-5 text-green-600 fill-green-600" />
+            </div>
+            <span className="font-semibold text-base">{toast.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

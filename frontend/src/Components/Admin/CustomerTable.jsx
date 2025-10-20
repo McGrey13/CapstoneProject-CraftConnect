@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Eye, MoreHorizontal, Filter, Search, X, Edit, Clock, RefreshCw } from "lucide-react";
+import { Eye, MoreHorizontal, Filter, Search, X, Edit, RefreshCw } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent } from "../ui/card";
@@ -30,7 +30,6 @@ const CustomerTable = () => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
 
   // State for view and edit dialogs
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
@@ -41,36 +40,14 @@ const CustomerTable = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      console.log("🔍 Fetching customers...");
       const response = await api.get("/customers");
-      console.log("✅ Customers API Response:", response.data);
       
       if (Array.isArray(response.data)) {
         setCustomers(response.data);
-        setLastUpdated(new Date());
-        console.log(`📊 Loaded ${response.data.length} customers`);
-        // Debug profile images
-        response.data.forEach((customer, index) => {
-          if (index < 3) { // Log first 3 customers for debugging
-            console.log(`👤 Customer ${index + 1}:`, {
-              name: customer.userName,
-              profile_image_url: customer.profile_image_url,
-              hasImage: !!customer.profile_image_url
-            });
-          }
-        });
       } else {
-        console.warn("⚠️ Unexpected data format:", response.data);
         setCustomers([]);
       }
     } catch (err) {
-      console.error("❌ Error fetching customers:", err);
-      console.error("Error details:", {
-        message: err.message,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data
-      });
       setError(err.message || 'Failed to fetch customers');
     } finally {
       setLoading(false);
@@ -84,7 +61,6 @@ const CustomerTable = () => {
   // Auto-refresh every 1 minute
   useEffect(() => {
     const interval = setInterval(() => {
-      console.log('Auto-refreshing customers list...');
       fetchCustomers();
     }, 60000); // 60 seconds = 1 minute
 
@@ -199,10 +175,6 @@ const CustomerTable = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-white bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/30">
-              <Clock className="h-4 w-4" />
-              <span className="font-medium">Updated: {lastUpdated.toLocaleTimeString()}</span>
-            </div>
             <Button
               onClick={fetchCustomers}
               className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white border border-white/30 shadow-lg"
@@ -372,7 +344,6 @@ const CustomerTable = () => {
                           alt={customer.userName}
                           className="w-14 h-14 object-cover rounded-full border-2 border-[#d5bfae] shadow-md"
                           onError={(e) => {
-                            console.error('Failed to load customer profile image:', customer.profile_image_url);
                             e.target.style.display = 'none';
                             e.target.nextSibling.style.display = 'flex';
                           }}
@@ -386,9 +357,6 @@ const CustomerTable = () => {
                       </div>
                       <div>
                         <div className="font-semibold text-[#5c3d28] text-base">{customer.userName || "N/A"}</div>
-                        <div className="text-xs text-[#7b5a3b] bg-[#f5f0eb] px-2 py-1 rounded-full inline-block mt-1 font-medium">
-                          {customer.userID || ""}
-                        </div>
                       </div>
                     </div>
                   </TableCell>

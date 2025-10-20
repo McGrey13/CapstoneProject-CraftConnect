@@ -7,17 +7,40 @@ import "./CategoryGrid.css"; // Add this import
 const categoryFilters = [
   { id: "all", name: "All", queryParam: "" },
   { id: "miniatures", name: "Miniatures & Souvenirs", queryParam: "Miniatures & Souvenirs" },
-  { id: "rubber-stamp", name: "Rubber Stamp Engraving", queryParam: "Rubber Stamp Engraving" },
-  { id: "traditional", name: "Traditional Accessories", queryParam: "Traditional Accessories" },
-  { id: "statuary", name: "Statuary & Sculpture", queryParam: "Statuary & Sculpture" },
-  { id: "basketry", name: "Basketry & Weaving", queryParam: "Basketry & Weaving" },
-  { id: "featured", name: "Featured", queryParam: "featured" }
+  { id: "rubber-stamp", name: "Rubber Stamp", queryParam: "Rubber Stamp Engraving"},
+  { id: "traditional", name: "Traditional", queryParam: "Traditional Accessories" },
+  { id: "statuary", name: "Statuary", queryParam: "Statuary & Sculpture" },
+  { id: "basketry", name: "Basketry", queryParam: "Basketry & Weaving" },
+  { id: "featured", name: "Featured", queryParam: "featured"}
 ];
 
 const CategoryGrid = () => {
   const [stores, setStores] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [showScrollHint, setShowScrollHint] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowScrollHint(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Helper function to convert image URLs to relative paths
+  const fixImageUrl = (url) => {
+    if (!url) return url;
+    // If it's already a full URL with localhost, convert to relative path
+    if (url.includes('localhost:8000') || url.includes('localhost:8080')) {
+      const path = new URL(url).pathname;
+      return path;
+    }
+    // If it's already a relative path, return as is
+    if (url.startsWith('/storage/') || url.startsWith('/images/')) {
+      return url;
+    }
+    return url;
+  };
 
   useEffect(() => {
     fetchStores();
@@ -27,19 +50,16 @@ const CategoryGrid = () => {
     try {
       setLoading(true);
       const selectedCategoryData = categoryFilters.find(cat => cat.id === selectedCategory);
-      let endpoint = selectedCategory === 'featured' 
-        ? 'http://localhost:8000/api/products/featured'
-        : `http://localhost:8000/api/stores${selectedCategoryData?.queryParam ? `?category=${encodeURIComponent(selectedCategoryData.queryParam)}` : ''}`;
       
-      console.log('🔍 Fetching from endpoint:', endpoint);
-      const response = await axios.get(endpoint);
+      // Use api instance instead of hardcoded URL
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000/api';
+      const response = selectedCategory === 'featured'
+        ? await axios.get('/products/featured', { baseURL: backendUrl })
+        : await axios.get(`/stores${selectedCategoryData?.queryParam ? `?category=${encodeURIComponent(selectedCategoryData.queryParam)}` : ''}`, { baseURL: backendUrl });
       
       // Ensure we're getting an array from the response
       const data = Array.isArray(response.data) ? response.data : 
                   response.data.data ? response.data.data : [];
-      
-      console.log('📦 Raw API response data:', data);
-      console.log('📊 Number of items:', data.length);
       
       // Transform the data based on whether it's products or stores
       const transformedData = selectedCategory === 'featured'
@@ -49,27 +69,14 @@ const CategoryGrid = () => {
             store_name: item.productName,
             store_description: item.productDescription,
             category: item.category,
-            logo_path: item.productImage,
+            logo_path: fixImageUrl(item.productImage),
             followers_count: 0,
             location: '',
             years_active: 0
           }))
         : data.map(item => {
-          console.log('🏪 Store item:', {
-            storeID: item.storeID,
-            store_name: item.store_name,
-            seller_id: item.seller_id,
-            logo_url: item.logo_url,
-            logo_path: item.logo_path,
-            category: item.category,
-            location: item.location,
-            followers_count: item.followers_count
-          });
-          
-          // Use logo_url from backend (already includes full URL)
-          const logoUrl = item.logo_url || null;
-          
-          console.log('✅ Final logo URL:', logoUrl);
+          // Use logo_url from backend and fix it to use relative path
+          const logoUrl = fixImageUrl(item.logo_url || item.logo_path);
           
           return {
             storeID: item.storeID,
@@ -77,15 +84,14 @@ const CategoryGrid = () => {
             store_name: item.store_name,
             store_description: item.store_description,
             category: item.category,
-            logo_path: logoUrl, // Use the full URL from backend
+            logo_path: logoUrl,
             followers_count: item.followers_count || 0,
             location: item.location || '',
-            years_active: item.years_active || 0
+            years_active: item.years_active || 0,
+            average_rating: item.average_rating || 0,
+            total_ratings: item.total_ratings || 0
           };
         });
-      
-      console.log('✨ Final transformed stores data:', transformedData);
-      console.log('✨ Total stores to display:', transformedData.length);
       
       setStores(transformedData);
     } catch (error) {
@@ -100,17 +106,38 @@ const CategoryGrid = () => {
   return (
     <div className="w-full bg-[#fefefe] py-8">
       {/* Category Filter Bar */}
-      <div className="mb-8">
+      <div className="mb-8 bg-white sticky top-[65px] z-40">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-center gap-8 pb-4 w-full">
+          {/* Mobile Dropdown */}
+          <div className="lg:hidden relative py-3">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full py-2.5 px-4 bg-white border-2 border-gray-300 rounded-lg appearance-none cursor-pointer text-base"
+            >
+              {categoryFilters.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Tablet & Desktop Categories */}
+          <div className="hidden lg:flex items-center justify-center gap-3 py-3 w-full overflow-x-auto scrollbar-hide pb-2">
             {categoryFilters.map((category) => (
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`py-2 font-medium text-sm transition-all duration-200 ${
+                className={`py-2 px-3 xl:px-4 font-medium text-xs xl:text-sm transition-all duration-200 flex items-center gap-1.5 xl:gap-2 whitespace-nowrap flex-shrink-0 rounded-full ${
                   selectedCategory === category.id
-                    ? 'text-[#9F2936] font-semibold'
-                    : 'text-black hover:text-[#9F2936] hover:font-semibold'
+                    ? 'text-white bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] shadow-md'
+                    : 'text-[#5c3d28] hover:text-[#a4785a] hover:bg-[#a4785a]/10 border border-gray-200'
                 }`}
               >
                 {category.name}
@@ -121,8 +148,8 @@ const CategoryGrid = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-3">Explore Local Craft Stores</h2>
-        <p className="text-gray-600 max-w-2xl mx-auto mb-10">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Explore Local Craft Stores</h2>
+        <p className="text-sm md:text-base text-gray-600 max-w-2xl mx-auto mb-8 md:mb-10">
           Discover talented artisans and their unique craft stores
         </p>
 
@@ -131,10 +158,9 @@ const CategoryGrid = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9F2936]"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 justify-items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5 xl:gap-6 justify-items-center">
             {stores.map((store) => {
               const routeId = store.seller_id || store.storeID;
-              console.log(`Clicking store: ${store.store_name}, routeId: ${routeId}`);
               return (
                 <Link
                   to={`/store/${routeId}`}
@@ -142,12 +168,13 @@ const CategoryGrid = () => {
                   className="block transition-transform hover:scale-105 w-full max-w-sm"
                 >
                   <Card className="overflow-hidden h-full border-none shadow-md hover:shadow-lg transition-all duration-300">
-                    <div className="relative h-48 overflow-hidden bg-gray-100">
+                    <div className="relative h-48 sm:h-56 overflow-hidden bg-gray-100">
                       {store.logo_path ? (
                         <img
                           src={store.logo_path}
                           alt={store.store_name}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="flex items-center justify-center h-full text-gray-400 italic">
@@ -163,15 +190,15 @@ const CategoryGrid = () => {
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end">
                         <div className="p-4 text-white w-full">
-                          <h3 className="font-bold text-xl mb-1">{store.store_name}</h3>
+                          <h3 className="font-bold text-lg sm:text-xl mb-1 line-clamp-1">{store.store_name}</h3>
                           <p className="text-sm text-white/90 mb-2">{store.category}</p>
                           {store.location && (
                             <p className="text-xs text-white/80 flex items-center">
-                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3 h-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
-                              {store.location}
+                              <span className="truncate">{store.location}</span>
                             </p>
                           )}
                         </div>
@@ -179,15 +206,30 @@ const CategoryGrid = () => {
                     </div>
                     <CardContent className="p-4">
                       <p className="text-gray-600 text-sm mb-3 line-clamp-2">{store.store_description}</p>
+                      
+                      {/* Rating Display */}
+                      {store.average_rating > 0 && (
+                        <div className="flex items-center mb-3">
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                              <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                            </svg>
+                            <span className="ml-1 text-sm font-semibold text-gray-800">{store.average_rating}</span>
+                            <span className="ml-1 text-xs text-gray-500">({store.total_ratings})</span>
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <div className="flex items-center">
-                          <svg className="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 mr-1 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
                           <span>{store.followers_count} followers</span>
                         </div>
                         <div className="flex items-center text-[#9F2936] font-medium">
-                          <span>View Store</span>
+                          <span className="hidden sm:inline">View Store</span>
+                          <span className="sm:hidden">View</span>
                           <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>

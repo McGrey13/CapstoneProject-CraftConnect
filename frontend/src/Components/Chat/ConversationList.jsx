@@ -15,7 +15,7 @@ const ConversationList = ({ onSelectConversation, currentConversationId }) => {
   const fetchConversations = async () => {
     try {
       const token = sessionStorage.getItem('auth_token');
-      const response = await fetch('http://localhost:8000/api/chat/seller/conversations', {
+      const response = await fetch('http://localhost:8080/api/chat/seller/conversations', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',

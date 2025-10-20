@@ -343,11 +343,34 @@ class StoreController extends Controller
             // Calculate years active
             $yearsActive = $store->created_at->diffInYears(now());
             
+            // Calculate average rating from seller's products
+            $averageRating = 0;
+            $totalRatings = 0;
+            if ($store->seller) {
+                try {
+                    // Get all reviews for products belonging to this seller
+                    $sellerProducts = \App\Models\Product::where('seller_id', $store->seller->sellerID)->pluck('product_id');
+                    $reviews = \App\Models\Review::whereIn('product_id', $sellerProducts)->get();
+                    
+                    if ($reviews->count() > 0) {
+                        $totalRatings = $reviews->count();
+                        $averageRating = round($reviews->avg('rating'), 1);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Error calculating seller rating', [
+                        'seller_id' => $store->seller->sellerID,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            
             Log::info('Store transformed', [
                 'store_id' => $store->storeID,
                 'store_name' => $store->store_name,
                 'logo_url' => $logoUrl,
-                'seller_id' => $sellerId
+                'seller_id' => $sellerId,
+                'average_rating' => $averageRating,
+                'total_ratings' => $totalRatings
             ]);
             
             return [
@@ -362,6 +385,8 @@ class StoreController extends Controller
                 'followers_count' => $followersCount,
                 'location' => $location,
                 'years_active' => $yearsActive,
+                'average_rating' => $averageRating,
+                'total_ratings' => $totalRatings,
                 'created_at' => $store->created_at,
                 'updated_at' => $store->updated_at,
             ];

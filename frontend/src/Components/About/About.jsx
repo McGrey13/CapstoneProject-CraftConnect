@@ -7,22 +7,16 @@ const AboutPage = () => {
     {
       name: "Gio Mc Grey O. Calugas",
       role: "Member",
-      image:
-        "https://scontent.fmnl37-1.fna.fbcdn.net/v/t39.30808-1/325379967_505766078212910_3422846363752275784_n.jpg?stp=dst-jpg_s100x100_tt6&_nc_cat=109&ccb=1-7&_nc_sid=e99d92&_nc_eui2=AeHwAS_LkKs7V-BDbfyYs2pETaUxF_666dJNpTEX_rrp0lyhPghFkmzFyoaMdOyzAyw&_nc_ohc=ohKYozeuqBMQ7kNvgEsx7-w&_nc_oc=Adgzn8HE_qoqsq-7n2OrY3mJtI1uLTNfQlJ4HtG7GS7Pc92DOpqJrT_D3yZg4VpMSIlvK2w5vMkM6c_qmZkLCMDq&_nc_zt=24&_nc_ht=scontent.fmnl37-1.fna&_nc_gid=AHJgCyoeiZKdBdJp04SJUXt&oh=00_AYGYT5LGJvtuIFks5vuTF40cJ8R5TE_hw-jdNQenCQ7JZQ&oe=67D8D971",
       bio: ".....",
     },
     {
       name: "Sheweliz M. Antinero",
       role: "Leader",
-      image:
-        "https://scontent.fmnl3-2.fna.fbcdn.net/v/t1.15752-9/482742227_984915886625641_5040623433049759604_n.png?stp=dst-png_s640x640&_nc_cat=105&ccb=1-7&_nc_sid=0024fc&_nc_eui2=AeEGdu-syotyLeaKCkyajMoZ3JPKyiYiQwDck8rKJiJDAGFjfH04nI33FuCILJ7J9d0&_nc_ohc=XISBWrzCXZoQ7kNvgGT9Pgj&_nc_oc=Adi_MLNuC2xubabn__CE_5j6u591rbhSZ_CEavfwKldlXJ8Z2yovXG3WPmLiO4dR4OOmv2CdvWqVbx00cqUJlav6&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.fmnl3-2.fna&oh=03_Q7cD1wH-SVA5Yt4OHFtyWXXqM0fh-VlnRcuWTlccSMGeQieDug&oe=67FA756F",
       bio: ".....",
     },
     {
       name: "Denisse Kaith D. Malabana",
       role: "Member",
-      image:
-        "https://scontent.fmnl3-2.fna.fbcdn.net/v/t39.30808-6/476559965_10222470689714307_3894146055472597057_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeFzE_vu0Y6f6f6kg5hxzJs5kWx4WjwsZKSRbHhaPCxkpBgz3A5rfgOGR1s8QAhkwws&_nc_ohc=oa9kdY1s4BkQ7kNvgE_4r1t&_nc_oc=AdiCGbv3SuVy21W3UgE9upq9CbjyPZ_xU10-aGHZtSBVO9L_IyQF5tQ2nULYdKfGpT09z8DlHC6CPkBCSAU3sngE&_nc_zt=23&_nc_ht=scontent.fmnl3-2.fna&_nc_gid=ABd8Np4ZVog6RAwdQnmb-fh&oh=00_AYEiBhsnF-SyJEVEvUriuS_Z4Hdihp81spGMHCzb6JnNxw&oe=67D8C0AD",
       bio: ".....",
     },
   ];
@@ -40,13 +34,8 @@ const AboutPage = () => {
         </div>
 
         {/* Hero */}
-        <div className="relative rounded-lg overflow-hidden mb-12">
-          <img
-            src="https://scontent.fmnl37-1.fna.fbcdn.net/v/t1.15752-9/473832970_512973031268839_6753009234157600763_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=0024fc&_nc_eui2=AeFtnQNUI7K8gT5miuQKJhMpzPldYaOFSejM-V1ho4VJ6MnTCF8mhDOirr62RsSsR6s&_nc_ohc=epYLzB0Tf_cQ7kNvgFiYHB4&_nc_oc=AdgSW-R7LCBbKl9JiOTDVSgmM5Fr803sbUHPrzKGLctVSuxUM7JE2sqwgGOL-_md8_sQggJhdE-xReo4kQytRBXh&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.fmnl37-1.fna&oh=03_Q7cD1wGVSkNOKqoXUny1AgjtdgQOAROA5dIshnDSQz7pPRam0g&oe=67FA593F"
-            alt="Hero"
-            className="w-full h-64 md:h-80 object-cover"
-          />
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+        <div className="relative rounded-lg overflow-hidden mb-12 bg-gradient-to-br from-[#a47c68] to-[#9F2936]">
+          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
             <div className="text-center text-white p-6">
               <h1 className="text-3xl md:text-4xl font-bold mb-2">Our Story</h1>
               <p className="text-lg max-w-2xl">
@@ -150,12 +139,10 @@ const AboutPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {teamMembers.map((member, index) => (
               <div key={index} className="bg-white rounded-lg overflow-hidden shadow-sm">
-                <div className="h-48 bg-[#a47c68]/10 flex items-center justify-center">
-                  <img
-                    src={member.image}
-                    alt={member.name}
-                    className="h-32 w-32 rounded-full border-4 border-white"
-                  />
+                <div className="h-48 bg-gradient-to-br from-[#a47c68]/20 to-[#9F2936]/20 flex items-center justify-center">
+                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#a47c68] to-[#9F2936] flex items-center justify-center text-white text-4xl font-bold">
+                    {member.name.charAt(0)}
+                  </div>
                 </div>
                 <div className="p-4">
                   <h3 className="font-bold text-lg">{member.name}</h3>

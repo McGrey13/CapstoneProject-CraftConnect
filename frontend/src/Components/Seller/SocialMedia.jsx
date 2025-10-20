@@ -296,34 +296,34 @@
             };
 
             return (
-              <div className="space-y-6 bg-white p-6 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <h1 className="text-2xl font-bold tracking-tight">Social Media</h1>
-                  <Button>Schedule Post</Button>
+              <div className="space-y-3 sm:space-y-4 bg-white p-3 sm:p-4 max-w-[405px] mx-auto sm:max-w-none px-3 sm:px-4 rounded-lg">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Social Media</h1>
+                  <Button className="w-full sm:w-auto text-xs sm:text-sm">Schedule Post</Button>
                 </div>
 
                 {/* Error and Success Messages */}
                 {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-2 sm:py-3 rounded-md text-xs sm:text-sm">
                     {error}
                   </div>
                 )}
                 {success && (
-                  <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+                  <div className="bg-green-50 border border-green-200 text-green-700 px-3 sm:px-4 py-2 sm:py-3 rounded-md text-xs sm:text-sm">
                     {success}
                   </div>
                 )}
 
                 {/* Information Box */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-start">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                       </svg>
                     </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">
+                    <div className="ml-0 sm:ml-3">
+                      <h3 className="text-xs sm:text-sm font-medium text-blue-800">
                         How Social Media Linking Works
                       </h3>
                       <div className="mt-2 text-sm text-blue-700">
@@ -347,10 +347,10 @@
                   <TabsContent value="accounts" className="space-y-4 pt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Instagram */}
-                      <Card>
+                      <Card className="rounded-lg sm:rounded-xl overflow-hidden">
                         <CardHeader className="pb-2">
-                          <CardTitle className="flex items-center">
-                            <Instagram className="h-5 w-5 mr-2 text-pink-500" />
+                          <CardTitle className="flex items-center text-sm sm:text-base">
+                            <Instagram className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-pink-500" />
                             Instagram
                           </CardTitle>
                           <CardDescription>
@@ -385,10 +385,10 @@
                       </Card>
 
                       {/* Facebook */}
-                      <Card>
+                      <Card className="rounded-lg sm:rounded-xl overflow-hidden">
                         <CardHeader className="pb-2">
-                          <CardTitle className="flex items-center">
-                            <Facebook className="h-5 w-5 mr-2 text-blue-600" />
+                          <CardTitle className="flex items-center text-sm sm:text-base">
+                            <Facebook className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600" />
                             Facebook
                           </CardTitle>
                           <CardDescription>Link your existing Facebook account to CraftConnect</CardDescription>
@@ -483,10 +483,10 @@
                       </Card>
 
                       {/* Twitter */}
-                      <Card>
+                      <Card className="rounded-lg sm:rounded-xl overflow-hidden">
                         <CardHeader className="pb-2">
-                          <CardTitle className="flex items-center">
-                            <Twitter className="h-5 w-5 mr-2 text-blue-400" />
+                          <CardTitle className="flex items-center text-sm sm:text-base">
+                            <Twitter className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-400" />
                             Twitter
                           </CardTitle>
                           <CardDescription>Connect your Twitter account</CardDescription>
@@ -505,10 +505,10 @@
                       </Card>
 
                       {/* YouTube */}
-                      <Card>
+                      <Card className="rounded-lg sm:rounded-xl overflow-hidden">
                         <CardHeader className="pb-2">
-                          <CardTitle className="flex items-center">
-                            <Youtube className="h-5 w-5 mr-2 text-red-600" />
+                          <CardTitle className="flex items-center text-sm sm:text-base">
+                            <Youtube className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-red-600" />
                             YouTube
                           </CardTitle>
                           <CardDescription>

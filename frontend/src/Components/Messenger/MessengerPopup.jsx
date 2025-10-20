@@ -24,7 +24,7 @@ const MessengerPopup = ({
   const getCurrentUserId = async () => {
     try {
       const token = sessionStorage.getItem('auth_token');
-      const response = await fetch('http://localhost:8000/api/user', {
+      const response = await fetch('http://localhost:8080/api/user', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
@@ -57,7 +57,7 @@ const MessengerPopup = ({
       const token = sessionStorage.getItem('auth_token');
       
       // First, try to get existing conversation or create new one
-      const response = await fetch(`http://localhost:8000/api/conversations/with-seller/${sellerId}`, {
+      const response = await fetch(`http://localhost:8080/api/conversations/with-seller/${sellerId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -86,7 +86,7 @@ const MessengerPopup = ({
   const createNewConversation = async () => {
     try {
       const token = sessionStorage.getItem('auth_token');
-      const response = await fetch('http://localhost:8000/api/conversations', {
+      const response = await fetch('http://localhost:8080/api/conversations', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -118,7 +118,7 @@ const MessengerPopup = ({
 
     try {
       const token = sessionStorage.getItem('auth_token');
-      const response = await fetch(`http://localhost:8000/api/chat/${conversationId}/send`, {
+      const response = await fetch(`http://localhost:8080/api/chat/${conversationId}/send`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -136,34 +136,34 @@ const ProfilePage = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
-                <h1 className="text-3xl font-bold text-white flex items-center">
-                    <User className="h-8 w-8 mr-3" />
+            <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white flex items-center">
+                    <User className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 mr-2 sm:mr-3" />
                     My Profile
                 </h1>
-                <p className="text-white/90 mt-2 text-lg">
+                <p className="text-white/90 mt-2 text-sm sm:text-base md:text-lg">
                     Manage your personal information and account settings
                 </p>
             </div>
 
             <Card className="border-[#e5ded7] shadow-xl">
-                <CardHeader className="flex flex-row items-center justify-between border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white p-4 sm:p-6">
                     <div>
-                        <CardTitle className="text-[#5c3d28] flex items-center">
-                            <User className="h-5 w-5 mr-2 text-[#a4785a]" />
+                        <CardTitle className="text-[#5c3d28] flex items-center text-base sm:text-lg md:text-xl">
+                            <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-[#a4785a]" />
                             Profile Information
                         </CardTitle>
-                        <CardDescription className="text-[#7b5a3b]">View and edit your personal details</CardDescription>
+                        <CardDescription className="text-[#7b5a3b] text-xs sm:text-sm">View and edit your personal details</CardDescription>
                     </div>
                     {isEditing ? (
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                             <Button 
                                 onClick={handleSave}
-                                className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
+                                className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm"
                             >
-                                <Save className="mr-2 h-4 w-4" />
+                                <Save className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                                 Save
                             </Button>
                             <Button 
@@ -172,112 +172,117 @@ const ProfilePage = () => {
                                     setIsEditing(false);
                                     setEditableUser(user); 
                                 }}
-                                className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"
+                                className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200 text-xs sm:text-sm"
                             >
-                                <X className="mr-2 h-4 w-4" />
+                                <X className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                                 Cancel
                             </Button>
                         </div>
                     ) : (
                         <Button 
                             onClick={() => setIsEditing(true)}
-                            className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
+                            className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200 w-full sm:w-auto text-xs sm:text-sm"
                         >
                             Edit Profile
                         </Button>
                     )}
                 </CardHeader>
-                <CardContent className="space-y-4 pt-6">
+                <CardContent className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 p-4 sm:p-6">
                     <div>
-                        <Label htmlFor="userName">Name</Label>
+                        <Label htmlFor="userName" className="text-xs sm:text-sm">Name</Label>
                         <Input
                             id="userName"
                             name="userName"
                             value={isEditing ? editableUser.userName : user.userName}
                             onChange={handleInputChange}
                             readOnly={!isEditing}
+                            className="text-xs sm:text-sm md:text-base"
                         />
                     </div>
                     <div>
-                        <Label htmlFor="userEmail">Email</Label>
+                        <Label htmlFor="userEmail" className="text-xs sm:text-sm">Email</Label>
                         <Input
                             id="userEmail"
                             name="userEmail"
                             value={isEditing ? editableUser.userEmail : user.userEmail}
                             onChange={handleInputChange}
                             readOnly={!isEditing}
+                            className="text-xs sm:text-sm md:text-base"
                         />
                     </div>
                     <div>
-                        <Label htmlFor="role">Role</Label>
-                        <Input id="role" name="role" value={user.role} readOnly />
+                        <Label htmlFor="role" className="text-xs sm:text-sm">Role</Label>
+                        <Input id="role" name="role" value={user.role} readOnly className="text-xs sm:text-sm md:text-base" />
                     </div>
                     <div>
-                        <Label htmlFor="userBirthday">Birthday</Label>
+                        <Label htmlFor="userBirthday" className="text-xs sm:text-sm">Birthday</Label>
                         <Input
                             id="userBirthday"
                             name="userBirthday"
                             value={isEditing ? editableUser.userBirthday : user.userBirthday}
                             onChange={handleInputChange}
                             readOnly={!isEditing}
+                            className="text-xs sm:text-sm md:text-base"
                         />
                     </div>
                     <div>
-                        <Label htmlFor="userContactNumber">Contact Number</Label>
+                        <Label htmlFor="userContactNumber" className="text-xs sm:text-sm">Contact Number</Label>
                         <Input
                             id="userContactNumber"
                             name="userContactNumber"
                             value={isEditing ? editableUser.userContactNumber || '' : user.userContactNumber || ''}
                             onChange={handleInputChange}
                             readOnly={!isEditing}
+                            className="text-xs sm:text-sm md:text-base"
                         />
                     </div>
                     <div>
-                        <Label htmlFor="userAddress">Address</Label>
+                        <Label htmlFor="userAddress" className="text-xs sm:text-sm">Address</Label>
                         <Input
                             id="userAddress"
                             name="userAddress"
                             value={isEditing ? editableUser.userAddress || '' : user.userAddress || ''}
                             onChange={handleInputChange}
                             readOnly={!isEditing}
+                            className="text-xs sm:text-sm md:text-base"
                         />
                     </div>
                 </CardContent>
             </Card>
 
             <Card className="border-[#e5ded7] shadow-xl">
-                <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
-                    <CardTitle className="text-[#5c3d28] flex items-center">
-                        <AlertTriangle className="h-5 w-5 mr-2 text-[#a4785a]" />
+                <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white p-4 sm:p-6">
+                    <CardTitle className="text-[#5c3d28] flex items-center text-base sm:text-lg md:text-xl">
+                        <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-[#a4785a]" />
                         Account Management
                     </CardTitle>
-                    <CardDescription className="text-[#7b5a3b]">Manage your account status and data</CardDescription>
+                    <CardDescription className="text-[#7b5a3b] text-xs sm:text-sm">Manage your account status and data</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6 pt-6">
-                    <div className="flex items-center justify-between p-4 border-2 border-[#e5ded7] rounded-xl hover:border-yellow-400 transition-all duration-200 bg-gradient-to-r from-white to-[#faf9f8]">
+                <CardContent className="space-y-3 sm:space-y-4 md:space-y-6 pt-4 sm:pt-6 p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 p-3 sm:p-4 border-2 border-[#e5ded7] rounded-lg sm:rounded-xl hover:border-yellow-400 transition-all duration-200 bg-gradient-to-r from-white to-[#faf9f8]">
                         <div className="flex-1">
-                            <p className="font-semibold text-[#5c3d28]">Deactivate Account</p>
-                            <span className="text-sm text-[#7b5a3b]">Temporarily disable your account</span>
+                            <p className="font-semibold text-[#5c3d28] text-sm sm:text-base">Deactivate Account</p>
+                            <span className="text-xs sm:text-sm text-[#7b5a3b]">Temporarily disable your account</span>
                         </div>
                         <Button 
                             variant="outline" 
                             onClick={handleDeactivate}
-                            className="border-2 border-yellow-300 text-yellow-700 hover:bg-yellow-50 hover:border-yellow-400 transition-all duration-200"
+                            className="border-2 border-yellow-300 text-yellow-700 hover:bg-yellow-50 hover:border-yellow-400 transition-all duration-200 w-full sm:w-auto text-xs sm:text-sm"
                         >
                             Deactivate
                         </Button>
                     </div>
-                    <div className="flex items-center justify-between p-4 border-2 border-red-200 rounded-xl hover:border-red-400 transition-all duration-200 bg-gradient-to-r from-red-50 to-white">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 p-3 sm:p-4 border-2 border-red-200 rounded-lg sm:rounded-xl hover:border-red-400 transition-all duration-200 bg-gradient-to-r from-red-50 to-white">
                         <div className="flex-1">
-                            <p className="font-semibold text-red-700">Delete Account</p>
-                            <span className="text-sm text-red-600">Permanently delete your account and all data</span>
+                            <p className="font-semibold text-red-700 text-sm sm:text-base">Delete Account</p>
+                            <span className="text-xs sm:text-sm text-red-600">Permanently delete your account and all data</span>
                         </div>
                         <Button 
                             variant="destructive" 
                             onClick={handleDelete}
-                            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all duration-200"
+                            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all duration-200 w-full sm:w-auto text-xs sm:text-sm"
                         >
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <Trash2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                             Delete
                         </Button>
                     </div>

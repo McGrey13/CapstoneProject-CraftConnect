@@ -26,7 +26,7 @@ const ProductCard = ({
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const handleCardClick = () => {
-    navigate(`/products/${id}`);
+    navigate(`/product/${id}`);
   };
 
   const handleAddToCart = (e) => {

@@ -22,9 +22,9 @@ import { Truck, Globe, MapPin, Package } from "lucide-react";
 
 const ShippingSettings = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 max-w-[405px] mx-auto sm:max-w-none px-2 sm:px-0">
       {/* Header with craft theme */}
-      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg sm:rounded-xl shadow-xl p-3 sm:p-4 md:p-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white flex items-center">
@@ -58,10 +58,10 @@ const ShippingSettings = () => {
         </TabsList>
 
         <TabsContent value="domestic" className="space-y-6 pt-6">
-          <Card className="border-2 border-[#e5ded7] shadow-xl">
-            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
-              <CardTitle className="flex items-center text-[#5c3d28]">
-                <MapPin className="h-5 w-5 mr-2 text-[#a4785a]" />
+          <Card className="border-2 border-[#e5ded7] shadow-xl rounded-lg sm:rounded-xl overflow-hidden">
+            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white p-3 sm:p-4">
+              <CardTitle className="flex items-center text-[#5c3d28] text-sm sm:text-base">
+                <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-[#a4785a]" />
                 Domestic Shipping Methods
               </CardTitle>
               <CardDescription className="text-[#7b5a3b]">
@@ -75,10 +75,10 @@ const ShippingSettings = () => {
         </TabsContent>
 
         <TabsContent value="packaging" className="space-y-6 pt-6">
-          <Card className="border-2 border-[#e5ded7] shadow-xl">
-            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
-              <CardTitle className="flex items-center text-[#5c3d28]">
-                <Package className="h-5 w-5 mr-2 text-[#a4785a]" />
+          <Card className="border-2 border-[#e5ded7] shadow-xl rounded-lg sm:rounded-xl overflow-hidden">
+            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white p-3 sm:p-4">
+              <CardTitle className="flex items-center text-[#5c3d28] text-sm sm:text-base">
+                <Package className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-[#a4785a]" />
                 Packaging Options
               </CardTitle>
               <CardDescription className="text-[#7b5a3b]">

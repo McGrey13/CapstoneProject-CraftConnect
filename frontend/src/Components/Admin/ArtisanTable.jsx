@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Edit, Eye, MoreHorizontal, Filter, X, Clock, RefreshCw } from "lucide-react";
+import { Edit, Eye, MoreHorizontal, Filter, X, RefreshCw } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent } from "../ui/card";
@@ -31,7 +31,6 @@ const ArtisanTable = () => {
   const [allSellers, setAllSellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
   
   // State for view and edit dialogs
   const [selectedSellerId, setSelectedSellerId] = useState(null);
@@ -42,38 +41,16 @@ const ArtisanTable = () => {
   const fetchSellers = async () => {
     try {
       setLoading(true);
-      console.log("🔍 Fetching sellers/artisans...");
       const response = await api.get("/sellers");
-      console.log("✅ Sellers API Response:", response.data);
       
       if (Array.isArray(response.data)) {
         setSellers(response.data);
         setAllSellers(response.data);
-        setLastUpdated(new Date());
-        console.log(`📊 Loaded ${response.data.length} sellers/artisans`);
-        // Debug profile images
-        response.data.forEach((seller, index) => {
-          if (index < 3) { // Log first 3 sellers for debugging
-            console.log(`👤 Seller ${index + 1}:`, {
-              name: seller.user?.userName,
-              profile_image_url: seller.profile_image_url,
-              hasImage: !!seller.profile_image_url
-            });
-          }
-        });
       } else {
-        console.warn("⚠️ Unexpected data format:", response.data);
         setSellers([]);
         setAllSellers([]);
       }
     } catch (error) {
-      console.error("❌ Error fetching sellers:", error);
-      console.error("Error details:", {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data
-      });
       setError(error.message || 'Failed to fetch sellers');
     } finally {
       setLoading(false);
@@ -87,7 +64,6 @@ const ArtisanTable = () => {
   // Auto-refresh every 1 minute
   useEffect(() => {
     const interval = setInterval(() => {
-      console.log('Auto-refreshing artisans list...');
       fetchSellers();
     }, 60000); // 60 seconds = 1 minute
 
@@ -215,10 +191,6 @@ const ArtisanTable = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-white bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/30">
-              <Clock className="h-4 w-4" />
-              <span className="font-medium">Updated: {lastUpdated.toLocaleTimeString()}</span>
-            </div>
             <Button
               onClick={fetchSellers}
               className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white border border-white/30 shadow-lg"
@@ -339,7 +311,6 @@ const ArtisanTable = () => {
                             alt={seller.user?.userName}
                             className="w-14 h-14 object-cover rounded-full border-2 border-[#d5bfae] shadow-md"
                             onError={(e) => {
-                              console.error('Failed to load seller profile image:', seller.profile_image_url);
                               e.target.style.display = 'none';
                               e.target.nextSibling.style.display = 'flex';
                             }}

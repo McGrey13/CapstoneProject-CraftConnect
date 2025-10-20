@@ -22,34 +22,35 @@ import {
 } from "lucide-react";
 
 const PaymentMethodCard = ({ title, description, icon, isConnected = false, connectedPhone = null, onConnect }) => (
-  <Card className="p-5 border-2 border-[#e5ded7] hover:border-[#a4785a] hover:shadow-lg transition-all duration-200 bg-gradient-to-r from-white to-[#faf9f8]">
-    <div className="flex items-start gap-4">
-      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-lg">
+  <Card className="p-3 sm:p-4 md:p-5 border-2 border-[#e5ded7] hover:border-[#a4785a] hover:shadow-lg transition-all duration-200 bg-gradient-to-r from-white to-[#faf9f8]">
+    <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
+      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-lg flex-shrink-0">
         <div className="text-white">{icon}</div>
       </div>
-      <div className="flex-1">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-[#5c3d28]">{title}</h3>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h3 className="font-semibold text-[#5c3d28] text-sm sm:text-base md:text-lg">{title}</h3>
           {isConnected && (
-            <span className="flex items-center text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full">
-              <CheckCircle2 className="h-4 w-4 mr-1" />
+            <span className="flex items-center text-xs sm:text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full whitespace-nowrap">
+              <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
               Connected
             </span>
           )}
         </div>
-        <p className="text-sm text-[#7b5a3b] mt-1">{description}</p>
+        <p className="text-xs sm:text-sm text-[#7b5a3b] mt-1">{description}</p>
         {isConnected && connectedPhone && (
-          <p className="text-xs text-[#a4785a] font-medium mt-2">
+          <p className="text-xs text-[#a4785a] font-medium mt-2 break-all">
             📱 {connectedPhone}
           </p>
         )}
         <Button
           variant={isConnected ? "outline" : "default"}
           size="sm"
-          className={isConnected 
-            ? "mt-3 border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"
-            : "mt-3 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
-          }
+          className={`mt-3 text-xs sm:text-sm ${
+            isConnected 
+              ? "border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200"
+              : "bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
+          }`}
           onClick={onConnect}
         >
           {isConnected ? "Manage" : "Connect"}
@@ -166,25 +167,25 @@ const PaymentSettings = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
-        <h1 className="text-3xl font-bold text-white flex items-center">
-          <Wallet className="h-8 w-8 mr-3" />
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white flex items-center">
+          <Wallet className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 mr-2 sm:mr-3" />
           E-payment Settings
         </h1>
-        <p className="text-white/90 mt-2 text-lg">
+        <p className="text-white/90 mt-2 text-sm sm:text-base md:text-lg">
           Connect your e-wallet accounts to accept GCash and PayMaya payments
         </p>
       </div>
 
       <Tabs defaultValue="methods">
-        <TabsList className="grid w-full grid-cols-1 bg-[#faf9f8] border-2 border-[#e5ded7] p-1 rounded-xl shadow-md">
+        <TabsList className="grid w-full grid-cols-1 bg-[#faf9f8] border-2 border-[#e5ded7] p-1 rounded-lg sm:rounded-xl shadow-md text-xs sm:text-sm">
           <TabsTrigger 
             value="methods"
             className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 font-medium"
           >
-            <Wallet className="h-4 w-4 mr-2" />
+            <Wallet className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
             E-wallet Accounts
           </TabsTrigger>
           {/* <TabsTrigger value="payouts">
@@ -198,12 +199,12 @@ const PaymentSettings = () => {
         </TabsList>
 
         {/* E-wallet Accounts */}
-        <TabsContent value="methods" className="space-y-4 pt-4">
-          <div className="grid gap-4">
+        <TabsContent value="methods" className="space-y-3 sm:space-y-4 pt-3 sm:pt-4">
+          <div className="grid gap-3 sm:gap-4">
             <PaymentMethodCard
               title="GCash"
               description="Accept GCash e-wallet payments from Filipino customers"
-              icon={<Wallet className="h-6 w-6 text-primary" />}
+              icon={<Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
               isConnected={paymentMethods.gcash}
               connectedPhone={connectedPhones.gcash}
               onConnect={() => paymentMethods.gcash ? handleDisconnectGateway("gcash") : handleConnectGateway("gcash")}
@@ -212,16 +213,16 @@ const PaymentSettings = () => {
             <PaymentMethodCard
               title="PayMaya"
               description="Accept PayMaya e-wallet payments from Filipino customers"
-              icon={<CreditCard className="h-6 w-6 text-primary" />}
+              icon={<CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
               isConnected={paymentMethods.paymaya}
               connectedPhone={connectedPhones.paymaya}
               onConnect={() => paymentMethods.paymaya ? handleDisconnectGateway("paymaya") : handleConnectGateway("paymaya")}
             />  
           </div>
 
-          <Alert className="bg-blue-50 border-blue-200">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-600">
+          <Alert className="bg-blue-50 border-blue-200 p-3 sm:p-4">
+            <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+            <AlertDescription className="text-blue-600 text-xs sm:text-sm">
               Connect both GCash and PayMaya to maximize payment convenience for your customers and increase sales by up to 40%.
             </AlertDescription>
           </Alert>

@@ -194,7 +194,7 @@ const ShoppingCart = () => {
                             item.image
                               ? item.image.startsWith("http")
                                 ? item.image
-                                : `http://localhost:8000/storage/${item.image}`
+                                : `http://localhost:8080/storage/${item.image}`
                               : "/placeholder-product.jpg"
                           }
                           alt={item.title}

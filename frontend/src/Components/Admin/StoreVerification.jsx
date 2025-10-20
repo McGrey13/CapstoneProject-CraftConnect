@@ -15,7 +15,6 @@ import {
   Filter,
   Store,
   Users,
-  Clock,
   AlertTriangle,
   Building2,
   User,
@@ -65,7 +64,6 @@ const StoreVerification = () => {
   const [stats, setStats] = useState({});
   const [sellerDetails, setSellerDetails] = useState(null);
   const [loadingSellerDetails, setLoadingSellerDetails] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
 
   useEffect(() => {
     fetchStores();
@@ -75,7 +73,6 @@ const StoreVerification = () => {
   // Auto-refresh every 1 minute
   useEffect(() => {
     const interval = setInterval(() => {
-      console.log('Auto-refreshing store list...');
       fetchStores();
       fetchStats();
     }, 60000); // 60 seconds = 1 minute
@@ -92,9 +89,8 @@ const StoreVerification = () => {
       
       const response = await api.get('/admin/stores', { params });
       setStores(response.data.data || []);
-      setLastUpdated(new Date());
     } catch (error) {
-      console.error('Error fetching stores:', error);
+      // Error handling
     } finally {
       setLoading(false);
     }
@@ -105,7 +101,7 @@ const StoreVerification = () => {
       const response = await api.get('/admin/verification-stats');
       setStats(response.data);
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      // Error handling
     }
   };
 
@@ -116,7 +112,6 @@ const StoreVerification = () => {
       fetchStats();
       alert('Store approved and seller verified successfully!');
     } catch (error) {
-      console.error('Error approving store:', error);
       alert('Error approving store');
     }
   };
@@ -136,7 +131,6 @@ const StoreVerification = () => {
       setSelectedStore(null);
       alert('Store rejected successfully!');
     } catch (error) {
-      console.error('Error rejecting store:', error);
       alert('Error rejecting store');
     }
   };
@@ -156,7 +150,7 @@ const StoreVerification = () => {
       setSellerDetails(sellerDetailsResponse.data);
       setShowDocuments(true);
     } catch (error) {
-      console.error('Error fetching documents and seller details:', error);
+      // Error handling
     } finally {
       setLoadingSellerDetails(false);
     }
@@ -660,10 +654,6 @@ const StoreVerification = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
-                <Clock className="h-4 w-4 text-[#a4785a]" />
-                <span className="font-medium">Last updated: {lastUpdated.toLocaleTimeString()}</span>
-              </div>
               <Filter className="h-5 w-5 text-gray-500" />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full md:w-48 h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg">

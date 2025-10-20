@@ -15,7 +15,7 @@ export default function FeaturedProducts() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://localhost:8000/api/products', {
+      const response = await fetch('http://localhost:8080/api/products', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -40,7 +40,7 @@ export default function FeaturedProducts() {
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(
-        `http://localhost:8000/api/products/${productId}/toggle-featured`,
+        `http://localhost:8080/api/products/${productId}/toggle-featured`,
         {
           method: 'POST',
           headers: {

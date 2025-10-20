@@ -879,7 +879,7 @@ class ProductController extends Controller
     public function featuredProducts()
     {
         try {
-            $products = Product::with(['seller.user', 'seller.store'])
+            $products = Product::with(['seller.user', 'seller.store', 'reviews.user'])
                 ->where('approval_status', 'approved')
                 ->where('publish_status', 'published')
                 ->where('is_featured', true)
@@ -890,6 +890,13 @@ class ProductController extends Controller
                 $productImageUrl = $product->productImage
                     ? url('storage/' . ltrim($product->productImage, '/'))
                     : '';
+                
+                // Calculate average rating from reviews
+                $averageRating = 0;
+                if ($product->reviews && $product->reviews->count() > 0) {
+                    $sum = $product->reviews->sum('rating');
+                    $averageRating = $sum / $product->reviews->count();
+                }
                     
                 $productData = [
                     'id' => $product->product_id,
@@ -906,6 +913,8 @@ class ProductController extends Controller
                     'is_featured' => $product->is_featured,
                     'created_at' => $product->created_at,
                     'updated_at' => $product->updated_at,
+                    'average_rating' => round($averageRating, 1),
+                    'reviews_count' => $product->reviews ? $product->reviews->count() : 0,
                 ];
 
                 // Include seller information if available
@@ -952,7 +961,7 @@ class ProductController extends Controller
     public function approvedProducts()
     {
         try {
-            $products = Product::with(['seller.user', 'seller.store'])
+            $products = Product::with(['seller.user', 'seller.store', 'reviews.user'])
                 ->where('approval_status', 'approved')
                 ->where('publish_status', 'published')
                 ->get();
@@ -977,6 +986,27 @@ class ProductController extends Controller
                         return url('storage/' . ltrim($imagePath, '/'));
                     }, $productImages);
                 }
+                
+                // Calculate average rating from reviews
+                $averageRating = 0;
+                $totalRatings = 0;
+                if ($product->reviews && $product->reviews->count() > 0) {
+                    $totalRatings = $product->reviews->count();
+                    $averageRating = round($product->reviews->avg('rating'), 1);
+                }
+                
+                // Calculate total units sold from order_products
+                $totalSold = 0;
+                try {
+                    $totalSold = \DB::table('order_products')
+                        ->where('product_id', $product->product_id)
+                        ->sum('quantity');
+                } catch (\Exception $e) {
+                    Log::warning('Error calculating sold count', [
+                        'product_id' => $product->product_id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
                     
                 $productData = [
                     'id' => $product->product_id,
@@ -993,7 +1023,10 @@ class ProductController extends Controller
                     'seller_id' => $product->seller_id,
                     'approval_status' => $product->approval_status,
                     'publish_status' => $product->publish_status,
-                    'is_featured' => $product->is_featured, // Add featured status
+                    'is_featured' => $product->is_featured,
+                    'average_rating' => $averageRating,
+                    'reviews_count' => $totalRatings,
+                    'sold_count' => $totalSold,
                     'created_at' => $product->created_at,
                     'updated_at' => $product->updated_at,
                 ];

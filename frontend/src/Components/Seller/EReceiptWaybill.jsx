@@ -10,6 +10,24 @@ import {
 } from "lucide-react";
 import api from "../../api";
 
+// Add custom scrollbar styles
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f8f1ec;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #d5bfae;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #a4785a;
+  }
+`;
+
 // Add print styles
 const printStyles = `
   @media print {
@@ -38,6 +56,19 @@ const EReceiptWaybill = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState('latest'); // 'latest' or 'oldest'
   const [activeTab, setActiveTab] = useState('waybill'); // 'waybill' or 'receipts'
+  const previewRef = React.useRef(null);
+
+  // Function to handle order selection and scroll to preview on mobile
+  const handleOrderSelect = (order) => {
+    setSelectedOrder(order);
+    // Check if we're on mobile/tablet (screen width < 1024px for lg breakpoint)
+    if (window.innerWidth < 1024 && previewRef.current) {
+      // Add a small delay to ensure the preview content is rendered
+      setTimeout(() => {
+        previewRef.current.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -383,7 +414,7 @@ const EReceiptWaybill = () => {
               <div class="info-grid">
                 <div class="info-item">
                   <div class="label">Order Number</div>
-                  <div class="value" style="font-family: 'Courier New', monospace;">${order.order_number || '#' + order.orderID}</div>
+                  <div class="value" style="font-family: 'Courier New', monospace;">${order.order_number}</div>
                 </div>
                 <div class="info-item">
                   <div class="label">Order Date</div>
@@ -571,67 +602,67 @@ const EReceiptWaybill = () => {
   const currentOrders = activeTab === 'waybill' ? ordersWithTracking : ordersWithoutTracking;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 max-w-[405px] mx-auto sm:max-w-none px-2 sm:px-0">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-            <FileText className="h-8 w-8 text-white" />
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg sm:rounded-xl shadow-xl p-3 sm:p-6 md:p-8">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-2 sm:p-3 bg-white/20 rounded-lg sm:rounded-xl backdrop-blur-sm">
+            <FileText className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">E-Receipt & Waybill</h1>
-            <p className="text-white/90 mt-1">Generate delivery waybills and customer e-receipts</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">E-Receipt & Waybill</h1>
+            <p className="text-white/90 mt-1 text-sm sm:text-base">Generate delivery waybills and customer e-receipts</p>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 border-b-2 border-[#e5ded7]">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 border-b-2 border-[#e5ded7]">
         <button
           onClick={() => {
             setActiveTab('waybill');
             setSelectedOrder(null);
           }}
-          className={`px-6 py-3 font-semibold transition-all duration-200 border-b-4 ${
+          className={`px-4 sm:px-6 py-2 sm:py-3 font-semibold transition-all duration-200 border-b-4 text-xs sm:text-sm md:text-base ${
             activeTab === 'waybill'
               ? 'border-[#a4785a] text-[#5c3d28] bg-gradient-to-b from-[#faf9f8] to-transparent'
               : 'border-transparent text-[#7b5a3b] hover:text-[#5c3d28] hover:bg-[#faf9f8]/50'
           }`}
         >
-          <Truck className="h-4 w-4 inline mr-2" />
+          <Truck className="h-3 w-3 sm:h-4 sm:w-4 inline mr-2" />
           Waybills ({ordersWithTracking.length})
-          <span className="ml-2 text-xs bg-[#a4785a]/10 px-2 py-1 rounded">With Tracking</span>
+          <span className="ml-2 text-xs bg-[#a4785a]/10 px-2 py-1 rounded hidden sm:inline">With Tracking</span>
         </button>
         <button
           onClick={() => {
             setActiveTab('receipts');
             setSelectedOrder(null);
           }}
-          className={`px-6 py-3 font-semibold transition-all duration-200 border-b-4 ${
+          className={`px-4 sm:px-6 py-2 sm:py-3 font-semibold transition-all duration-200 border-b-4 text-xs sm:text-sm md:text-base ${
             activeTab === 'receipts'
               ? 'border-[#a4785a] text-[#5c3d28] bg-gradient-to-b from-[#faf9f8] to-transparent'
               : 'border-transparent text-[#7b5a3b] hover:text-[#5c3d28] hover:bg-[#faf9f8]/50'
           }`}
         >
-          <FileText className="h-4 w-4 inline mr-2" />
+          <FileText className="h-3 w-3 sm:h-4 sm:w-4 inline mr-2" />
           Customer E-Receipts ({ordersWithoutTracking.length})
-          <span className="ml-2 text-xs bg-green-600/10 text-green-700 px-2 py-1 rounded">Paid Online</span>
+          <span className="ml-2 text-xs bg-green-600/10 text-green-700 px-2 py-1 rounded hidden sm:inline">Paid Online</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 h-[calc(100vh-16rem)]">
         {/* Orders List */}
-        <Card className="border-2 border-[#e5ded7] shadow-xl">
-          <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
-            <div className="flex items-center justify-between">
+        <Card className="border-2 border-[#e5ded7] shadow-xl h-full flex flex-col rounded-lg sm:rounded-xl overflow-hidden">
+          <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white p-3 sm:p-6 flex-none">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
               <div>
-                <CardTitle className="text-[#5c3d28] flex items-center text-xl">
-                  <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
-                    {activeTab === 'waybill' ? <Truck className="h-5 w-5 text-white" /> : <FileText className="h-5 w-5 text-white" />}
+                <CardTitle className="text-[#5c3d28] flex items-center text-base sm:text-lg md:text-xl">
+                  <div className="p-1.5 sm:p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-2 sm:mr-3">
+                    {activeTab === 'waybill' ? <Truck className="h-4 w-4 sm:h-5 sm:w-5 text-white" /> : <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
                   </div>
                   {activeTab === 'waybill' ? 'Waybills (With Tracking)' : 'Customer E-Receipts (Paid Online)'}
                 </CardTitle>
-                <CardDescription className="text-[#7b5a3b] ml-11">
+                <CardDescription className="text-[#7b5a3b] ml-0 sm:ml-11 text-xs sm:text-sm">
                   {activeTab === 'waybill' 
                     ? 'Orders with tracking numbers - for rider delivery documents'
                     : 'Paid GCash/PayMaya orders - send these receipts to customers'}
@@ -657,8 +688,8 @@ const EReceiptWaybill = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-3">
+          <CardContent className="p-3 flex-1 overflow-hidden">
+            <div className="h-full overflow-y-auto custom-scrollbar pr-2 space-y-2">
               {currentOrders.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -680,18 +711,18 @@ const EReceiptWaybill = () => {
                 currentOrders.map((order) => (
                   <div
                     key={order.orderID}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
+                    className={`p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
                       selectedOrder?.orderID === order.orderID
                         ? 'border-[#a4785a] bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10'
                         : 'border-[#e5ded7] hover:border-[#a4785a]/50 hover:shadow-md'
                     }`}
-                    onClick={() => setSelectedOrder(order)}
+                    onClick={() => handleOrderSelect(order)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <h3 className="font-bold text-[#5c3d28] bg-white px-2 py-1 rounded border border-[#e5ded7]">
-                            {order.order_number || `ORD-${order.orderID}`}
+                            {order.order_number}
                           </h3>
                           <Badge className="bg-[#a4785a]/10 text-[#5c3d28] border-[#a4785a]/30">
                             {order.status || 'Unknown'}
@@ -746,7 +777,7 @@ const EReceiptWaybill = () => {
                           variant="outline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedOrder(order);
+                            handleOrderSelect(order);
                           }}
                           className="border-[#e5ded7] text-[#5c3d28] hover:bg-[#faf9f8] hover:border-[#a4785a]"
                         >
@@ -763,8 +794,8 @@ const EReceiptWaybill = () => {
         </Card>
 
         {/* Receipt Preview */}
-        <Card className="border-2 border-[#e5ded7] shadow-xl">
-          <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
+        <Card className="border-2 border-[#e5ded7] shadow-xl h-full flex flex-col rounded-lg sm:rounded-xl overflow-hidden" ref={previewRef}>
+          <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white flex-none p-3 sm:p-6">
             <CardTitle className="text-[#5c3d28] flex items-center text-xl">
               <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
                 {activeTab === 'waybill' ? <Truck className="h-5 w-5 text-white" /> : <FileText className="h-5 w-5 text-white" />}
@@ -777,11 +808,12 @@ const EReceiptWaybill = () => {
                 : `Select an order to preview ${activeTab === 'waybill' ? 'waybill' : 'e-receipt'}`}
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-3 flex-1 overflow-hidden">
+            <style>{scrollbarStyles}</style>
+            <style>{printStyles}</style>
             {selectedOrder ? (
-              <div className="space-y-6">
+              <div className="h-full overflow-y-auto custom-scrollbar pr-2 space-y-4">
                 {/* Add print styles */}
-                <style>{printStyles}</style>
                 
                 {/* Receipt Content - Print Ready */}
                 <div className="print-content bg-white border-2 border-[#e5ded7] rounded-xl overflow-hidden shadow-lg">
@@ -843,7 +875,7 @@ const EReceiptWaybill = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-[#faf9f8] p-3 rounded-lg border-l-4 border-[#a4785a]">
                           <p className="text-xs font-semibold text-[#7b5a3b] uppercase tracking-wide mb-1">Order Number</p>
-                          <p className="text-sm font-bold text-[#5c3d28] font-mono">{selectedOrder.order_number || `#${selectedOrder.orderID}`}</p>
+                          <p className="text-sm font-bold text-[#5c3d28] font-mono">{selectedOrder.order_number}</p>
                         </div>
                         <div className="bg-[#faf9f8] p-3 rounded-lg border-l-4 border-[#a4785a]">
                           <p className="text-xs font-semibold text-[#7b5a3b] uppercase tracking-wide mb-1">Order Date</p>

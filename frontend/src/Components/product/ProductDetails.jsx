@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { Badge } from "../ui/badge";
 import { useCart } from "../Cart/CartContext";
 import { useFavorites } from "../favorites/FavoritesContext";
+import api from "../../api";
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -27,28 +28,46 @@ const ProductDetails = () => {
   const [allMedia, setAllMedia] = useState([]);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
+  // Helper function to convert image URLs to use correct backend
+  const fixImageUrl = (url) => {
+    if (!url) return url;
+    // If it's already a full URL with localhost, convert to relative path
+    if (url.includes('localhost:8000')) {
+      // Extract the path from the URL
+      const path = new URL(url).pathname;
+      return path;
+    }
+    if (url.includes('localhost:8080')) {
+      // Extract the path from the URL
+      const path = new URL(url).pathname;
+      return path;
+    }
+    // If it's already a relative path, return as is
+    if (url.startsWith('/storage/') || url.startsWith('/images/')) {
+      return url;
+    }
+    return url;
+  };
+
   const fetchProductAndReviews = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const productRes = await fetch(`http://localhost:8000/api/products/${id}`);
-      if (!productRes.ok) {
-        if (productRes.status === 404) throw new Error("Product not found");
-        throw new Error(`Failed to fetch product: ${productRes.status}`);
-      }
-      const productData = await productRes.json();
+      const response = await api.get(`/products/${id}`);
+      const productData = response.data;
       setProduct(productData);
       
-      // Process all images (main + additional)
+      // Process all images (main + additional) with fixed URLs
       const images = [];
       if (productData.productImage) {
-        images.push(productData.productImage);
+        images.push(fixImageUrl(productData.productImage));
       }
       if (productData.productImages && Array.isArray(productData.productImages)) {
         productData.productImages.forEach(img => {
-          if (img && !images.includes(img)) {
-            images.push(img);
+          const fixedUrl = fixImageUrl(img);
+          if (fixedUrl && !images.includes(fixedUrl)) {
+            images.push(fixedUrl);
           }
         });
       }
@@ -60,7 +79,7 @@ const ProductDetails = () => {
         media.push({ type: "image", src: img });
       });
       if (productData.productVideo) {
-        media.push({ type: "video", src: productData.productVideo });
+        media.push({ type: "video", src: fixImageUrl(productData.productVideo) });
       }
       
       setAllMedia(media);
@@ -69,28 +88,21 @@ const ProductDetails = () => {
       setSelectedMedia(media[0] || { type: "image", src: productData.productImage });
 
       // Reviews and ratings are now included in the product data
-      console.log('📝 Product data with reviews:', productData);
-      
       if (productData.reviews && Array.isArray(productData.reviews)) {
         setReviews(productData.reviews);
-        console.log(`📝 Found ${productData.reviews.length} reviews in product data`);
       } else {
         setReviews([]);
-        console.log('📝 No reviews found in product data');
       }
       
       // Use the average rating from the backend or calculate it
       if (productData.average_rating !== undefined) {
         setAverageRating(productData.average_rating);
-        console.log(`⭐ Using backend average rating: ${productData.average_rating}`);
       } else if (productData.reviews && productData.reviews.length > 0) {
         const totalRating = productData.reviews.reduce((acc, curr) => acc + (curr.rating || 0), 0);
         const calculatedAverage = totalRating / productData.reviews.length;
         setAverageRating(calculatedAverage);
-        console.log(`⭐ Calculated average rating: ${calculatedAverage.toFixed(2)} from ${productData.reviews.length} reviews`);
       } else {
         setAverageRating(0);
-        console.log('⭐ No reviews found, setting average to 0');
       }
     } catch (err) {
       setError(err.message);

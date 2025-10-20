@@ -144,230 +144,237 @@ const EditableSellerDetail = ({ id = "SEL-1001", onBack = () => {} }) => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center space-x-4">
-        <Button variant="outline" size="icon" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" />
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      <div className="flex items-center space-x-2 sm:space-x-4">
+        <Button variant="outline" size="icon" onClick={onBack} className="h-8 w-8 sm:h-10 sm:w-10">
+          <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">Seller Details</h1>
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold">Seller Details</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <Card className="lg:col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle>Seller Profile</CardTitle>
+          <CardHeader className="pb-2 px-3 sm:px-6">
+            <CardTitle className="text-base sm:text-lg">Seller Profile</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-6">
             <div className="flex flex-col items-center mb-4">
-              <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-2">
-                <span className="text-2xl font-bold text-gray-600">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-gray-200 flex items-center justify-center mb-2">
+                <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-600">
                   {seller.firstName.charAt(0)}
                 </span>
               </div>
-              <h2 className="text-xl font-semibold">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-center">
                 {seller.firstName} {seller.lastName}
               </h2>
-              <p className="text-gray-500">{seller.businessName}</p>
+              <p className="text-gray-500 text-sm sm:text-base text-center">{seller.businessName}</p>
               <div className="mt-2">
-                {seller.status === "active" && <Badge className="bg-green-500">Active</Badge>}
+                {seller.status === "active" && <Badge className="bg-green-500 text-xs sm:text-sm">Active</Badge>}
                 {seller.status === "pending" && (
-                  <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">Pending</Badge>
+                  <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs sm:text-sm">Pending</Badge>
                 )}
-                {seller.status === "suspended" && <Badge variant="destructive">Suspended</Badge>}
+                {seller.status === "suspended" && <Badge variant="destructive" className="text-xs sm:text-sm">Suspended</Badge>}
               </div>
             </div>
 
-            <div className="space-y-3 mt-4">
+            <div className="space-y-2 sm:space-y-3 mt-3 sm:mt-4">
               <div className="flex items-start">
-                <Mail className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mr-2 mt-0.5" />
                 <div>
-                  <p className="text-sm text-gray-500">Email</p>
-                  <p>{seller.email}</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Email</p>
+                  <p className="text-xs sm:text-sm break-all">{seller.email}</p>
                 </div>
               </div>
               <div className="flex items-start">
-                <Phone className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                <Phone className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mr-2 mt-0.5" />
                 <div>
-                  <p className="text-sm text-gray-500">Phone</p>
-                  <p>{seller.phone}</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Phone</p>
+                  <p className="text-xs sm:text-sm">{seller.phone}</p>
                 </div>
               </div>
               <div className="flex items-start">
-                <MapPin className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mr-2 mt-0.5" />
                 <div>
-                  <p className="text-sm text-gray-500">Address</p>
-                  <p>{seller.address}</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Address</p>
+                  <p className="text-xs sm:text-sm break-words">{seller.address}</p>
                 </div>
               </div>
               <div className="flex items-start">
-                <User className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                <User className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mr-2 mt-0.5" />
                 <div>
-                  <p className="text-sm text-gray-500">Gender</p>
-                  <p className="capitalize">{seller.gender}</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Gender</p>
+                  <p className="text-xs sm:text-sm capitalize">{seller.gender}</p>
                 </div>
               </div>
               <div className="flex items-start">
-                <Calendar className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mr-2 mt-0.5" />
                 <div>
-                  <p className="text-sm text-gray-500">Joined</p>
-                  <p>{new Date(seller.joinDate).toLocaleDateString()}</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Joined</p>
+                  <p className="text-xs sm:text-sm">{new Date(seller.joinDate).toLocaleDateString()}</p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6">
-              <h3 className="font-medium mb-2">About</h3>
-              <p className="text-gray-600 text-sm">{seller.bio}</p>
+            <div className="mt-4 sm:mt-6">
+              <h3 className="font-medium mb-2 text-sm sm:text-base">About</h3>
+              <p className="text-gray-600 text-xs sm:text-sm">{seller.bio}</p>
             </div>
 
-            <div className="mt-6">
-              <h3 className="font-medium mb-2">Verification Status</h3>
+            <div className="mt-4 sm:mt-6">
+              <h3 className="font-medium mb-2 text-sm sm:text-base">Verification Status</h3>
               <div className="space-y-2">
                 {["email", "phone", "identity", "business"].map((key) => (
                   <div className="flex items-center justify-between" key={key}>
-                    <span className="text-sm capitalize">{key}</span>
+                    <span className="text-xs sm:text-sm capitalize">{key}</span>
                     {seller.verificationStatus[key] ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
                     ) : (
-                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
                     )}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="mt-6">
-              <h3 className="font-medium mb-2">Payment Information</h3>
-              <div className="bg-gray-50 p-3 rounded-md">
-                <p className="text-sm">
+            <div className="mt-4 sm:mt-6">
+              <h3 className="font-medium mb-2 text-sm sm:text-base">Payment Information</h3>
+              <div className="bg-gray-50 p-2 sm:p-3 rounded-md">
+                <p className="text-xs sm:text-sm">
                   <span className="text-gray-500">Bank:</span> {seller.bankDetails.bankName}
                 </p>
-                <p className="text-sm">
+                <p className="text-xs sm:text-sm">
                   <span className="text-gray-500">Account:</span> {seller.bankDetails.accountName}
                 </p>
-                <p className="text-sm">
+                <p className="text-xs sm:text-sm">
                   <span className="text-gray-500">Account Number:</span> {seller.bankDetails.accountNumber}
                 </p>
               </div>
             </div>
 
-            <div className="mt-6 space-y-3">
+            <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-3">
               <Dialog
                 open={isEditDialogOpen}
                 onOpenChange={setIsEditDialogOpen}
               >
                 <DialogTrigger asChild>
-                  <Button className="w-full">
-                    <Edit className="h-4 w-4 mr-2" /> Edit Profile
+                  <Button className="w-full text-xs sm:text-sm">
+                    <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-2" /> Edit Profile
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[500px] p-4 sm:p-6">
                   <DialogHeader>
-                    <DialogTitle>Edit Seller Profile</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="text-lg sm:text-xl">Edit Seller Profile</DialogTitle>
+                    <DialogDescription className="text-xs sm:text-sm">
                       Make changes to the seller profile here. Click save when
                       you're done.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-3 sm:gap-4 py-3 sm:py-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name</Label>
+                        <Label htmlFor="firstName" className="text-xs sm:text-sm">First Name</Label>
                         <Input
                           id="firstName"
                           name="firstName"
                           value={editFormData.firstName}
                           onChange={handleInputChange}
+                          className="text-xs sm:text-sm"
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name</Label>
+                        <Label htmlFor="lastName" className="text-xs sm:text-sm">Last Name</Label>
                         <Input
                           id="lastName"
                           name="lastName"
                           value={editFormData.lastName}
                           onChange={handleInputChange}
+                          className="text-xs sm:text-sm"
                           required
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="businessName">Business Name</Label>
+                      <Label htmlFor="businessName" className="text-xs sm:text-sm">Business Name</Label>
                       <Input
                         id="businessName"
                         name="businessName"
                         value={editFormData.businessName}
                         onChange={handleInputChange}
+                        className="text-xs sm:text-sm"
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email" className="text-xs sm:text-sm">Email</Label>
                       <Input
                         id="email"
                         name="email"
                         type="email"
                         value={editFormData.email}
                         onChange={handleInputChange}
+                        className="text-xs sm:text-sm"
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
+                      <Label htmlFor="phone" className="text-xs sm:text-sm">Phone Number</Label>
                       <Input
                         id="phone"
                         name="phone"
                         value={editFormData.phone}
                         onChange={handleInputChange}
+                        className="text-xs sm:text-sm"
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="address">Address</Label>
+                      <Label htmlFor="address" className="text-xs sm:text-sm">Address</Label>
                       <Input
                         id="address"
                         name="address"
                         value={editFormData.address}
                         onChange={handleInputChange}
+                        className="text-xs sm:text-sm"
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Gender</Label>
+                      <Label className="text-xs sm:text-sm">Gender</Label>
                       <RadioGroup
                         value={editFormData.gender}
                         onValueChange={handleGenderChange}
-                        className="flex space-x-4"
+                        className="flex flex-wrap gap-2 sm:gap-4"
                       >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="male" id="male" />
-                          <Label htmlFor="male">Male</Label>
+                          <Label htmlFor="male" className="text-xs sm:text-sm">Male</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="female" id="female" />
-                          <Label htmlFor="female">Female</Label>
+                          <Label htmlFor="female" className="text-xs sm:text-sm">Female</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="other" id="other" />
-                          <Label htmlFor="other">Other</Label>
+                          <Label htmlFor="other" className="text-xs sm:text-sm">Other</Label>
                         </div>
                       </RadioGroup>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="category">Category</Label>
+                      <Label htmlFor="category" className="text-xs sm:text-sm">Category</Label>
                       <Input
                         id="category"
                         name="category"
                         value={editFormData.category}
                         onChange={handleInputChange}
+                        className="text-xs sm:text-sm"
                         required
                       />
                     </div>
                   </div>
-                  <DialogFooter>
-                    <Button type="button" onClick={handleSaveChanges}>
-                      <Save className="h-4 w-4 mr-2" /> Save Changes
+                  <DialogFooter className="gap-2">
+                    <Button type="button" onClick={handleSaveChanges} className="text-xs sm:text-sm">
+                      <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-2" /> Save Changes
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -377,27 +384,27 @@ const EditableSellerDetail = ({ id = "SEL-1001", onBack = () => {} }) => {
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full text-red-600 border-red-600 hover:bg-red-50"
+                    className="w-full text-red-600 border-red-600 hover:bg-red-50 text-xs sm:text-sm"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" /> Delete Seller
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" /> Delete Seller
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className="p-4 sm:p-6">
                   <AlertDialogHeader>
-                    <AlertDialogTitle>
+                    <AlertDialogTitle className="text-base sm:text-lg">
                       Are you absolutely sure?
                     </AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogDescription className="text-xs sm:text-sm">
                       This action cannot be undone. This will permanently delete
                       the seller account and remove all associated data
                       including products and orders.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                    <AlertDialogCancel className="text-xs sm:text-sm">Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleDeleteSeller}
-                      className="bg-red-600 hover:bg-red-700"
+                      className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
                     >
                       Delete
                     </AlertDialogAction>
@@ -408,20 +415,20 @@ const EditableSellerDetail = ({ id = "SEL-1001", onBack = () => {} }) => {
           </CardContent>
         </Card>
 
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Total Revenue</p>
-                    <p className="text-2xl font-bold">
+                    <p className="text-xs sm:text-sm text-gray-500">Total Revenue</p>
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold">
                       ${seller.revenue.total.toFixed(2)}
                     </p>
                   </div>
-                  <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <DollarSign className="h-5 w-5 text-green-600" />
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-green-600">
@@ -437,14 +444,14 @@ const EditableSellerDetail = ({ id = "SEL-1001", onBack = () => {} }) => {
             </Card>
 
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Products</p>
-                    <p className="text-2xl font-bold">{seller.productsCount}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Products</p>
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold">{seller.productsCount}</p>
                   </div>
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Package className="h-5 w-5 text-blue-600" />
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Package className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-gray-500">
@@ -454,16 +461,16 @@ const EditableSellerDetail = ({ id = "SEL-1001", onBack = () => {} }) => {
             </Card>
 
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Orders</p>
-                    <p className="text-2xl font-bold">
+                    <p className="text-xs sm:text-sm text-gray-500">Orders</p>
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold">
                       {seller.ordersCount.total}
                     </p>
                   </div>
-                  <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                    <ShoppingCart className="h-5 w-5 text-purple-600" />
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                    <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-gray-500">
@@ -474,17 +481,17 @@ const EditableSellerDetail = ({ id = "SEL-1001", onBack = () => {} }) => {
             </Card>
 
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Rating</p>
-                    <p className="text-2xl font-bold">
+                    <p className="text-xs sm:text-sm text-gray-500">Rating</p>
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold">
                       {seller.rating.toFixed(1)}
                     </p>
                   </div>
-                  <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-yellow-100 flex items-center justify-center">
                     <svg
-                      className="h-5 w-5 text-yellow-600"
+                      className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -501,29 +508,30 @@ const EditableSellerDetail = ({ id = "SEL-1001", onBack = () => {} }) => {
 
           {/* Tabs for Orders and Products */}
           <Tabs defaultValue="orders">
-            <TabsList>
-              <TabsTrigger value="orders">Recent Orders</TabsTrigger>
-              <TabsTrigger value="products">Top Products</TabsTrigger>
+            <TabsList className="text-xs sm:text-sm">
+              <TabsTrigger value="orders" className="text-xs sm:text-sm">Recent Orders</TabsTrigger>
+              <TabsTrigger value="products" className="text-xs sm:text-sm">Top Products</TabsTrigger>
             </TabsList>
-            <TabsContent value="orders" className="border rounded-md mt-4">
+            <TabsContent value="orders" className="border rounded-md mt-3 sm:mt-4">
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Order ID</TableHead>
+                    <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Date</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Customer</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Amount</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recentOrders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>{order.date}</TableCell>
-                      <TableCell>{order.customer}</TableCell>
-                      <TableCell>${order.amount.toFixed(2)}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-xs sm:text-sm">{order.id}</TableCell>
+                      <TableCell className="text-xs sm:text-sm hidden sm:table-cell">{order.date}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">{order.customer}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">${order.amount.toFixed(2)}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">
                         <span
                           className={`px-2 py-1 rounded-full text-xs ${order.status === "Completed" ? "bg-green-100 text-green-800" : order.status === "Processing" ? "bg-blue-100 text-blue-800" : "bg-yellow-100 text-yellow-800"}`}
                         >
@@ -534,30 +542,33 @@ const EditableSellerDetail = ({ id = "SEL-1001", onBack = () => {} }) => {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </TabsContent>
-            <TabsContent value="products" className="border rounded-md mt-4">
+            <TabsContent value="products" className="border rounded-md mt-3 sm:mt-4">
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Product ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Sales</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Product ID</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Name</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Price</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Sales</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {topProducts.map((product) => (
                     <TableRow key={product.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-xs sm:text-sm">
                         {product.id}
                       </TableCell>
-                      <TableCell>{product.name}</TableCell>
-                      <TableCell>${product.price.toFixed(2)}</TableCell>
-                      <TableCell>{product.sales} units</TableCell>
+                      <TableCell className="text-xs sm:text-sm">{product.name}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">${product.price.toFixed(2)}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">{product.sales} units</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </TabsContent>
           </Tabs>
           </div>

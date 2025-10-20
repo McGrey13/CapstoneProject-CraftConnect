@@ -34,7 +34,7 @@ class OrderController extends Controller
             ->map(function($order) {
                 return [
                     'orderID' => $order->orderID,
-                    'order_number' => $order->order_number ?? 'ORD-' . $order->orderID,
+                    'order_number' => $order->order_number,
                     'tracking_number' => $order->tracking_number,
                     'orderDate' => $order->created_at->format('Y-m-d H:i:s'),
                     'status' => $order->status,
@@ -104,8 +104,8 @@ class OrderController extends Controller
                 
                 return [
                     'orderID' => $order->orderID,
-                    'id' => 'ORD-' . $order->orderID,
-                    'order_number' => $order->order_number ?? 'ORD-' . $order->orderID,
+                    'id' => $order->order_number,
+                    'order_number' => $order->order_number,
                     'customer' => $order->customer && $order->customer->user ? $order->customer->user->userName : 'Unknown Customer',
                     'date' => $order->created_at->format('Y-m-d'),
                     'total' => '₱' . number_format($sellerProducts->sum(function($item) {

@@ -9,12 +9,34 @@ export default defineConfig({
     react()
   ],
   server: {
+    port: 5173,
+    strictPort: true,
+    host: true, // Allow external connections
+    allowedHosts: [
+      'localhost',
+      '.ngrok-free.dev',
+      'dominik-unabiding-venously.ngrok-free.dev'
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+      },
+      '/storage': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/images': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
       }
     }
+  },
+  preview: {
+    port: 5173,
+    strictPort: true,
   }
 })

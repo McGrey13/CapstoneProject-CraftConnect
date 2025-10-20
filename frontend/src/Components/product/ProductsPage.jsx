@@ -12,6 +12,7 @@ import {
 } from "../ui/select";
 import { Badge } from "../ui/badge";
 import { useNavigate } from "react-router-dom";
+import api from "../../api";
 
 // --- ProductsPage Component ---
 const ProductsPage = () => {
@@ -24,6 +25,21 @@ const ProductsPage = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState({});
   const [followedProductIds, setFollowedProductIds] = useState(new Set());
 
+  // Helper function to convert image URLs to relative paths
+  const fixImageUrl = (url) => {
+    if (!url) return url;
+    // If it's already a full URL with localhost, convert to relative path
+    if (url.includes('localhost:8000') || url.includes('localhost:8080')) {
+      const path = new URL(url).pathname;
+      return path;
+    }
+    // If it's already a relative path, return as is
+    if (url.startsWith('/storage/') || url.startsWith('/images/')) {
+      return url;
+    }
+    return url;
+  };
+
   // Fetch products from backend
   useEffect(() => {
     const fetchProducts = async () => {
@@ -31,56 +47,35 @@ const ProductsPage = () => {
         setLoading(true);
         setError(null);
         
-        console.log("Fetching products from API...");
         const token = sessionStorage.getItem('auth_token');
         
         // Fetch followed sellers' products first (if authenticated)
         let followedProducts = [];
         if (token) {
           try {
-            const followedResponse = await fetch("http://localhost:8000/api/products/followed-sellers", {
-              method: "GET",
+            const followedResponse = await api.get("/products/followed-sellers", {
               headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
                 "Authorization": `Bearer ${token}`,
               },
             });
             
-            if (followedResponse.ok) {
-              const followedData = await followedResponse.json();
-              followedProducts = Array.isArray(followedData) ? followedData : (followedData.data || []);
-              console.log("✨ Followed sellers' products:", followedProducts.length);
-            }
+            followedProducts = Array.isArray(followedResponse.data) ? followedResponse.data : (followedResponse.data.data || []);
           } catch (err) {
-            console.log("No followed sellers products (user not logged in or none found)");
+            // No followed sellers products
           }
         }
         
         // Fetch all approved products
-        const response = await fetch("http://localhost:8000/api/products/approved", {
-          method: "GET",
+        const response = await api.get("/products/approved", {
           headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
             ...(token && { "Authorization": `Bearer ${token}` }),
           },
         });
 
-        console.log("Response status:", response.status);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Response error:", errorText);
-          throw new Error(`Failed to load products. Status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("Fetched all products:", data);
+        const data = response.data;
         
         // Handle both array and object responses
         const allProducts = Array.isArray(data) ? data : (data.data || []);
-        console.log("Number of all products:", allProducts.length);
         
         // Create a Set of followed product IDs for quick lookup
         const followedIds = new Set(followedProducts.map(p => p.id || p.product_id));
@@ -91,28 +86,38 @@ const ProductsPage = () => {
           !followedIds.has(p.id || p.product_id)
         );
         
-        // Sort followed products by category
+        // Sort followed products by rating and sold count (highest first)
         const sortedFollowedProducts = [...followedProducts].sort((a, b) => {
-          const catA = a.category || '';
-          const catB = b.category || '';
-          return catA.localeCompare(catB);
+          const ratingA = a.average_rating || 0;
+          const ratingB = b.average_rating || 0;
+          const soldA = a.sold_count || 0;
+          const soldB = b.sold_count || 0;
+          
+          // First sort by rating (highest first)
+          if (ratingB !== ratingA) {
+            return ratingB - ratingA;
+          }
+          // If ratings are equal, sort by sold count (highest first)
+          return soldB - soldA;
         });
         
-        // Sort non-followed products by category
+        // Sort non-followed products by rating and sold count (highest first)
         const sortedNonFollowedProducts = [...nonFollowedProducts].sort((a, b) => {
-          const catA = a.category || '';
-          const catB = b.category || '';
-          return catA.localeCompare(catB);
+          const ratingA = a.average_rating || 0;
+          const ratingB = b.average_rating || 0;
+          const soldA = a.sold_count || 0;
+          const soldB = b.sold_count || 0;
+          
+          // First sort by rating (highest first)
+          if (ratingB !== ratingA) {
+            return ratingB - ratingA;
+          }
+          // If ratings are equal, sort by sold count (highest first)
+          return soldB - soldA;
         });
         
-        // Combine: followed products first, then other products (both sorted by category)
+        // Combine: followed products first, then other products (both sorted by rating and sold count)
         const sortedProducts = [...sortedFollowedProducts, ...sortedNonFollowedProducts];
-        
-        console.log("🎯 Final product order:", {
-          followedProducts: sortedFollowedProducts.length,
-          nonFollowedProducts: sortedNonFollowedProducts.length,
-          total: sortedProducts.length
-        });
         
         setProducts(sortedProducts);
       } catch (err) {
@@ -149,7 +154,7 @@ const ProductsPage = () => {
         if (img && !addedUrls.has(img)) {
           addedUrls.add(img);
           images.push({
-            src: img,
+            src: fixImageUrl(img),
             type: index === 0 ? 'main' : 'additional',
             index: index
           });
@@ -160,7 +165,7 @@ const ProductsPage = () => {
     // If no additional images, add main image
     if (images.length === 0 && product.productImage && !addedUrls.has(product.productImage)) {
       images.push({
-        src: product.productImage,
+        src: fixImageUrl(product.productImage),
         type: 'main'
       });
     }
@@ -225,7 +230,7 @@ const ProductsPage = () => {
           <div className="space-y-2 text-sm text-gray-500">
             <p>Please make sure:</p>
             <ul className="list-disc list-inside">
-              <li>The Laravel backend server is running on localhost:8000</li>
+              <li>The Laravel backend server is running on localhost:8080</li>
               <li>There are approved products in the database</li>
               <li>The database connection is working</li>
             </ul>
@@ -249,15 +254,38 @@ const ProductsPage = () => {
         className="mb-4"
       />
 
-      <Tabs value={activeCategory} onValueChange={setActiveCategory} className="mb-4">
-        <TabsList className="flex space-x-2 overflow-x-auto">
-          {categories.map((cat) => (
-            <TabsTrigger key={cat} value={cat}>
-              {cat.charAt(0).toUpperCase() + cat.slice(1)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      {/* Mobile Category Dropdown */}
+      <div className="lg:hidden mb-4">
+        <Select value={activeCategory} onValueChange={setActiveCategory}>
+          <SelectTrigger className="w-full bg-white">
+            <SelectValue placeholder="Select category" />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            {categories.map((cat) => (
+              <SelectItem key={cat} value={cat} className="bg-white hover:bg-gray-100">
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Desktop Category Tabs */}
+      <div className="hidden lg:block mb-4">
+        <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+          <TabsList className="flex flex-wrap gap-2 overflow-x-auto pb-2">
+            {categories.map((cat) => (
+              <TabsTrigger 
+                key={cat} 
+                value={cat}
+                className="text-sm px-3 py-1.5 whitespace-nowrap"
+              >
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      </div>
 
       {filtered.length === 0 ? (
         <div className="text-center py-12">
@@ -276,17 +304,6 @@ const ProductsPage = () => {
             const productId = product.id || product.product_id;
             const currentIndex = currentImageIndex[productId] || 0;
             const isFromFollowedSeller = followedProductIds.has(productId);
-            
-            // Debug: Log image information
-            console.log(`Product ${product.productName}:`, {
-              mainImage: product.productImage,
-              additionalImages: product.productImages,
-              allImages: allImages.length,
-              allImagesList: allImages.map(img => img.src),
-              currentIndex,
-              showButtons: allImages.length > 0,
-              isFromFollowedSeller
-            });
             
             return (
               <div
@@ -307,12 +324,8 @@ const ProductsPage = () => {
                       alt={product.productName} 
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        console.log("Image failed to load:", currentImage.src);
                         e.target.style.display = 'none';
                         e.target.nextSibling.style.display = 'flex';
-                      }}
-                      onLoad={() => {
-                        console.log("Image loaded successfully:", currentImage.src);
                       }}
                     />
                   ) : null}
@@ -384,6 +397,39 @@ const ProductsPage = () => {
                         {product.category}
                       </span>
                     )}
+                  </div>
+                  
+                  {/* Rating and Sold Count Display */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {/* 5 Star Rating Display */}
+                      <div className="flex items-center gap-0.5">
+                        {[...Array(5)].map((_, index) => {
+                          const rating = product.average_rating || 0;
+                          const filled = index + 1 <= rating;
+                          return (
+                            <Star
+                              key={index}
+                              className={`w-4 h-4 ${
+                                filled 
+                                  ? 'text-yellow-400 fill-yellow-400' 
+                                  : 'text-gray-300 fill-gray-300'
+                              }`}
+                            />
+                          );
+                        })}
+                      </div>
+                      <span className="text-sm font-bold text-[#5c3d28]">{product.average_rating || 0}.0</span>
+                      <span className="text-xs text-gray-500">({product.reviews_count || 0})</span>
+                    </div>
+                    <div className="flex items-center text-xs text-gray-600">
+                      <svg className="w-3 h-3 mr-1 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className={`font-medium ${product.sold_count > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                        {product.sold_count || 0} sold
+                      </span>
+                    </div>
                   </div>
                   
                   {/* Stock Information */}

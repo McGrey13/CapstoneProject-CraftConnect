@@ -102,10 +102,7 @@ class SellerControllerMain extends Controller
             // Format E-Wallet payments
             $payments = [];
             foreach ($ewalletPayments as $payment) {
-                $orderNum = $payment->order_number ?? $payment->orderID;
-                if ($orderNum && strpos($orderNum, 'ORD-') !== 0) {
-                    $orderNum = 'ORD-' . $orderNum;
-                }
+                $orderNum = $payment->order_number;
                 
                 // Payment reference only for paid
                 $reference = null;
@@ -129,10 +126,7 @@ class SellerControllerMain extends Controller
             // Format COD orders (ONLY COD payment method)
             $codOrdersData = [];
             foreach ($codOrdersDB as $order) {
-                $orderNum = $order->order_number ?? $order->orderID;
-                if ($orderNum && strpos($orderNum, 'ORD-') !== 0) {
-                    $orderNum = 'ORD-' . $orderNum;
-                }
+                $orderNum = $order->order_number;
                 
                 $codOrdersData[] = [
                     'id' => $order->orderID,

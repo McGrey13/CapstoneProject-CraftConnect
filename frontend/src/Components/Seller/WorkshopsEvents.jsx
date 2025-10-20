@@ -39,13 +39,13 @@ const WorkshopCard = ({
   onDelete,
 }) => {
   return (
-    <Card className="rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2 border-[#e5ded7] bg-white">
+    <Card className="rounded-lg sm:rounded-xl md:rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2 border-[#e5ded7] bg-white">
       <div
-        className="h-48 w-full bg-cover bg-center relative"
+        className="h-40 sm:h-48 w-full bg-cover bg-center relative"
         style={{ backgroundImage: `url(${image || '/placeholder-workshop.jpg'})` }}
       >
-        <div className="absolute top-3 right-3">
-          <Badge className={`text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg ${statusStyles[status] || statusStyles.upcoming}`}>
+        <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
+          <Badge className={`text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-lg ${statusStyles[status] || statusStyles.upcoming}`}>
             {status === "upcoming"
               ? "Upcoming"
               : status === "in-progress"
@@ -58,43 +58,43 @@ const WorkshopCard = ({
           </Badge>
         </div>
       </div>
-      <CardHeader className="py-5 px-6 border-b border-[#e5ded7]">
-        <CardTitle className="text-xl font-bold text-[#5c3d28]">{title}</CardTitle>
-        <CardDescription className="text-sm text-[#7b5a3b] mt-1">
+      <CardHeader className="py-3 sm:py-4 md:py-5 px-3 sm:px-4 md:px-6 border-b border-[#e5ded7]">
+        <CardTitle className="text-base sm:text-lg md:text-xl font-bold text-[#5c3d28]">{title}</CardTitle>
+        <CardDescription className="text-xs sm:text-sm text-[#7b5a3b] mt-1">
           Craft Workshop Event
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3 px-6 py-4 text-sm text-[#7b5a3b]">
-        <div className="flex items-center gap-3 p-2 hover:bg-[#faf9f8] rounded-lg transition-colors">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center">
-            <Calendar className="w-4 h-4 text-white" />
+      <CardContent className="space-y-2 sm:space-y-3 px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm text-[#7b5a3b]">
+        <div className="flex items-center gap-2 sm:gap-3 p-2 hover:bg-[#faf9f8] rounded-lg transition-colors">
+          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center flex-shrink-0">
+            <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
           </div>
-          <span className="font-medium">{new Date(date).toLocaleDateString()}</span>
+          <span className="font-medium truncate">{new Date(date).toLocaleDateString()}</span>
         </div>
-        <div className="flex items-center gap-3 p-2 hover:bg-[#faf9f8] rounded-lg transition-colors">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-            <Clock className="w-4 h-4 text-white" />
+        <div className="flex items-center gap-2 sm:gap-3 p-2 hover:bg-[#faf9f8] rounded-lg transition-colors">
+          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+            <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
           </div>
-          <span className="font-medium">{time}</span>
+          <span className="font-medium truncate">{time}</span>
         </div>
-        <div className="flex items-center gap-3 p-2 hover:bg-[#faf9f8] rounded-lg transition-colors">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-            <MapPin className="w-4 h-4 text-white" />
+        <div className="flex items-center gap-2 sm:gap-3 p-2 hover:bg-[#faf9f8] rounded-lg transition-colors">
+          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
           </div>
-          <span className="font-medium">{location}</span>
+          <span className="font-medium truncate">{location}</span>
         </div>
-        <div className="flex items-center gap-3 p-2 hover:bg-[#faf9f8] rounded-lg transition-colors">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
-            <Users className="w-4 h-4 text-white" />
+        <div className="flex items-center gap-2 sm:gap-3 p-2 hover:bg-[#faf9f8] rounded-lg transition-colors">
+          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center flex-shrink-0">
+            <Users className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
           </div>
-          <span className="font-medium">{participants} participants</span>
+          <span className="font-medium truncate">{participants} participants</span>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between px-6 py-5 bg-[#faf9f8] border-t border-[#e5ded7]">
+      <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0 px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-5 bg-[#faf9f8] border-t border-[#e5ded7]">
         <Button
           variant="ghost"
           size="sm"
-          className="rounded-lg text-[#a4785a] hover:bg-white hover:text-[#5c3d28] transition-all duration-200"
+          className="rounded-lg text-[#a4785a] hover:bg-white hover:text-[#5c3d28] transition-all duration-200 w-full sm:w-auto text-xs sm:text-sm"
           onClick={() => onEdit && onEdit()}
         >
           Edit
@@ -218,24 +218,24 @@ const WorkshopsEvents = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header with craft theme */}
-      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
           <div>
-            <h1 className="text-3xl font-bold text-white flex items-center">
-              <Calendar className="h-8 w-8 mr-3" />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white flex items-center">
+              <Calendar className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 mr-2 sm:mr-3" />
               Workshops & Events
             </h1>
-            <p className="text-white/90 mt-2 text-lg">
+            <p className="text-white/90 mt-2 text-sm sm:text-base md:text-lg">
               Create and manage engaging workshops and events for your customers
             </p>
           </div>
           <Button 
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-white text-[#5c3d28] hover:bg-[#faf9f8] shadow-lg hover:shadow-xl transition-all duration-200"
+            className="bg-white text-[#5c3d28] hover:bg-[#faf9f8] shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto text-xs sm:text-sm"
           >
-            <Plus className="h-4 w-4 mr-2" /> 
+            <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" /> 
             {showCreateForm ? 'Cancel' : 'Create New Workshop'}
           </Button>
         </div>
@@ -248,14 +248,14 @@ const WorkshopsEvents = () => {
           title="No Workshops Yet"
           description="Create your first workshop or event to start engaging with customers"
           action={
-            <Button onClick={() => setShowCreateForm(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button onClick={() => setShowCreateForm(true)} className="text-xs sm:text-sm">
+              <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               Create Your First Workshop
             </Button>
           }
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {workAndEvents.map((workshop) => (
           <WorkshopCard
               key={workshop.works_and_events_id}

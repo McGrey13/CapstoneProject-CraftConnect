@@ -117,7 +117,7 @@ const AnalyticsDashboard = () => {
   const fetchAnalyticsData = async () => {
     setLoading(true);
     try {
-      const url = `http://localhost:8000/api/analytics/test-controller?period=${selectedPeriod}&start_date=${dateRange.start_date}&end_date=${dateRange.end_date}`;
+      const url = `http://localhost:8080/api/analytics/test-controller?period=${selectedPeriod}&start_date=${dateRange.start_date}&end_date=${dateRange.end_date}`;
       
       const response = await fetch(url, {
         method: 'GET',
@@ -176,8 +176,8 @@ const AnalyticsDashboard = () => {
   const fetchMicroAnalyticsData = async () => {
     setMicroAnalyticsLoading(true);
     try {
-      const mostSellingUrl = `http://localhost:8000/api/analytics/revenue/most-selling-products?period=${selectedPeriod}&start_date=${dateRange.start_date}&end_date=${dateRange.end_date}`;
-      const highestSalesUrl = `http://localhost:8000/api/analytics/revenue/highest-sales-sellers?period=${selectedPeriod}&start_date=${dateRange.start_date}&end_date=${dateRange.end_date}`;
+      const mostSellingUrl = `http://localhost:8080/api/analytics/revenue/most-selling-products?period=${selectedPeriod}&start_date=${dateRange.start_date}&end_date=${dateRange.end_date}`;
+      const highestSalesUrl = `http://localhost:8080/api/analytics/revenue/highest-sales-sellers?period=${selectedPeriod}&start_date=${dateRange.start_date}&end_date=${dateRange.end_date}`;
       
       const [mostSellingResponse, highestSalesResponse] = await Promise.all([
         fetch(mostSellingUrl),
@@ -225,7 +225,7 @@ const AnalyticsDashboard = () => {
     try {
       console.log('Generating analytics data...');
       
-      const response = await fetch('http://localhost:8000/api/analytics/generate-public', {
+      const response = await fetch('http://localhost:8080/api/analytics/generate-public', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -416,7 +416,7 @@ const AnalyticsDashboard = () => {
               <Button 
                 onClick={() => {
                   // Trigger micro analytics data generation
-                  fetch(`http://localhost:8000/api/analytics/generate-public`, {
+                  fetch(`http://localhost:8080/api/analytics/generate-public`, {
                     method: 'POST',
                     headers: { 
                       'Content-Type': 'application/json',

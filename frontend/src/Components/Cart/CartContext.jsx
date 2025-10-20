@@ -169,7 +169,7 @@ export const CartProvider = ({ children }) => {
             return;
           }
           
-          const response = await fetch("http://localhost:8000/api/cart/add", {
+          const response = await fetch("http://localhost:8080/api/cart/add", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -231,7 +231,7 @@ export const CartProvider = ({ children }) => {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/cart/update/${item.cartItemId}`, {
+      const response = await fetch(`http://localhost:8080/api/cart/update/${item.cartItemId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -266,7 +266,7 @@ export const CartProvider = ({ children }) => {
 
     try {
       console.log('Removing item from cart:', cartId);
-      const response = await fetch(`http://localhost:8000/api/cart/remove/${cartId}`, {
+      const response = await fetch(`http://localhost:8080/api/cart/remove/${cartId}`, {
         method: "DELETE",
         headers: {
           'Content-Type': 'application/json',
@@ -417,7 +417,7 @@ export const CartProvider = ({ children }) => {
       }
       
       // First, create the order with payment method
-      const orderResponse = await fetch("http://localhost:8000/api/cart/checkout", {
+      const orderResponse = await fetch("http://localhost:8080/api/cart/checkout", {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
@@ -487,7 +487,7 @@ export const CartProvider = ({ children }) => {
           console.log('OrderID being sent to PayMongo:', orderID);
           
           // Call the payment initiate endpoint (which handles PayMongo)
-          const paymentSessionResponse = await fetch("http://localhost:8000/api/payments/initiate", {
+          const paymentSessionResponse = await fetch("http://localhost:8080/api/payments/initiate", {
             method: "POST",
             headers: {
               'Content-Type': 'application/json',
@@ -594,7 +594,7 @@ export const CartProvider = ({ children }) => {
     }
 
     try {
-      const response = await fetch("http://localhost:8000/api/cart/clear", {
+      const response = await fetch("http://localhost:8080/api/cart/clear", {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${getToken()}`,

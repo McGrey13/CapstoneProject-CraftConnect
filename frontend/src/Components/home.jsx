@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import HeroSection from "./home/HeroSection";
 import CategoryGrid from "./home/CategoryGrid";
 import FeaturedProducts from "./product/FeaturedProducts";
+import api from "../api";
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -13,11 +14,8 @@ const Home = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch("http://localhost:8000/api/products/approved", {
-          headers: { "Accept": "application/json" },
-        });
-        if (!response.ok) throw new Error("Failed to fetch products");
-        const data = await response.json();
+        const response = await api.get("/products/approved");
+        const data = response.data;
         setProducts(Array.isArray(data) ? data : []);
       } catch (err) {
         setError(err.message);

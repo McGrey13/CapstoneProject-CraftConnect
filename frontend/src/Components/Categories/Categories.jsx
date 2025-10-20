@@ -4,7 +4,7 @@ import { Search, Store, MapPin, Star, Users } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent } from "../ui/card";
-
+import api from "../../api";
 
 
 const CategoriesPage = () => {
@@ -13,6 +13,21 @@ const CategoriesPage = () => {
   const [allStores, setAllStores] = useState([]); // Keep original data for filtering
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Helper function to convert image URLs to relative paths
+  const fixImageUrl = (url) => {
+    if (!url) return url;
+    // If it's already a full URL with localhost, convert to relative path
+    if (url.includes('localhost:8000') || url.includes('localhost:8080')) {
+      const path = new URL(url).pathname;
+      return path;
+    }
+    // If it's already a relative path, return as is
+    if (url.startsWith('/storage/') || url.startsWith('/images/')) {
+      return url;
+    }
+    return url;
+  };
 
   // Fetch stores on component mount
   useEffect(() => {
@@ -26,29 +41,27 @@ const CategoriesPage = () => {
       
       // Build URL with search parameter if provided
       const url = searchTerm 
-        ? `http://localhost:8000/api/stores?search=${encodeURIComponent(searchTerm)}`
-        : "http://localhost:8000/api/stores";
+        ? `/stores?search=${encodeURIComponent(searchTerm)}`
+        : "/stores";
       
-      const response = await fetch(url, {
-        headers: { Accept: "application/json" },
-      });
+      const response = await api.get(url);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Stores data received:", data);
-        const storesData = data.data || data;
-        setStores(storesData);
-        
-        // Keep original data if no search term
-        if (!searchTerm) {
-          setAllStores(storesData);
-        }
-      } else {
-        console.error("Failed to fetch stores:", response.status);
-        setError("Failed to fetch stores");
+      const data = response.data;
+      const storesData = data.data || data;
+      
+      // Fix image URLs in the data
+      const fixedStoresData = storesData.map(store => ({
+        ...store,
+        logo_url: fixImageUrl(store.logo_url)
+      }));
+      
+      setStores(fixedStoresData);
+      
+      // Keep original data if no search term
+      if (!searchTerm) {
+        setAllStores(fixedStoresData);
       }
     } catch (error) {
-      console.error("Error fetching stores:", error);
       setError("Error fetching stores");
     } finally {
       setLoading(false);
@@ -176,9 +189,18 @@ const CategoriesPage = () => {
                       <div className="flex items-center text-xs text-gray-600">
                         <Users className="h-3 w-3 mr-1" />
                         <span className="line-clamp-1">
-                          {store.user?.userName || "Unknown Artisan"}
+                          {store.seller?.user?.userName || store.user?.userName || store.owner_name || "Artisan"}
                         </span>
                       </div>
+                      
+                      {/* Rating Display */}
+                      {store.average_rating > 0 && (
+                        <div className="flex items-center text-xs">
+                          <Star className="h-3 w-3 mr-1 text-yellow-400 fill-yellow-400" />
+                          <span className="font-semibold text-gray-800">{store.average_rating}</span>
+                          <span className="ml-1 text-gray-500">({store.total_ratings})</span>
+                        </div>
+                      )}
                       
                       {store.seller?.specialty && (
                         <div className="flex items-center text-xs text-blue-600">

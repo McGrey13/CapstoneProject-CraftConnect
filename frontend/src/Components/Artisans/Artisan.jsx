@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
+import api from "../../api";
 
 const Artisan = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -15,6 +16,21 @@ const Artisan = () => {
   const [refreshing, setRefreshing] = useState(false);
   const token = sessionStorage.getItem("auth_token");
 
+  // Helper function to convert image URLs to relative paths
+  const fixImageUrl = (url) => {
+    if (!url) return url;
+    // If it's already a full URL with localhost, convert to relative path
+    if (url.includes('localhost:8000') || url.includes('localhost:8080')) {
+      const path = new URL(url).pathname;
+      return path;
+    }
+    // If it's already a relative path, return as is
+    if (url.startsWith('/storage/') || url.startsWith('/images/')) {
+      return url;
+    }
+    return url;
+  };
+
   const fetchArtisans = async (showRefreshing = false) => {
     try {
       if (showRefreshing) {
@@ -24,24 +40,18 @@ const Artisan = () => {
       }
       setError(null);
 
-      const response = await fetch("http://localhost:8000/api/get/sellers", {
+      const response = await api.get("/get/sellers", {
         headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = response.data;
       console.log("Raw seller data:", data);
       
       const mapped = data.map((seller) => {
-        // Use profile_image_url from backend (already includes full URL)
-        let profileImageUrl = seller.profile_image_url;
+        // Use profile_image_url from backend and fix it to use relative path
+        let profileImageUrl = fixImageUrl(seller.profile_image_url);
         
         // Fallback to default avatar if no image
         if (!profileImageUrl || profileImageUrl.trim() === "") {

@@ -327,8 +327,8 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[95vw] max-h-[95vh] overflow-hidden animate-slideUp">
+    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-fadeIn">
+      <div className="bg-white rounded-lg sm:rounded-2xl md:rounded-3xl shadow-2xl w-full max-w-[95vw] max-h-[95vh] overflow-hidden animate-slideUp">
         <style>{`
           @keyframes fadeIn {
             from { opacity: 0; }
@@ -347,46 +347,46 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
         `}</style>
         
         {/* Header with Gradient */}
-        <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] px-8 py-6">
+        <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 bg-white/20 rounded-lg sm:rounded-xl backdrop-blur-sm">
+                <svg className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
               </div>
               <div>
-                <h2 className="text-3xl font-bold text-white">Edit Product</h2>
-                <p className="text-white/80 text-sm mt-1">Update your product information and details</p>
+                <h2 className="text-lg sm:text-2xl md:text-3xl font-bold text-white">Edit Product</h2>
+                <p className="text-white/80 text-xs sm:text-sm mt-1">Update your product information and details</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="text-white/80 hover:text-white hover:bg-white/20 rounded-xl p-2 transition-all duration-200"
+              className="text-white/80 hover:text-white hover:bg-white/20 rounded-lg sm:rounded-xl p-1.5 sm:p-2 transition-all duration-200"
               type="button"
               aria-label="Close modal"
             >
-              <X className="h-7 w-7" />
+              <X className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7" />
             </button>
           </div>
         </div>
         
         {/* Content with scroll */}
-        <div className="p-8 overflow-y-auto max-h-[calc(95vh-100px)]">
+        <div className="p-4 sm:p-6 md:p-8 overflow-y-auto max-h-[calc(95vh-80px)] sm:max-h-[calc(95vh-100px)]">
           
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
               {/* Left Column */}
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Basic Information */}
-                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-2xl border-2 border-[#e5ded7] shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-                  <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#e5ded7]">
-                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
-                      <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-[#e5ded7] shadow-lg p-4 sm:p-5 md:p-6 hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </div>
-                    <h3 className="text-2xl font-bold text-[#5c3d28]">Basic Information</h3>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-[#5c3d28]">Basic Information</h3>
                   </div>
-                  <div className="space-y-5">
+                  <div className="space-y-4 sm:space-y-5">
                     <div>
-                    <Label htmlFor="productName" className="block text-sm font-bold text-[#5c3d28] mb-2">
+                    <Label htmlFor="productName" className="block text-xs sm:text-sm font-bold text-[#5c3d28] mb-2">
                       Product Name <span className="text-red-500">*</span>
                     </Label>
                     <Input
@@ -394,14 +394,14 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                       name="productName"
                       value={formData.productName}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-medium"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-[#e5ded7] rounded-lg sm:rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-medium"
                       required
                       placeholder="e.g., Handwoven Rattan Basket"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="productDescription" className="block text-sm font-bold text-[#5c3d28] mb-2">
+                    <Label htmlFor="productDescription" className="block text-xs sm:text-sm font-bold text-[#5c3d28] mb-2">
                       Description
                     </Label>
                     <Textarea
@@ -409,19 +409,19 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                       name="productDescription"
                       value={formData.productDescription}
                       onChange={handleChange}
-                      className="w-full min-h-[120px] px-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] resize-none"
+                      className="w-full min-h-[100px] sm:min-h-[120px] px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-[#e5ded7] rounded-lg sm:rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] resize-none"
                       placeholder="Describe your handcrafted product..."
                     />
                     <p className="text-xs text-[#7b5a3b] mt-2">📝 Tell the story behind your craft</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <Label htmlFor="productPrice" className="block text-sm font-bold text-[#5c3d28] mb-2">
+                      <Label htmlFor="productPrice" className="block text-xs sm:text-sm font-bold text-[#5c3d28] mb-2">
                         Price (₱) <span className="text-red-500">*</span>
                       </Label>
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a4785a] font-bold text-lg">₱</span>
+                        <span className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-[#a4785a] font-bold text-base sm:text-lg">₱</span>
                         <Input
                           id="productPrice"
                           name="productPrice"
@@ -430,7 +430,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                           min="0"
                           value={formData.productPrice}
                           onChange={handleChange}
-                          className="w-full pl-10 pr-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-semibold text-lg"
+                          className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 text-sm sm:text-base md:text-lg border-2 border-[#e5ded7] rounded-lg sm:rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-semibold"
                           required
                           placeholder="0.00"
                         />
@@ -438,7 +438,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                     </div>
 
                     <div>
-                      <Label htmlFor="productQuantity" className="block text-sm font-bold text-[#5c3d28] mb-2">
+                      <Label htmlFor="productQuantity" className="block text-xs sm:text-sm font-bold text-[#5c3d28] mb-2">
                         Quantity <span className="text-red-500">*</span>
                       </Label>
                       <Input
@@ -448,7 +448,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                         min="0"
                         value={formData.productQuantity}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-semibold text-lg"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base md:text-lg border-2 border-[#e5ded7] rounded-lg sm:rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-semibold"
                         required
                         placeholder="0"
                       />
@@ -456,13 +456,13 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                   </div>
 
                   <div>
-                    <Label className="block text-sm font-bold text-[#5c3d28] mb-2">
+                    <Label className="block text-xs sm:text-sm font-bold text-[#5c3d28] mb-2">
                       Category <span className="text-red-500">*</span>
                     </Label>
                     <select
                       value={formData.category}
                       onChange={(e) => handleSelectChange('category', e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-medium cursor-pointer hover:border-[#a4785a]"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-[#e5ded7] rounded-lg sm:rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-medium cursor-pointer hover:border-[#a4785a]"
                       required
                     >
                       <option value="">Choose a category...</option>
@@ -476,13 +476,13 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                   </div>
 
                   <div>
-                    <Label className="block text-sm font-bold text-[#5c3d28] mb-2">
+                    <Label className="block text-xs sm:text-sm font-bold text-[#5c3d28] mb-2">
                       Publish Status
                     </Label>
                     <select
                       value={formData.publishStatus}
                       onChange={(e) => handleSelectChange('publishStatus', e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-medium cursor-pointer hover:border-[#a4785a]"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-[#e5ded7] rounded-lg sm:rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-medium cursor-pointer hover:border-[#a4785a]"
                     >
                       <option value="draft">💾 Save as Draft</option>
                       <option value="published">🚀 Published</option>
@@ -496,23 +496,23 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
               </div>
 
               {/* Right Column */}
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Product Images */}
-                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-2xl border-2 border-[#e5ded7] shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-                  <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#e5ded7]">
-                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
-                      <ImageIcon className="h-5 w-5 text-white" />
+                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-[#e5ded7] shadow-lg p-4 sm:p-5 md:p-6 hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold text-[#5c3d28]">Product Images</h3>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-[#5c3d28]">Product Images</h3>
                   </div>
                   
                   {/* Upload Area */}
-                  <div className="flex flex-col items-center justify-center p-8 border-3 border-dashed border-[#a4785a] rounded-2xl mb-6 hover:border-[#7b5a3b] hover:bg-[#faf9f8] transition-all duration-300 group">
+                  <div className="flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 border-3 border-dashed border-[#a4785a] rounded-lg sm:rounded-xl md:rounded-2xl mb-4 sm:mb-6 hover:border-[#7b5a3b] hover:bg-[#faf9f8] transition-all duration-300 group">
                     <div className="text-center">
-                      <div className="p-4 bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                        <ImageIcon className="h-8 w-8 text-[#a4785a]" />
+                      <div className="p-3 sm:p-4 bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10 rounded-full w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <ImageIcon className="h-6 w-6 sm:h-8 sm:w-8 text-[#a4785a]" />
                       </div>
-                      <div className="mt-2 flex text-sm text-[#5c3d28]">
+                      <div className="mt-2 flex text-xs sm:text-sm text-[#5c3d28]">
                         <label
                           htmlFor="productImages"
                           className="relative cursor-pointer font-semibold text-[#a4785a] hover:text-[#7b5a3b] transition-colors duration-200"
@@ -530,7 +530,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                         </label>
                         <p className="pl-1">or drag and drop</p>
                       </div>
-                      <p className="text-xs text-[#7b5a3b] mt-3">
+                      <p className="text-xs text-[#7b5a3b] mt-2 sm:mt-3">
                         PNG, JPG, GIF up to 5MB each
                       </p>
                     </div>
@@ -538,21 +538,21 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
 
                   {/* Images Grid */}
                   {productImages.length > 0 && (
-                    <div className="space-y-4">
-                      <h4 className="text-sm font-bold text-[#5c3d28]">Current Product Images ({productImages.length})</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="space-y-3 sm:space-y-4">
+                      <h4 className="text-xs sm:text-sm font-bold text-[#5c3d28]">Current Product Images ({productImages.length})</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
                         {productImages.map((image, index) => (
                           <div key={image.id} className="relative group">
                             <img
                               src={image.preview}
                               alt={`Product ${index + 1}`}
-                              className="w-full h-32 object-cover rounded-xl border-3 border-[#e5ded7] shadow-md group-hover:shadow-xl transition-shadow duration-300"
+                              className="w-full h-24 sm:h-28 md:h-32 object-cover rounded-lg sm:rounded-xl border-3 border-[#e5ded7] shadow-md group-hover:shadow-xl transition-shadow duration-300"
                             />
-                            <div className="absolute top-2 right-2 flex gap-1">
+                            <div className="absolute top-1 right-1 sm:top-2 sm:right-2 flex gap-1">
                               <button
                                 type="button"
                                 onClick={() => setAsMainImage(image.id)}
-                                className={`rounded-full p-1.5 text-white text-sm font-bold shadow-lg transition-all duration-200 ${
+                                className={`rounded-full p-1 sm:p-1.5 text-white text-xs sm:text-sm font-bold shadow-lg transition-all duration-200 ${
                                   image.isMain 
                                     ? 'bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] opacity-100 scale-110' 
                                     : 'bg-gray-400 opacity-0 group-hover:opacity-100 hover:scale-110'
@@ -564,14 +564,14 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                               <button
                                 type="button"
                                 onClick={() => removeImage(image.id)}
-                                className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full p-1 hover:scale-110 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                                className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full p-0.5 sm:p-1 hover:scale-110 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
                                 title="Remove image"
                               >
-                                <X className="h-4 w-4" />
+                                <X className="h-3 w-3 sm:h-4 sm:w-4" />
                               </button>
                             </div>
                             {image.isMain && (
-                              <div className="absolute top-2 left-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-xs px-3 py-1 rounded-full font-bold shadow-lg">
+                              <div className="absolute top-1 left-1 sm:top-2 sm:left-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-bold shadow-lg">
                                 MAIN
                               </div>
                             )}
@@ -584,36 +584,36 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                 </div>
 
                 {/* Product Video */}
-                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-2xl border-2 border-[#e5ded7] shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-                  <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#e5ded7]">
-                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
-                      <VideoIcon className="h-5 w-5 text-white" />
+                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-[#e5ded7] shadow-lg p-4 sm:p-5 md:p-6 hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <VideoIcon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold text-[#5c3d28]">Product Video</h3>
-                    <span className="ml-auto text-xs text-[#7b5a3b] bg-[#faf9f8] px-3 py-1 rounded-full border border-[#e5ded7]">Optional</span>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-[#5c3d28]">Product Video</h3>
+                    <span className="ml-auto text-xs text-[#7b5a3b] bg-[#faf9f8] px-2 sm:px-3 py-1 rounded-full border border-[#e5ded7]">Optional</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center p-8 border-3 border-dashed border-[#a4785a] rounded-2xl hover:border-[#7b5a3b] hover:bg-[#faf9f8] transition-all duration-300 group">
+                  <div className="flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 border-3 border-dashed border-[#a4785a] rounded-lg sm:rounded-xl md:rounded-2xl hover:border-[#7b5a3b] hover:bg-[#faf9f8] transition-all duration-300 group">
                     {video.preview ? (
                       <div className="relative w-full">
                         <video
                           src={video.preview}
-                          className="w-full h-56 object-contain rounded-xl shadow-lg border-4 border-[#e5ded7]"
+                          className="w-full h-40 sm:h-48 md:h-56 object-contain rounded-lg sm:rounded-xl shadow-lg border-4 border-[#e5ded7]"
                           controls
                         />
                         <button
                           type="button"
                           onClick={() => setVideo({ file: null, preview: '' })}
-                          className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-200"
+                          className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-200"
                         >
-                          <X className="h-5 w-5" />
+                          <X className="h-4 w-4 sm:h-5 sm:w-5" />
                         </button>
                       </div>
                     ) : (
                       <div className="text-center">
-                        <div className="p-4 bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                          <VideoIcon className="h-8 w-8 text-[#a4785a]" />
+                        <div className="p-3 sm:p-4 bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10 rounded-full w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                          <VideoIcon className="h-6 w-6 sm:h-8 sm:w-8 text-[#a4785a]" />
                         </div>
-                        <div className="mt-2 flex text-sm text-[#5c3d28]">
+                        <div className="mt-2 flex text-xs sm:text-sm text-[#5c3d28]">
                           <label
                             htmlFor="productVideo"
                             className="relative cursor-pointer font-semibold text-[#a4785a] hover:text-[#7b5a3b] transition-colors duration-200"
@@ -630,7 +630,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                           </label>
                           <p className="pl-1">or drag and drop</p>
                         </div>
-                        <p className="text-xs text-[#7b5a3b] mt-3">
+                        <p className="text-xs text-[#7b5a3b] mt-2 sm:mt-3">
                           MP4, WebM up to 50MB
                         </p>
                       </div>
@@ -639,16 +639,16 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                 </div>
 
                 {/* Tags */}
-                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-2xl border-2 border-[#e5ded7] shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-                  <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-[#e5ded7]">
-                    <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
-                      <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                <div className="bg-gradient-to-br from-white to-[#faf9f8] rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-[#e5ded7] shadow-lg p-4 sm:p-5 md:p-6 hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-[#e5ded7]">
+                    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
                     </div>
-                    <h3 className="text-2xl font-bold text-[#5c3d28]">Product Tags</h3>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-[#5c3d28]">Product Tags</h3>
                   </div>
-                  <div className="flex flex-wrap gap-2 mb-3 min-h-[40px] p-3 bg-[#faf9f8] rounded-xl border-2 border-[#e5ded7]">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2 sm:mb-3 min-h-[40px] p-2 sm:p-3 bg-[#faf9f8] rounded-lg sm:rounded-xl border-2 border-[#e5ded7]">
                     {tags.length > 0 ? tags.map((tag, index) => (
-                      <span key={index} className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-shadow duration-200">
+                      <span key={index} className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2 shadow-md hover:shadow-lg transition-shadow duration-200">
                         {tag}
                         <button
                           type="button"
@@ -656,41 +656,41 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                           onClick={() => removeTag(tag)}
                           aria-label={`Remove tag ${tag}`}
                         >
-                          <X size={14} />
+                          <X size={12} className="sm:w-3.5 sm:h-3.5" />
                         </button>
                       </span>
                     )) : (
-                      <span className="text-[#7b5a3b] text-sm italic">No tags yet - add some!</span>
+                      <span className="text-[#7b5a3b] text-xs sm:text-sm italic">No tags yet - add some!</span>
                     )}
                   </div>
                   <Input
                     type="text"
-                    className="w-full px-4 py-3 border-2 border-[#e5ded7] rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-medium"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-[#e5ded7] rounded-lg sm:rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-medium"
                     placeholder="Type a tag and press Enter..."
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyPress={handleAddTag}
                   />
-                  <p className="text-xs text-[#7b5a3b] mt-3">🏷️ Press <kbd className="px-2 py-1 bg-[#e5ded7] rounded text-[#5c3d28] font-mono">Enter</kbd> to add tags</p>
+                  <p className="text-xs text-[#7b5a3b] mt-2 sm:mt-3">🏷️ Press <kbd className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[#e5ded7] rounded text-[#5c3d28] font-mono">Enter</kbd> to add tags</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end space-x-4 pt-8 border-t-2 border-[#e5ded7] mt-8">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4 pt-4 sm:pt-6 md:pt-8 border-t-2 border-[#e5ded7] mt-4 sm:mt-6 md:mt-8">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="px-8 py-3 border-2 border-[#e5ded7] text-[#5c3d28] hover:bg-[#faf9f8] hover:border-[#a4785a] rounded-xl font-semibold transition-all duration-200"
+                className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 border-2 border-[#e5ded7] text-[#5c3d28] hover:bg-[#faf9f8] hover:border-[#a4785a] rounded-lg sm:rounded-xl font-semibold transition-all duration-200 text-sm sm:text-base"
               >
-                <X className="h-5 w-5 mr-2 inline" />
+                <X className="h-4 w-4 sm:h-5 sm:w-5 mr-2 inline" />
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="px-8 py-3 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white hover:from-[#8a6b4a] hover:to-[#6b4a2f] rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] group"
+                className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white hover:from-[#8a6b4a] hover:to-[#6b4a2f] rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] group"
               >
-                <Check className="h-5 w-5 mr-2 inline group-hover:scale-110 transition-transform duration-300" />
+                <Check className="h-4 w-4 sm:h-5 sm:w-5 mr-2 inline group-hover:scale-110 transition-transform duration-300" />
                 {getSubmitButtonText()}
               </Button>
             </div>

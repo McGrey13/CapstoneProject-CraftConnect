@@ -13,6 +13,24 @@ import {
 } from "lucide-react";
 import api from "../../api";
 
+// Add custom scrollbar styles
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f8f1ec;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #d5bfae;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #a4785a;
+  }
+`;
+
 const ShippingSimulation = () => {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -35,11 +53,23 @@ const ShippingSimulation = () => {
   const [trackingNumber, setTrackingNumber] = useState("");
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(true); // Show loading on initial fetch
   }, []);
 
-  const fetchOrders = async () => {
+  // Auto-refresh functionality (silent background refresh)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchOrders(false); // Silent refresh - no loading state
+    }, 10000); // Refresh every 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchOrders = async (showLoading = true) => {
     try {
+      if (showLoading) {
+        setIsLoading(true);
+      }
       const response = await api.get('/orders/seller');
       console.log('🚚 SHIPPING - All seller orders:', response.data.length);
       
@@ -70,7 +100,9 @@ const ShippingSimulation = () => {
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -259,64 +291,65 @@ const ShippingSimulation = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 max-w-[405px] mx-auto sm:max-w-none px-2 sm:px-0">
+      <style>{scrollbarStyles}</style>
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-            <Truck className="h-8 w-8 text-white" />
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg sm:rounded-xl shadow-xl p-3 sm:p-4 md:p-6">
+        <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <div className="p-2 sm:p-3 bg-white/20 rounded-lg sm:rounded-xl backdrop-blur-sm">
+            <Truck className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Shipping </h1>
-            <p className="text-white/90 mt-1">Manage deliveries and track packages</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Shipping </h1>
+            <p className="text-white/90 mt-1 text-xs sm:text-sm md:text-base">Manage deliveries and track packages</p>
           </div>
         </div>
         
         {/* Order Flow Info */}
-        <div className="mt-4 p-4 bg-white/10 rounded-xl backdrop-blur-sm">
-          <p className="text-white/90 text-sm mb-2 font-medium">📋 Shipping Simulation:</p>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <div className="bg-white/20 px-3 py-1 rounded-full text-white">
+        <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-white/10 rounded-lg sm:rounded-xl backdrop-blur-sm">
+          <p className="text-white/90 text-xs sm:text-sm mb-2 font-medium">📋 Shipping Simulation:</p>
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs">
+            <div className="bg-white/20 px-2 sm:px-3 py-1 rounded-full text-white">
               ✅ Shows ONLY orders in "Packing" status WITHOUT tracking numbers
             </div>
-            <div className="bg-white/20 px-3 py-1 rounded-full text-white">
+            <div className="bg-white/20 px-2 sm:px-3 py-1 rounded-full text-white">
               📦 Assign rider → Generate tracking number → Ready for E-Receipt
             </div>
-            <div className="bg-white/20 px-3 py-1 rounded-full text-white">
+            <div className="bg-white/20 px-2 sm:px-3 py-1 rounded-full text-white">
               🧾 Orders with tracking numbers appear in "E-Receipt & Waybill"
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 h-[calc(100vh-16rem)]">
         {/* Orders List */}
-        <Card className="border-2 border-[#e5ded7] shadow-xl">
-          <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
-            <CardTitle className="text-[#5c3d28] flex items-center text-xl">
-              <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
-                <Package className="h-5 w-5 text-white" />
+        <Card className="border-2 border-[#e5ded7] shadow-xl h-full flex flex-col rounded-lg sm:rounded-xl overflow-hidden">
+          <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white p-3 sm:p-4 flex-none">
+            <CardTitle className="text-[#5c3d28] flex items-center text-sm sm:text-base">
+              <div className="p-1.5 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-2">
+                <Package className="h-4 w-4 text-white" />
               </div>
               Orders Ready for Tracking Assignment
             </CardTitle>
-            <CardDescription className="text-[#7b5a3b] ml-11">
+            <CardDescription className="text-[#7b5a3b] ml-8 sm:ml-11 text-xs sm:text-sm">
               Only shows orders in "Packing" status WITHOUT tracking numbers - ready to assign rider and generate tracking
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-3">
+          <CardContent className="p-3 sm:p-4 md:p-6 flex-1 overflow-hidden">
+            <div className="space-y-2 sm:space-y-3 h-full overflow-y-auto custom-scrollbar pr-2">
               {orders.length === 0 ? (
-                <div className="text-center py-8">
-                  <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-[#7b5a3b] font-semibold mb-2">No orders ready for tracking assignment</p>
-                  <p className="text-[#7b5a3b] text-sm">Orders will appear here when they are packed but don't have tracking numbers yet</p>
+                <div className="text-center py-6 sm:py-8">
+                  <Package className="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-3 sm:mb-4" />
+                  <p className="text-[#7b5a3b] font-semibold mb-2 text-sm sm:text-base">No orders ready for tracking assignment</p>
+                  <p className="text-[#7b5a3b] text-xs sm:text-sm">Orders will appear here when they are packed but don't have tracking numbers yet</p>
                   <p className="text-[#7b5a3b] text-xs mt-2">Orders with tracking numbers are handled in "E-Receipt & Waybill" section</p>
                 </div>
               ) : (
                 orders.map((order) => (
                   <div
                     key={order.orderID}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
+                    className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-200 cursor-pointer ${
                       selectedOrder?.orderID === order.orderID
                         ? 'border-[#a4785a] bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10'
                         : 'border-[#e5ded7] hover:border-[#a4785a]/50 hover:shadow-md'
@@ -332,18 +365,18 @@ const ShippingSimulation = () => {
                       });
                     }}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <h3 className="font-bold text-[#5c3d28] bg-white px-2 py-1 rounded border border-[#e5ded7]">
-                            {order.order_number || `ORD-${order.orderID}`}
+                        <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 flex-wrap">
+                          <h3 className="font-bold text-[#5c3d28] bg-white px-2 py-1 rounded border border-[#e5ded7] text-xs sm:text-sm">
+                            {order.order_number}
                           </h3>
-                          <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+                          <Badge className="bg-green-100 text-green-800 flex items-center gap-1 text-xs">
                             <CheckCircle className="h-3 w-3" />
                             Packed - Ready
                           </Badge>
                           {order.payment_method && (
-                            <Badge className={`flex items-center gap-1 ${
+                            <Badge className={`flex items-center gap-1 text-xs ${
                               order.payment_method === 'cod' ? 'bg-yellow-100 text-yellow-800' :
                               order.payment_method === 'gcash' ? 'bg-blue-100 text-blue-800' :
                               'bg-purple-100 text-purple-800'
@@ -352,10 +385,10 @@ const ShippingSimulation = () => {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-[#7b5a3b] text-sm font-medium">
+                        <p className="text-[#7b5a3b] text-xs sm:text-sm font-medium">
                           👤 {order.customer || 'Unknown'}
                         </p>
-                        <p className="text-[#7b5a3b] text-sm">
+                        <p className="text-[#7b5a3b] text-xs sm:text-sm">
                           📦 Items: {order.items || 0} • 💰 Total: ₱{order.totalAmount?.toFixed(2) || order.total || '0.00'}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
@@ -363,8 +396,8 @@ const ShippingSimulation = () => {
                         </p>
                       </div>
                       <div className="flex gap-2">
-                        <Badge className="bg-orange-100 text-orange-800 flex items-center gap-1 px-3 py-1">
-                          <AlertCircle className="h-4 w-4" />
+                        <Badge className="bg-orange-100 text-orange-800 flex items-center gap-1 px-2 sm:px-3 py-1 text-xs">
+                          <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4" />
                           No Tracking Yet
                         </Badge>
                       </div>
@@ -377,27 +410,28 @@ const ShippingSimulation = () => {
         </Card>
 
         {/* Rider Assignment & Delivery Info */}
-        <Card className="border-2 border-[#e5ded7] shadow-xl">
-          <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
-            <CardTitle className="text-[#5c3d28] flex items-center text-xl">
-              <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
-                <User className="h-5 w-5 text-white" />
+        <Card className="border-2 border-[#e5ded7] shadow-xl h-full flex flex-col rounded-lg sm:rounded-xl overflow-hidden">
+          <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white p-3 sm:p-4 flex-none">
+            <CardTitle className="text-[#5c3d28] flex items-center text-sm sm:text-base">
+              <div className="p-1.5 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-2">
+                <User className="h-4 w-4 text-white" />
               </div>
               Rider & Delivery Information
             </CardTitle>
-            <CardDescription className="text-[#7b5a3b] ml-11">
+            <CardDescription className="text-[#7b5a3b] ml-8 sm:ml-11 text-xs sm:text-sm">
               {selectedOrder ? `Assign rider and generate tracking for Order #${selectedOrder.orderID}` : 'Select an order to assign rider and generate tracking number'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
-            {selectedOrder ? (
-              <div className="space-y-6">
-                {/* Rider Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-[#5c3d28] flex items-center">
-                    <User className="h-5 w-5 mr-2 text-[#a4785a]" />
-                    Rider Information
-                  </h3>
+          <CardContent className="p-3 sm:p-4 md:p-6 flex-1 overflow-hidden">
+            <div className="h-full overflow-y-auto custom-scrollbar pr-2">
+              {selectedOrder ? (
+                <div className="space-y-6">
+                  {/* Rider Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-[#5c3d28] flex items-center">
+                      <User className="h-5 w-5 mr-2 text-[#a4785a]" />
+                      Rider Information
+                    </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -538,6 +572,7 @@ const ShippingSimulation = () => {
                 <p className="text-[#7b5a3b] text-sm mt-2">Choose from the orders list to get started</p>
               </div>
             )}
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -25,6 +25,21 @@ const FeaturedProducts = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Helper function to convert image URLs to relative paths
+  const fixImageUrl = (url) => {
+    if (!url) return url;
+    // If it's already a full URL with localhost, convert to relative path
+    if (url.includes('localhost:8000') || url.includes('localhost:8080')) {
+      const path = new URL(url).pathname;
+      return path;
+    }
+    // If it's already a relative path, return as is
+    if (url.startsWith('/storage/') || url.startsWith('/images/')) {
+      return url;
+    }
+    return url;
+  };
+
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -32,25 +47,35 @@ const FeaturedProducts = ({
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/products/featured');
+      const response = await axios.get('/products/featured', { baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api' });
       const data = Array.isArray(response.data) ? response.data : 
                   response.data.data ? response.data.data : [];
       
+      console.log('📦 Featured Products Data:', data);
+      
       // Transform the API data to match our component's structure
-      const transformedProducts = data.map(product => ({
-        id: product.id,
-        image: product.productImage || '/placeholder-image.jpg',
-        title: product.productName,
-        price: parseFloat(product.productPrice),
-        artisanName: product.seller?.user?.userName || 'Unknown Artisan',
-        artisanId: product.seller?.sellerID,
-        storeName: product.seller?.store?.store_name || '',
-        storeLogo: product.seller?.store?.logo_url || '',
-        rating: 4.5, // You might want to fetch actual ratings from the API
-        isNew: false, // You might want to calculate this based on created_at
-        isFeatured: true,
-        category: product.category
-      }));
+      const transformedProducts = data.map(product => {
+        // Calculate if product is new (created within last 7 days)
+        const isNew = product.created_at 
+          ? (new Date() - new Date(product.created_at)) / (1000 * 60 * 60 * 24) < 7
+          : false;
+        
+        return {
+          id: product.id,
+          image: fixImageUrl(product.productImage) || '/placeholder-image.jpg',
+          title: product.productName,
+          price: parseFloat(product.productPrice),
+          artisanName: product.seller?.user?.userName || 'Unknown Artisan',
+          artisanId: product.seller?.sellerID,
+          storeName: product.seller?.store?.store_name || '',
+          storeLogo: fixImageUrl(product.seller?.store?.logo_url) || '',
+          rating: product.average_rating || 0, // Now guaranteed from backend
+          reviewsCount: product.reviews_count || 0,
+          isNew: isNew,
+          isFeatured: true,
+          category: product.category
+        };
+      });
 
       setProducts(transformedProducts);
       setError(null);
@@ -114,93 +139,117 @@ const FeaturedProducts = ({
 
   return (
     <section className="w-full max-w-[1200px] mx-auto py-12 px-4 bg-white">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">{title}</h2>
-        <p className="text-gray-600 max-w-2xl mx-auto">{subtitle}</p>
-      </div>
+    <div className="text-center mb-6 md:mb-8">
+      <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 transition-transform duration-300 hover:scale-105">{title}</h2>
+      <p className="text-sm md:text-base text-gray-600 max-w-2xl mx-auto px-4">{subtitle}</p>
+    </div>
+  
+    {/* Category Tabs + Sort Filter */}
+<div className="flex flex-col w-full items-center mb-6 gap-4">
+  {/* Mobile Dropdown */}
+  <div className="w-full sm:hidden">
+    <select
+      value={activeTab}
+      onChange={(e) => setActiveTab(e.target.value)}
+      className="w-full py-2.5 px-4 bg-white border-2 border-gray-300 rounded-lg text-sm appearance-none cursor-pointer transition-all duration-200 hover:border-[#9F2936] focus:border-[#9F2936] focus:outline-none"
+    >
+      {categories.map((category) => (
+        <option key={category.toLowerCase()} value={category.toLowerCase()}>
+          {category}
+        </option>
+      ))}
+    </select>
+  </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-        <Tabs
-          defaultValue="all"
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="w-full md:w-auto mb-4 md:mb-0"
+  {/* Desktop Tabs */}
+  <div className="hidden sm:block w-full">
+    <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="flex flex-wrap justify-center gap-2 bg-transparent">
+        {categories.map((category) => (
+          <TabsTrigger
+            key={category.toLowerCase()}
+            value={category.toLowerCase()}
+            className="px-4 py-2 text-sm border border-gray-300 rounded-lg transition-all duration-200 whitespace-nowrap
+                       hover:text-white hover:bg-gradient-to-r hover:from-[#a4785a] hover:to-[#7b5a3b] hover:border-[#a4785a] hover:shadow-md hover:scale-105
+                       data-[state=active]:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:border-[#a4785a] data-[state=active]:font-semibold data-[state=active]:shadow-md"
+          >
+            {category}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
+  </div>
+
+  {/* Sort Filter - placed BELOW on mobile */}
+  <div className="w-full sm:w-auto flex justify-center">
+    <Select value={sortBy} onValueChange={setSortBy}>
+      <SelectTrigger className="w-full sm:w-[160px] border-gray-300 focus:ring-[#9F2936] transition-all duration-200 hover:border-[#a4785a]">
+        <SelectValue placeholder="Sort by" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="featured" className="hover:bg-[#f5f5f5]">Featured</SelectItem>
+        <SelectItem value="price-low" className="hover:bg-[#f5f5f5]">Price: Low to High</SelectItem>
+        <SelectItem value="price-high" className="hover:bg-[#f5f5f5]">Price: High to Low</SelectItem>
+        <SelectItem value="rating" className="hover:bg-[#f5f5f5]">Highest Rated</SelectItem>
+        <SelectItem value="newest" className="hover:bg-[#f5f5f5]">Newest</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+</div>
+
+  
+    {/* Product Grid */}
+    {paginatedProducts.length === 0 ? (
+      <div className="text-center py-8 text-gray-500">
+        No products found in this category.
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+        {paginatedProducts.map((product) => (
+          <ProductCard
+            key={product.id}
+            {...product}
+            onAddToCart={onAddToCart}
+            onFavorite={onFavorite}
+          />
+        ))}
+      </div>
+    )}
+  
+    {/* Pagination */}
+    {pageCount > 1 && (
+      <div className="flex flex-col md:flex-row justify-center items-center mt-10 gap-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+          disabled={currentPage === 0}
+          className="flex items-center px-5 py-2 border-gray-300 text-gray-800 hover:text-white hover:bg-gradient-to-r hover:from-[#a4785a] hover:to-[#7b5a3b] hover:border-[#a4785a] hover:shadow-md hover:scale-105 transition-all duration-200 disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-transparent disabled:hover:text-gray-800"
         >
-          <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full md:w-auto gap-4">
-            {categories.map((category) => (
-              <TabsTrigger
-                key={category.toLowerCase()}
-                value={category.toLowerCase()}
-                className="px-4 py-2 transition-all duration-200 text-black data-[state=active]:text-[#9F2936] data-[state=active]:font-semibold hover:text-[#9F2936] hover:font-semibold"
-              >
-                {category}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-gray-500" />
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[180px] border-gray-300 hover:border-[#9F2936] focus:ring-[#9F2936]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="featured" className="hover:text-[#9F2936]">Featured</SelectItem>
-              <SelectItem value="price-low" className="hover:text-[#9F2936]">Price: Low to High</SelectItem>
-              <SelectItem value="price-high" className="hover:text-[#9F2936]">Price: High to Low</SelectItem>
-              <SelectItem value="rating" className="hover:text-[#9F2936]">Highest Rated</SelectItem>
-              <SelectItem value="newest" className="hover:text-[#9F2936]">Newest</SelectItem>
-            </SelectContent>
-          </Select>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Previous
+        </Button>
+  
+        <div className="text-sm text-gray-600 font-medium">
+          Page <span className="text-[#a4785a] font-bold">{currentPage + 1}</span> of {pageCount}
         </div>
+  
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage((p) => Math.min(pageCount - 1, p + 1))}
+          disabled={currentPage === pageCount - 1}
+          className="flex items-center px-5 py-2 border-gray-300 text-gray-800 hover:text-white hover:bg-gradient-to-r hover:from-[#a4785a] hover:to-[#7b5a3b] hover:border-[#a4785a] hover:shadow-md hover:scale-105 transition-all duration-200 disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-transparent disabled:hover:text-gray-800"
+        >
+          Next
+          <ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
       </div>
+    )}
+  </section>
+  
+  
 
-      {paginatedProducts.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          No products found in this category.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {paginatedProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              {...product}
-              onAddToCart={onAddToCart}
-              onFavorite={onFavorite}
-            />
-          ))}
-        </div>
-      )}
-
-      {pageCount > 1 && (
-        <div className="flex justify-center items-center mt-8 space-x-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-            disabled={currentPage === 0}
-            className="border-gray-300 text-black hover:border-[#9F2936] hover:text-[#9F2936] hover:font-semibold transition-all duration-200"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Previous
-          </Button>
-          <div className="text-sm text-gray-600">
-            Page {currentPage + 1} of {pageCount}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((p) => Math.min(pageCount - 1, p + 1))}
-            disabled={currentPage === pageCount - 1}
-            className="border-gray-300 text-black hover:border-[#9F2936] hover:text-[#9F2936] hover:font-semibold transition-all duration-200"
-          >
-            Next
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-        </div>
-      )}
-    </section>
   );
 };
 

@@ -76,7 +76,7 @@ const CommissionDashboard = () => {
         to_date: dateRange.to
       });
 
-      const baseURL = 'http://localhost:8000';
+      const baseURL = 'http://localhost:8080';
       const headers = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -195,7 +195,7 @@ const CommissionDashboard = () => {
         type: 'revenue'
       });
 
-      const baseURL = 'http://localhost:8000';
+      const baseURL = 'http://localhost:8080';
       const headers = {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',

@@ -36,8 +36,6 @@ const Login = () => {
       userPassword: password,
       remember: rememberMe,
     });
-    console.log("DEBUG ROLE:", result.userType);
-    console.log("DEBUG REDIRECT:", result.redirectTo);
 
     // Check if there's a specific redirect path (e.g., for sellers without stores)
     if (result.redirectTo) {
@@ -80,8 +78,6 @@ useEffect(() => {
   const errorParam = params.get("error");
   const errorMessage = params.get("message");
 
-  console.log("🔐 OAuth callback params:", { hasToken: !!token, userId, userType, redirectTo, error: errorParam, url: window.location.href });
-
   // Handle OAuth errors
   if (errorParam) {
     setError(decodeURIComponent(errorMessage || 'OAuth login failed. Please try again.'));
@@ -93,45 +89,33 @@ useEffect(() => {
   if (token && userId) {
     const fetchUserDataAndLogin = async () => {
       try {
-        console.log("🔄 Starting OAuth login process...");
-        
         // Clear any existing storage to prevent conflicts
         sessionStorage.clear();
         localStorage.removeItem("auth_token");
         localStorage.removeItem("user_data");
 
-        console.log("🔑 Setting token:", token.substring(0, 20) + "...");
-        
         // Store token in sessionStorage and set Authorization header
         setToken(token);
 
-        console.log("📡 Fetching user profile...");
-        
         // Fetch user profile data using the token
         const response = await api.get('/auth/profile');
         const userData = response.data;
         
-        console.log("👤 User profile received:", userData);
-        
         // Construct full profile picture URL if it exists
         if (userData.profilePicture && !userData.profilePicture.startsWith('http')) {
-          userData.profilePicture = `http://localhost:8000/storage/${userData.profilePicture}`;
+          const backendUrl = import.meta.env.VITE_BACKEND_URL?.replace('/api', '') || 'http://localhost:8000';
+          userData.profilePicture = `${backendUrl}/storage/${userData.profilePicture}`;
         }
 
         // Save user data to localStorage and context
         localStorage.setItem('user_data', JSON.stringify(userData));
-        console.log('✅ OAuth login successful, user data saved to localStorage');
 
         // Navigate to appropriate dashboard
         // Use window.location for full page reload to ensure UserContext initializes
         const targetPath = redirectTo || (userType === "admin" ? "/admin" : userType === "seller" ? "/seller" : "/home");
         
-        console.log('🚀 Redirecting to:', targetPath);
-        
         window.location.href = targetPath;
       } catch (e) {
-        console.error("❌ Failed to process OAuth login:", e);
-        console.error("Error details:", e.response?.data || e.message);
         setError(`Login failed: ${e.response?.data?.message || e.message}. Please try again.`);
         // Clear token on error
         setToken(null);
@@ -141,9 +125,6 @@ useEffect(() => {
     };
 
     fetchUserDataAndLogin();
-  } else if (window.location.search && !token) {
-    // We were redirected back but without a token parameter
-    console.warn("⚠️ OAuth redirect received without token param.");
   }
 }, [navigate]);
 
@@ -169,9 +150,10 @@ useEffect(() => {
       return;
     }
     
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000/api';
     const authUrl = oauthProvider === 'google' 
-      ? `http://localhost:8000/api/auth/google/redirect?role=${oauthRole}`
-      : `http://localhost:8000/api/auth/facebook/redirect?role=${oauthRole}`;
+      ? `${backendUrl}/auth/google/redirect?role=${oauthRole}`
+      : `${backendUrl}/auth/facebook/redirect?role=${oauthRole}`;
     
     window.location.href = authUrl;
   };

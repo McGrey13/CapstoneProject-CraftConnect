@@ -392,9 +392,9 @@ const handleSave = async () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 max-w-[405px] mx-auto sm:max-w-none px-3 sm:px-4">
       {/* Header with craft theme */}
-      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg sm:rounded-xl shadow-xl p-3 sm:p-4 md:p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -480,11 +480,11 @@ const handleSave = async () => {
 
         {/* Profile */}
         <TabsContent value="profile" className="space-y-6 pt-6">
-          <Card className="border-2 border-[#e5ded7] shadow-xl hover:shadow-2xl transition-all duration-300">
-            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
-              <CardTitle className="text-[#5c3d28] flex items-center text-xl">
-                <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
-                  <User className="h-5 w-5 text-white" />
+          <Card className="border-2 border-[#e5ded7] shadow-xl hover:shadow-2xl transition-all duration-300 rounded-lg sm:rounded-xl overflow-hidden">
+            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white p-3 sm:p-4">
+              <CardTitle className="text-[#5c3d28] flex items-center text-sm sm:text-base">
+                <div className="p-1.5 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-2">
+                  <User className="h-4 w-4 text-white" />
                 </div>
                 Profile Information
               </CardTitle>
@@ -597,11 +597,11 @@ const handleSave = async () => {
 
         {/* Account */}
         <TabsContent value="account" className="space-y-6 pt-6">
-          <Card className="border-2 border-[#e5ded7] shadow-xl hover:shadow-2xl transition-all duration-300">
-            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
-              <CardTitle className="text-[#5c3d28] flex items-center text-xl">
-                <div className="p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-3">
-                  <Shield className="h-5 w-5 text-white" />
+          <Card className="border-2 border-[#e5ded7] shadow-xl hover:shadow-2xl transition-all duration-300 rounded-lg sm:rounded-xl overflow-hidden">
+            <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white p-3 sm:p-4">
+              <CardTitle className="text-[#5c3d28] flex items-center text-sm sm:text-base">
+                <div className="p-1.5 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg mr-2">
+                  <Shield className="h-4 w-4 text-white" />
                 </div>
                 Account Information
               </CardTitle>
@@ -741,11 +741,11 @@ const handleSave = async () => {
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-red-200 shadow-xl hover:shadow-2xl transition-all duration-300">
-            <CardHeader className="border-b border-red-200 bg-gradient-to-r from-red-50 to-white">
-              <CardTitle className="text-red-700 flex items-center text-xl">
-                <div className="p-2 bg-gradient-to-r from-red-500 to-red-600 rounded-lg mr-3">
-                  <AlertTriangle className="h-5 w-5 text-white" />
+          <Card className="border-2 border-red-200 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-lg sm:rounded-xl overflow-hidden">
+            <CardHeader className="border-b border-red-200 bg-gradient-to-r from-red-50 to-white p-3 sm:p-4">
+              <CardTitle className="text-red-700 flex items-center text-sm sm:text-base">
+                <div className="p-1.5 bg-gradient-to-r from-red-500 to-red-600 rounded-lg mr-2">
+                  <AlertTriangle className="h-4 w-4 text-white" />
                 </div>
                 Danger Zone
               </CardTitle>

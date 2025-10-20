@@ -22,11 +22,27 @@ const Profile = () => {
   const [profilePicture, setProfilePicture] = useState(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState(null);
 
+  // Helper function to convert image URLs to relative paths
+  const fixImageUrl = (url) => {
+    if (!url) return url;
+    // If it's already a full URL with localhost, convert to relative path
+    if (url.includes('localhost:8000') || url.includes('localhost:8080')) {
+      const path = new URL(url).pathname;
+      return path;
+    }
+    // If it's already a relative path, return as is
+    if (url.startsWith('/storage/') || url.startsWith('/images/')) {
+      return url;
+    }
+    // If it's just a filename, prepend /storage/
+    if (url && !url.startsWith('http') && !url.startsWith('/')) {
+      return `/storage/${url}`;
+    }
+    return url;
+  };
+
   useEffect(() => {
     if (user) {
-      console.log('👤 User data:', user);
-      console.log('📸 Profile picture from user:', user.profilePicture);
-      
       setFormData({
         userName: user.userName || '',
         userEmail: user.userEmail || '',
@@ -41,12 +57,10 @@ const Profile = () => {
       if (user.profilePicture) {
         // Check if it's already a full URL or a path
         const profilePicUrl = user.profilePicture.startsWith('http') 
-          ? user.profilePicture 
-          : `http://localhost:8000/storage/${user.profilePicture}`;
-        console.log('🖼️ Setting profile picture URL to:', profilePicUrl);
+          ? fixImageUrl(user.profilePicture)
+          : fixImageUrl(user.profilePicture);
         setProfilePicturePreview(profilePicUrl);
       } else {
-        console.log('❌ No profile picture available');
         setProfilePicturePreview(null);
       }
     }
@@ -110,62 +124,30 @@ const Profile = () => {
 
       // ONLY add profile picture if a NEW file was selected
       if (profilePicture && profilePicture instanceof File) {
-        console.log('📤 Adding profile picture to FormData:', {
-          name: profilePicture.name,
-          type: profilePicture.type,
-          size: profilePicture.size
-        });
         formDataToSend.append('profile_picture', profilePicture);
-      } else {
-        console.log('ℹ️ No new profile picture selected - keeping existing one');
       }
 
-      // Log FormData contents
-      console.log('📦 FormData contents:');
-      for (let [key, value] of formDataToSend.entries()) {
-        if (value instanceof File) {
-          console.log(`  ${key}:`, `File(${value.name}, ${value.type}, ${value.size} bytes)`);
-        } else {
-          console.log(`  ${key}:`, value);
-        }
-      }
-
-      // Make API call using the customer profile endpoint
-      console.log('🚀 Making API call to /customer/profile');
-      console.log('📤 Request data type:', formDataToSend instanceof FormData ? 'FormData' : typeof formDataToSend);
-      
       const response = await api.post('/customer/profile', formDataToSend);
 
       const data = response.data;
 
       if (data.message === 'Profile updated successfully') {
-        console.log('✅ Profile update response:', data);
-        
         // Update local user state with the updated data
         const updatedUser = { ...user, ...data.user };
         
-      // Handle profile picture URL from customer profile
-      console.log('🔍 Profile update response data:', data);
-      
-      if (data.profile_picture_url) {
-        updatedUser.profilePicture = data.profile_picture_url;
-        setProfilePicturePreview(data.profile_picture_url);
-        console.log('✅ Profile picture updated to:', data.profile_picture_url);
-      } else if (data.customer?.profile_picture_path) {
-        const profilePicUrl = `http://localhost:8000/storage/${data.customer.profile_picture_path}`;
-        updatedUser.profilePicture = profilePicUrl;
-        setProfilePicturePreview(profilePicUrl);
-        console.log('✅ Profile picture updated to:', profilePicUrl);
-      } else {
-        // No profile picture was uploaded or saved
-        updatedUser.profilePicture = null;
-        setProfilePicturePreview(null);
-        console.log('ℹ️ No profile picture in response');
-        console.log('🔍 Available data keys:', Object.keys(data));
-        if (data.customer) {
-          console.log('🔍 Customer data:', data.customer);
+        // Handle profile picture URL from customer profile
+        if (data.profile_picture_url) {
+          updatedUser.profilePicture = fixImageUrl(data.profile_picture_url);
+          setProfilePicturePreview(fixImageUrl(data.profile_picture_url));
+        } else if (data.customer?.profile_picture_path) {
+          const profilePicUrl = fixImageUrl(data.customer.profile_picture_path);
+          updatedUser.profilePicture = profilePicUrl;
+          setProfilePicturePreview(profilePicUrl);
+        } else {
+          // No profile picture was uploaded or saved
+          updatedUser.profilePicture = null;
+          setProfilePicturePreview(null);
         }
-      }
         
         // Ensure the updated user has the correct profile picture URL
         updateUser(updatedUser);
@@ -177,31 +159,24 @@ const Profile = () => {
           try {
             const refreshResponse = await api.get('/customer/profile');
             const refreshedData = refreshResponse.data;
-            console.log('🔄 Refreshed profile data:', refreshedData);
             
             const refreshedUser = { ...refreshedData.user };
             if (refreshedData.profile_picture_url) {
-              refreshedUser.profilePicture = refreshedData.profile_picture_url;
+              refreshedUser.profilePicture = fixImageUrl(refreshedData.profile_picture_url);
             } else if (refreshedData.customer?.profile_picture_path) {
-              refreshedUser.profilePicture = `http://localhost:8000/storage/${refreshedData.customer.profile_picture_path}`;
+              refreshedUser.profilePicture = fixImageUrl(refreshedData.customer.profile_picture_path);
             }
             
             updateUser(refreshedUser);
-            console.log('✅ User context updated with refreshed data');
           } catch (error) {
-            console.error('Error refreshing user data:', error);
+            // Error refreshing user data
           }
         }, 500);
       } else {
         throw new Error(data.message || 'Failed to update profile');
       }
     } catch (error) {
-      console.error('Failed to update profile:', error);
       if (error.response?.data) {
-        console.error('Server error response:', JSON.stringify(error.response.data, null, 2));
-        console.error('Validation errors:', error.response.data.errors);
-        console.error('Error message:', error.response.data.message);
-        
         const errorMessages = error.response.data.errors 
           ? Object.values(error.response.data.errors).flat().join('\n')
           : error.response.data.message || error.message;
@@ -283,12 +258,7 @@ const Profile = () => {
                         alt="Profile"
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          console.error('❌ Failed to load image:', profilePicturePreview);
-                          console.error('❌ Image error details:', e);
                           setProfilePicturePreview(null);
-                        }}
-                        onLoad={() => {
-                          console.log('✅ Profile picture loaded successfully:', profilePicturePreview);
                         }}
                       />
                     ) : (

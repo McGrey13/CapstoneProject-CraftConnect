@@ -35,14 +35,16 @@ const SellerAnalytics = ({ sellerId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchAnalytics = useCallback(async () => {
+  const fetchAnalytics = useCallback(async (showLoading = true) => {
     if (!sellerId) {
       setError('Please wait while loading seller information...');
       setLoading(true);
       return;
     }
 
-    setLoading(true);
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
       const response = await api.get(`/analytics/seller/${sellerId}`);
       
@@ -52,17 +54,32 @@ const SellerAnalytics = ({ sellerId }) => {
       }
     } catch (err) {
       console.error('Error fetching analytics:', err);
-      setError(err.message || 'Failed to fetch analytics');
+      if (showLoading) {
+        setError(err.message || 'Failed to fetch analytics');
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, [sellerId]);
 
   useEffect(() => {
     if (sellerId) {
-      fetchAnalytics();
+      fetchAnalytics(true); // Show loading on initial fetch
     }
   }, [sellerId]);
+
+  // Auto-refresh functionality (silent background refresh)
+  useEffect(() => {
+    if (!sellerId) return;
+
+    const interval = setInterval(() => {
+      fetchAnalytics(false); // Silent refresh - no loading state
+    }, 15000); // Refresh every 15 seconds for analytics
+
+    return () => clearInterval(interval);
+  }, [sellerId, fetchAnalytics]);
 
   if (loading) {
     return (
@@ -90,39 +107,33 @@ const SellerAnalytics = ({ sellerId }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header with craft theme */}
-      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-8">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+        <div className="flex items-center justify-between flex-wrap gap-3 sm:gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white flex items-center">
-              <TrendingUp className="h-8 w-8 mr-3" />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white flex items-center">
+              <TrendingUp className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 mr-2 sm:mr-3" />
               Sales Analytics
             </h1>
-            <p className="text-white/90 mt-2 text-lg">
+            <p className="text-white/90 mt-2 text-sm sm:text-base md:text-lg">
               Track your store's performance and sales metrics
             </p>
           </div>
-          <Button 
-            onClick={fetchAnalytics}
-            className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-2 border-white/30 shadow-lg transition-all duration-200"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" /> Refresh
-          </Button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="border-[#e5ded7] bg-gradient-to-br from-white to-[#faf9f8] hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-semibold text-[#5c3d28]">Total Revenue</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg">
-              <TrendingUp className="h-5 w-5 text-white" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4 md:p-6">
+            <CardTitle className="text-xs sm:text-sm font-semibold text-[#5c3d28]">Total Revenue</CardTitle>
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg flex-shrink-0">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
+          <CardContent className="p-3 sm:p-4 md:p-6 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
               {formatCurrency(analytics.total_revenue)}
             </div>
             <p className="text-xs text-[#7b5a3b] mt-1">
@@ -132,14 +143,14 @@ const SellerAnalytics = ({ sellerId }) => {
         </Card>
 
         <Card className="border-[#e5ded7] bg-gradient-to-br from-white to-[#faf9f8] hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-semibold text-[#5c3d28]">Best Selling Product</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-lg">
-              <Package className="h-5 w-5 text-white" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4 md:p-6">
+            <CardTitle className="text-xs sm:text-sm font-semibold text-[#5c3d28]">Best Selling Product</CardTitle>
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-lg flex-shrink-0">
+              <Package className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] bg-clip-text text-transparent">
+          <CardContent className="p-3 sm:p-4 md:p-6 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] bg-clip-text text-transparent">
               {analytics.best_sellers[0]?.units_sold || 0} units
             </div>
             <p className="text-xs text-[#7b5a3b] mt-1 truncate">
@@ -149,14 +160,14 @@ const SellerAnalytics = ({ sellerId }) => {
         </Card>
 
         <Card className="border-[#e5ded7] bg-gradient-to-br from-white to-[#faf9f8] hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-semibold text-[#5c3d28]">Order Completion</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
-              <AlertTriangle className="h-5 w-5 text-white" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4 md:p-6">
+            <CardTitle className="text-xs sm:text-sm font-semibold text-[#5c3d28]">Order Completion</CardTitle>
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg flex-shrink-0">
+              <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
+          <CardContent className="p-3 sm:p-4 md:p-6 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
               {analytics.order_metrics.completion_rate.toFixed(1)}%
             </div>
             <p className="text-xs text-[#7b5a3b] mt-1">
@@ -166,14 +177,14 @@ const SellerAnalytics = ({ sellerId }) => {
         </Card>
 
         <Card className="border-[#e5ded7] bg-gradient-to-br from-white to-[#faf9f8] hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-semibold text-[#5c3d28]">Active Discounts</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <Tag className="h-5 w-5 text-white" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4 md:p-6">
+            <CardTitle className="text-xs sm:text-sm font-semibold text-[#5c3d28]">Active Discounts</CardTitle>
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
+              <Tag className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent">
+          <CardContent className="p-3 sm:p-4 md:p-6 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent">
               {analytics.discount_stats.active_codes}
             </div>
             <p className="text-xs text-[#7b5a3b] mt-1">
@@ -185,32 +196,32 @@ const SellerAnalytics = ({ sellerId }) => {
 
       {/* Order Status Overview */}
       <Card className="border-[#e5ded7] shadow-xl">
-        <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
-          <CardTitle className="text-[#5c3d28] flex items-center">
-            <Package className="h-5 w-5 mr-2 text-[#a4785a]" />
+        <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white p-4 sm:p-6">
+          <CardTitle className="text-[#5c3d28] flex items-center text-base sm:text-lg md:text-xl">
+            <Package className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-[#a4785a]" />
             Order Status Overview
           </CardTitle>
-          <CardDescription className="text-[#7b5a3b]">Current status of all orders and performance metrics</CardDescription>
+          <CardDescription className="text-[#7b5a3b] text-xs sm:text-sm">Current status of all orders and performance metrics</CardDescription>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="space-y-6">
+        <CardContent className="pt-4 sm:pt-6 p-4 sm:p-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Status Cards with Progress Bars */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-3 p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all duration-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="space-y-2 sm:space-y-3 p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg sm:rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all duration-200">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-blue-700">Pending</p>
+                  <p className="text-xs sm:text-sm font-semibold text-blue-700">Pending</p>
                   <span className="text-xs font-medium text-blue-600">
                     {analytics.order_metrics.total_orders > 0 
                       ? Math.round((analytics.order_metrics.pending / analytics.order_metrics.total_orders) * 100)
                       : 0}%
                   </span>
                 </div>
-                <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
+                <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
                   {analytics.order_metrics.pending}
                 </p>
-                <div className="w-full bg-blue-200 rounded-full h-2.5">
+                <div className="w-full bg-blue-200 rounded-full h-2 sm:h-2.5">
                   <div 
-                    className="bg-gradient-to-r from-blue-500 to-blue-600 h-2.5 rounded-full transition-all duration-300 shadow-sm"
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 sm:h-2.5 rounded-full transition-all duration-300 shadow-sm"
                     style={{ 
                       width: `${analytics.order_metrics.total_orders > 0 
                         ? (analytics.order_metrics.pending / analytics.order_metrics.total_orders) * 100 
@@ -220,21 +231,21 @@ const SellerAnalytics = ({ sellerId }) => {
                 </div>
               </div>
               
-              <div className="space-y-3 p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border-2 border-yellow-200 hover:border-yellow-400 transition-all duration-200">
+              <div className="space-y-2 sm:space-y-3 p-3 sm:p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg sm:rounded-xl border-2 border-yellow-200 hover:border-yellow-400 transition-all duration-200">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-yellow-700">Packing</p>
+                  <p className="text-xs sm:text-sm font-semibold text-yellow-700">Packing</p>
                   <span className="text-xs font-medium text-yellow-600">
                     {analytics.order_metrics.total_orders > 0 
                       ? Math.round((analytics.order_metrics.packing / analytics.order_metrics.total_orders) * 100)
                       : 0}%
                   </span>
                 </div>
-                <p className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-yellow-700 bg-clip-text text-transparent">
+                <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-600 to-yellow-700 bg-clip-text text-transparent">
                   {analytics.order_metrics.packing}
                 </p>
-                <div className="w-full bg-yellow-200 rounded-full h-2.5">
+                <div className="w-full bg-yellow-200 rounded-full h-2 sm:h-2.5">
                   <div 
-                    className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-2.5 rounded-full transition-all duration-300 shadow-sm"
+                    className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-2 sm:h-2.5 rounded-full transition-all duration-300 shadow-sm"
                     style={{ 
                       width: `${analytics.order_metrics.total_orders > 0 
                         ? (analytics.order_metrics.packing / analytics.order_metrics.total_orders) * 100 
