@@ -401,12 +401,23 @@ class FacebookController extends Controller
             return response()->json(['message' => 'Facebook not connected'], 400);
         }
 
+        Log::info('Selecting Facebook page', [
+            'user_id' => $user->userID,
+            'page_id' => $data['page_id'],
+            'has_access_token' => !!$account->access_token
+        ]);
+
         // Fetch page details including access token
         $response = Http::get(self::GRAPH_BASE . '/' . $data['page_id'], [
             'fields' => 'name,access_token',
             'access_token' => $account->access_token,
         ]);
         if (!$response->ok()) {
+            Log::error('Failed to fetch page details', [
+                'user_id' => $user->userID,
+                'page_id' => $data['page_id'],
+                'response' => $response->json()
+            ]);
             return response()->json(['message' => 'Failed to fetch page details', 'error' => $response->json()], 400);
         }
 
@@ -417,6 +428,12 @@ class FacebookController extends Controller
             'page_id' => $data['page_id'],
             'page_name' => $pageName,
             'page_access_token' => $pageAccessToken,
+        ]);
+
+        Log::info('Facebook page selected successfully', [
+            'user_id' => $user->userID,
+            'page_id' => $account->page_id,
+            'page_name' => $account->page_name
         ]);
 
         return response()->json(['success' => true, 'page' => [
@@ -430,7 +447,7 @@ class FacebookController extends Controller
     {
         Log::info('Facebook post request received', [
             'has_user' => !!Auth::user(),
-            'request_data' => $request->all()
+            'request_data' => $request->except(['image']) // Don't log image data
         ]);
         
         $user = Auth::user();
@@ -450,14 +467,83 @@ class FacebookController extends Controller
         Log::info('Facebook post: Checking social account', ['user_id' => $user->userID]);
         
         $account = SocialAccount::where('user_id', $user->userID)->where('provider', 'facebook')->first();
-        if (!$account || !$account->page_id || !$account->page_access_token) {
+        
+        // Enhanced logging for debugging
+        if (!$account) {
+            Log::error('Facebook post: No Facebook account found', ['user_id' => $user->userID]);
+            return response()->json([
+                'message' => 'Please connect your Facebook account first. Go to "Connected Accounts" tab and click "Connect Facebook".',
+                'error_code' => 'NO_ACCOUNT'
+            ], 400);
+        }
+        
+        if (!$account->page_id || !$account->page_access_token) {
             Log::error('Facebook post: No page selected', [
                 'user_id' => $user->userID,
-                'has_account' => !!$account,
+                'has_account' => true,
                 'page_id' => $account->page_id ?? null,
-                'has_page_token' => !!($account->page_access_token ?? null)
+                'page_name' => $account->page_name ?? null,
+                'has_access_token' => !!$account->access_token,
+                'has_page_token' => !!$account->page_access_token
             ]);
-            return response()->json(['message' => 'Select a Facebook Page first'], 400);
+            
+            // Try to auto-select the first available page
+            Log::info('Attempting to fetch and auto-select first available page', ['user_id' => $user->userID]);
+            
+            try {
+                $pagesResponse = Http::timeout(30)->get(self::GRAPH_BASE . '/me/accounts', [
+                    'access_token' => $account->access_token,
+                    'fields' => 'id,name,access_token',
+                ]);
+                
+                if ($pagesResponse->ok()) {
+                    $pages = $pagesResponse->json('data', []);
+                    Log::info('Found pages', ['user_id' => $user->userID, 'pages_count' => count($pages)]);
+                    
+                    if (!empty($pages)) {
+                        $firstPage = $pages[0];
+                        $account->update([
+                            'page_id' => $firstPage['id'],
+                            'page_name' => $firstPage['name'],
+                            'page_access_token' => $firstPage['access_token'] ?? null,
+                        ]);
+                        
+                        Log::info('Auto-selected first page', [
+                            'user_id' => $user->userID,
+                            'page_id' => $firstPage['id'],
+                            'page_name' => $firstPage['name']
+                        ]);
+                        
+                        // Reload account to get updated data
+                        $account->refresh();
+                    } else {
+                        Log::warning('No pages available for user', ['user_id' => $user->userID]);
+                        return response()->json([
+                            'message' => 'No Facebook Pages found. Please create a Facebook Page or request page permissions.',
+                            'error_code' => 'NO_PAGES'
+                        ], 400);
+                    }
+                } else {
+                    Log::error('Failed to fetch pages for auto-selection', [
+                        'user_id' => $user->userID,
+                        'status' => $pagesResponse->status(),
+                        'response' => $pagesResponse->json()
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Exception while auto-selecting page', [
+                    'user_id' => $user->userID,
+                    'error' => $e->getMessage()
+                ]);
+            }
+            
+            // Check again after auto-selection attempt
+            if (!$account->page_id || !$account->page_access_token) {
+                return response()->json([
+                    'message' => 'Please select a Facebook Page first. Go to "Connected Accounts" tab and click "Manage Pages".',
+                    'error_code' => 'NO_PAGE_SELECTED'
+                ], 400);
+            }
         }
 
         try {

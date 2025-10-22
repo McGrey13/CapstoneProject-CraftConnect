@@ -26,7 +26,7 @@ export function Favorites() {
         // Fetch full product details for each favorite
         const productPromises = favorites.map(async (fav) => {
           try {
-            const response = await fetch(`http://localhost:8080/api/products/${fav.id}`);
+            const response = await fetch(`/api/products/${fav.id}`);
             if (response.ok) {
               return await response.json();
             }

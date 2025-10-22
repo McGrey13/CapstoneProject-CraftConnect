@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus, Minus, ShoppingCart } from "lucide-react";
 import MessengerPopup from "../Messenger/MessengerPopup";
+import { useCart } from "../Cart/CartContext";
 
 const ArtisanDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
   
   // State declarations
   const [artisan, setArtisan] = useState({
@@ -65,6 +68,8 @@ const ArtisanDetail = () => {
   const [discountCodes, setDiscountCodes] = useState([]);
   const [workshops, setWorkshops] = useState([]);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [productQuantities, setProductQuantities] = useState({});
+  const [addingToCart, setAddingToCart] = useState(false);
 
   // Follow/Unfollow functionality
   const handleFollow = async () => {
@@ -150,6 +155,54 @@ const ArtisanDetail = () => {
   // Share functionality
   const handleShare = () => {
     setShowShareModal(true);
+  };
+
+  // Quantity management functions
+  const updateQuantity = (productId, change) => {
+    setProductQuantities(prev => {
+      const currentQty = prev[productId] || 1;
+      const newQty = Math.max(1, currentQty + change);
+      return { ...prev, [productId]: newQty };
+    });
+  };
+
+  // Buy Now functionality
+  const handleBuyNow = async (product) => {
+    const token = sessionStorage.getItem("auth_token");
+    if (!token) {
+      alert("Please log in to purchase items");
+      navigate("/login");
+      return;
+    }
+
+    const quantity = productQuantities[product.id] || 1;
+    navigate("/checkout", { state: { product: { ...product, quantity } } });
+  };
+
+  // Add to Cart functionality
+  const handleAddToCart = async (product) => {
+    const token = sessionStorage.getItem("auth_token");
+    if (!token) {
+      alert("Please log in to add items to cart");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setAddingToCart(true);
+      const quantity = productQuantities[product.id] || 1;
+      const result = await addToCart(product, quantity);
+      if (result.success) {
+        alert("Item added to cart successfully!");
+      } else {
+        alert(result.error || "Failed to add item to cart");
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      alert("Failed to add item to cart. Please try again.");
+    } finally {
+      setAddingToCart(false);
+    }
   };
 
   useEffect(() => {
@@ -348,6 +401,11 @@ const ArtisanDetail = () => {
           discountStats={discountStats}
           discountCodes={discountCodes}
           workshops={workshops}
+          productQuantities={productQuantities}
+          updateQuantity={updateQuantity}
+          handleBuyNow={handleBuyNow}
+          handleAddToCart={handleAddToCart}
+          addingToCart={addingToCart}
         />
         
         {/* Messenger Popup */}
@@ -382,7 +440,23 @@ const ArtisanDetail = () => {
 };
 
 // Artisan Store Preview Component
-const ArtisanStorePreview = ({ storeData, artisan, artisanProducts, onFollow, onMessage, onShare, isFollowing, isLoading, discountCodes = [], workshops = [] }) => {
+const ArtisanStorePreview = ({ 
+  storeData, 
+  artisan, 
+  artisanProducts, 
+  onFollow, 
+  onMessage, 
+  onShare, 
+  isFollowing, 
+  isLoading, 
+  discountCodes = [], 
+  workshops = [],
+  productQuantities = {},
+  updateQuantity,
+  handleBuyNow,
+  handleAddToCart,
+  addingToCart
+}) => {
   // Use real store customization data from database
   // Prepare store data
   const store = {
@@ -687,14 +761,14 @@ const ArtisanStorePreview = ({ storeData, artisan, artisanProducts, onFollow, on
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {products.length > 0 ? (
           products.map((product, index) => (
-            <Link to={`/product/${product.id}`} key={`prod-${product.id ?? index}`}>
-              <div
-                  className="rounded-xl sm:rounded-2xl shadow p-4 sm:p-5 flex flex-col relative group transition-transform duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer"
-                style={{ 
-                  minHeight: 450,
-                  backgroundColor: customization.background_color
-                }}
-              >
+            <div
+              key={`prod-${product.id ?? index}`}
+              className="rounded-xl sm:rounded-2xl shadow p-4 sm:p-5 flex flex-col relative group transition-transform duration-300 hover:scale-105 hover:shadow-2xl"
+              style={{ 
+                minHeight: 550,
+                backgroundColor: customization.background_color
+              }}
+            >
                   {/* Product Card Content */}
                 {product.isNew && (
                   <span 
@@ -767,18 +841,64 @@ const ArtisanStorePreview = ({ storeData, artisan, artisanProducts, onFollow, on
                   </span>
                   {product.oldPrice && <span className="text-gray-400 line-through text-sm">{product.oldPrice}</span>}
             </div>
-                <button
-                  className="mt-auto w-full font-semibold py-2 rounded-lg shadow hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 text-base"
-                  style={{ 
-                    backgroundColor: customization.accent_color,
-                    color: customization.text_color,
-                    focusRingColor: customization.accent_color
-                  }}
-                >
-                  View Product
-              </button>
+                {/* Quantity Controls */}
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateQuantity(product.id, -1)}
+                    className="w-8 h-8 p-0"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <span className="text-lg font-semibold min-w-[2rem] text-center" style={{ color: customization.text_color }}>
+                    {productQuantities[product.id] || 1}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateQuantity(product.id, 1)}
+                    className="w-8 h-8 p-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleAddToCart(product)}
+                    disabled={addingToCart}
+                    className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold py-2 text-sm"
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Add to Cart
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handleBuyNow(product)}
+                    style={{ backgroundColor: '#E27D60', color: 'white' }}
+                    className="flex-1 hover:bg-[#d16a4f] font-semibold py-2 text-sm"
+                  >
+                    Buy Now
+                  </Button>
+                </div>
+
+                {/* View Product Link */}
+                <Link to={`/product/${product.id}`} className="mt-2">
+                  <Button
+                    variant="outline"
+                    className="w-full font-semibold py-2 rounded-lg shadow hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 text-sm"
+                    style={{ 
+                      borderColor: customization.accent_color,
+                      color: customization.accent_color,
+                      focusRingColor: customization.accent_color
+                    }}
+                  >
+                    View Details
+                  </Button>
+                </Link>
             </div>
-            </Link>
           ))
         ) : (
             <div className="col-span-full text-center py-20">

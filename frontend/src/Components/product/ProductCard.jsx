@@ -19,11 +19,15 @@ const ProductCard = ({
   isNew = false,
   isFeatured = false,
   onAddToCart = () => {},
+  onFavorite = () => {},
 }) => {
   const navigate = useNavigate();
   const { favorites, toggleFavorite } = useFavorites(); // NEW
-  const isFavorited = favorites.some((item) => item.id === id); // NEW
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  
+  // Check if user is logged in
+  const isLoggedIn = !!sessionStorage.getItem("auth_token");
+  const isFavorited = isLoggedIn && favorites.some((item) => item.id === id);
 
   const handleCardClick = () => {
     navigate(`/product/${id}`);
@@ -34,12 +38,17 @@ const ProductCard = ({
     if (isAddingToCart) return; // Prevent multiple clicks
     
     setIsAddingToCart(true);
-    onAddToCart(id);
+    onAddToCart({ id, image, title, price, artisanName, rating });
     
     // Reset loading state after a short delay
     setTimeout(() => {
       setIsAddingToCart(false);
     }, 1000);
+  };
+
+  const handleFavoriteClick = (e) => {
+    e.stopPropagation();
+    onFavorite({ id, image, title, price, artisanName, rating });
   };
 
   return (
@@ -70,20 +79,17 @@ const ProductCard = ({
                 variant="ghost"
                 size="icon"
                 className="absolute top-2 right-10 bg-white/80 hover:bg-white rounded-full p-1.5 h-8 w-8"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFavorite({ id, image, title, price, artisanName, rating }); // NEW
-                }}
+                onClick={handleFavoriteClick}
               >
                 <Heart
                   className={`h-4 w-4 ${
-                    isFavorited ? "text-red-500 fill-red-500" : "text-gray-600"
+                    isFavorited && isLoggedIn ? "text-red-500 fill-red-500" : "text-gray-600"
                   }`}
                 />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{isFavorited ? "Remove from favorites" : "Add to favorites"}</p>
+              <p>{isFavorited && isLoggedIn ? "Remove from favorites" : "Add to favorites"}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

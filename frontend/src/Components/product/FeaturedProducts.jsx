@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, ArrowRight, Filter } from "lucide-react";
+import { ArrowLeft, ArrowRight, Filter, X, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import {
@@ -24,6 +24,9 @@ const FeaturedProducts = ({
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showFavoriteModal, setShowFavoriteModal] = useState(false);
+  const [modalType, setModalType] = useState('cart'); // 'cart' or 'favorite'
 
   // Helper function to convert image URLs to relative paths
   const fixImageUrl = (url) => {
@@ -96,17 +99,56 @@ const FeaturedProducts = ({
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
+    // Helper functions
+    const hasRatings = (product) => (product.reviewsCount || 0) > 0;
+    const getWeightedScore = (product) => {
+      const rating = product.rating || 0;
+      const count = product.reviewsCount || 0;
+      return rating * Math.log10(count + 1) + (count / 100);
+    };
+    
+    // ALWAYS prioritize products with ratings over products without ratings
+    const aHasRatings = hasRatings(a);
+    const bHasRatings = hasRatings(b);
+    
+    if (aHasRatings && !bHasRatings) return -1;
+    if (!aHasRatings && bHasRatings) return 1;
+    
+    // Apply selected sorting
     switch (sortBy) {
       case "price-low":
-        return a.price - b.price;
+        const priceDiffLow = a.price - b.price;
+        if (priceDiffLow !== 0) return priceDiffLow;
+        // Secondary: weighted rating
+        if (aHasRatings && bHasRatings) {
+          return getWeightedScore(b) - getWeightedScore(a);
+        }
+        return 0;
+        
       case "price-high":
-        return b.price - a.price;
+        const priceDiffHigh = b.price - a.price;
+        if (priceDiffHigh !== 0) return priceDiffHigh;
+        // Secondary: weighted rating
+        if (aHasRatings && bHasRatings) {
+          return getWeightedScore(b) - getWeightedScore(a);
+        }
+        return 0;
+        
       case "rating":
-        return b.rating - a.rating;
-      case "newest":
-        return a.isNew ? -1 : 1;
+        // Sort by weighted rating
+        if (aHasRatings && bHasRatings) {
+          return getWeightedScore(b) - getWeightedScore(a);
+        }
+        return 0;
+        
       default:
-        return a.isFeatured ? -1 : 1;
+        // Featured first, then by weighted rating
+        const featuredDiff = (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
+        if (featuredDiff !== 0) return featuredDiff;
+        if (aHasRatings && bHasRatings) {
+          return getWeightedScore(b) - getWeightedScore(a);
+        }
+        return 0;
     }
   });
 
@@ -116,6 +158,27 @@ const FeaturedProducts = ({
   );
 
   const pageCount = Math.ceil(sortedProducts.length / itemsPerPage);
+
+  // Authentication check functions
+  const handleAddToCartWithAuth = (product) => {
+    const token = sessionStorage.getItem("auth_token");
+    if (!token) {
+      setModalType('cart');
+      setShowLoginModal(true);
+      return;
+    }
+    onAddToCart(product);
+  };
+
+  const handleFavoriteWithAuth = (product) => {
+    const token = sessionStorage.getItem("auth_token");
+    if (!token) {
+      setModalType('favorite');
+      setShowFavoriteModal(true);
+      return;
+    }
+    onFavorite(product);
+  };
 
   if (loading) {
     return (
@@ -138,6 +201,7 @@ const FeaturedProducts = ({
   }
 
   return (
+    <>
     <section className="w-full max-w-[1200px] mx-auto py-12 px-4 bg-white">
     <div className="text-center mb-6 md:mb-8">
       <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 transition-transform duration-300 hover:scale-105">{title}</h2>
@@ -183,15 +247,14 @@ const FeaturedProducts = ({
   {/* Sort Filter - placed BELOW on mobile */}
   <div className="w-full sm:w-auto flex justify-center">
     <Select value={sortBy} onValueChange={setSortBy}>
-      <SelectTrigger className="w-full sm:w-[160px] border-gray-300 focus:ring-[#9F2936] transition-all duration-200 hover:border-[#a4785a]">
+      <SelectTrigger className="w-full sm:w-[160px] bg-white border-gray-300 focus:ring-[#9F2936] transition-all duration-200 hover:border-[#a4785a]">
         <SelectValue placeholder="Sort by" />
       </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="featured" className="hover:bg-[#f5f5f5]">Featured</SelectItem>
-        <SelectItem value="price-low" className="hover:bg-[#f5f5f5]">Price: Low to High</SelectItem>
-        <SelectItem value="price-high" className="hover:bg-[#f5f5f5]">Price: High to Low</SelectItem>
-        <SelectItem value="rating" className="hover:bg-[#f5f5f5]">Highest Rated</SelectItem>
-        <SelectItem value="newest" className="hover:bg-[#f5f5f5]">Newest</SelectItem>
+      <SelectContent className="bg-white">
+        <SelectItem value="featured" className="bg-white hover:bg-[#f5f5f5]">Featured</SelectItem>
+        <SelectItem value="price-low" className="bg-white hover:bg-[#f5f5f5]">Price: Low to High</SelectItem>
+        <SelectItem value="price-high" className="bg-white hover:bg-[#f5f5f5]">Price: High to Low</SelectItem>
+        <SelectItem value="rating" className="bg-white hover:bg-[#f5f5f5]">Highest Rated</SelectItem>
       </SelectContent>
     </Select>
   </div>
@@ -209,8 +272,8 @@ const FeaturedProducts = ({
           <ProductCard
             key={product.id}
             {...product}
-            onAddToCart={onAddToCart}
-            onFavorite={onFavorite}
+            onAddToCart={handleAddToCartWithAuth}
+            onFavorite={handleFavoriteWithAuth}
           />
         ))}
       </div>
@@ -247,9 +310,101 @@ const FeaturedProducts = ({
       </div>
     )}
   </section>
-  
-  
 
+  {/* Login Modal */}
+  {showLoginModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white w-11/12 max-w-md rounded-xl shadow-2xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-[#5c3d28]">Login Required</h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowLoginModal(false)}
+            className="h-8 w-8 p-0 hover:bg-gray-100"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <div className="mb-6">
+          <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full mx-auto mb-4">
+            <ShoppingCart className="h-8 w-8 text-white" />
+          </div>
+          <p className="text-[#7b5a3b] text-center text-lg">
+            Please log in to add items to your cart and continue shopping.
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setShowLoginModal(false)}
+            className="flex-1 border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              setShowLoginModal(false);
+              window.location.href = "/login";
+            }}
+            className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold transition-all duration-200"
+          >
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* Favorites Modal */}
+  {showFavoriteModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white w-11/12 max-w-md rounded-xl shadow-2xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-[#5c3d28]">Login Required</h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowFavoriteModal(false)}
+            className="h-8 w-8 p-0 hover:bg-gray-100"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <div className="mb-6">
+          <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full mx-auto mb-4">
+            <Heart className="h-8 w-8 text-white" />
+          </div>
+          <p className="text-[#7b5a3b] text-center text-lg">
+            Please log in to add items to your favorites and save them for later.
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setShowFavoriteModal(false)}
+            className="flex-1 border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              setShowFavoriteModal(false);
+              window.location.href = "/login";
+            }}
+            className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold transition-all duration-200"
+          >
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    </div>
+  )}
+  </>
   );
 };
 

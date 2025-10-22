@@ -27,19 +27,19 @@ const LandingPage = () => (
       <nav className="flex items-center gap-8 mt-4 md:mt-0 font-medium">
         <Link
           to="/artisans"
-          className="text-[#a4785a] hover:text-[#3b2a1f] visited:text-[#a4785a] focus:text-[#3b2a1f] active:text-[#3b2a1f] transition-colors"
+          className="text-[#3b2a1f] hover:text-[#a4785a] visited:text-[#3b2a1f] focus:text-[#3b2a1f] active:text-[#3b2a1f] transition-colors"
         >
           Artisans
         </Link>
         <Link
           to="/about"
-          className="text-[#a4785a] hover:text-[#3b2a1f] visited:text-[#a4785a] focus:text-[#3b2a1f] active:text-[#3b2a1f] transition-colors"
+          className="text-[#3b2a1f] hover:text-[#a4785a] visited:text-[#3b2a1f] focus:text-[#3b2a1f] active:text-[#3b2a1f] transition-colors"
         >
           About
         </Link>
         <Link
           to="/login"
-          className="text-[#a4785a] hover:text-[#3b2a1f] visited:text-[#a4785a] focus:text-[#3b2a1f] active:text-[#3b2a1f] transition-colors"
+          className="text-[#3b2a1f] hover:text-[#a4785a] visited:text-[#3b2a1f] focus:text-[#3b2a1f] active:text-[#3b2a1f] transition-colors"
         >
           Sign In
         </Link>
@@ -66,14 +66,15 @@ const LandingPage = () => (
         </p>
         <div className="flex flex-col md:flex-row gap-5 justify-center">
           <Link
-            to="/collections"
+            to="/home"
             className="px-8 py-3 bg-[#a4785a] text-white font-semibold rounded-lg shadow-md hover:bg-[#8b5f46] hover:scale-105 transition-transform duration-200"
           >
             Explore Collections
           </Link>
           <Link
             to="/register"
-            className="px-8 py-3 bg-white text-[#a4785a] font-semibold rounded-lg border border-[#a4785a]/60 hover:bg-[#a4785a] hover:text-white hover:scale-105 transition-all duration-200"
+            className="px-8 py-3 bg-white text-[#3b2a1f] font-semibold rounded-lg border border-[#a4785a]/60 hover:bg-[#a4785a] hover:text-white hover:scale-105 transition-all duration-200"
+            style={{ color: '#3b2a1f' }}
           >
             Become an Artisan
           </Link>

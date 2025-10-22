@@ -51,11 +51,18 @@ const CategoryGrid = () => {
       setLoading(true);
       const selectedCategoryData = categoryFilters.find(cat => cat.id === selectedCategory);
       
-      // Use api instance instead of hardcoded URL
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000/api';
-      const response = selectedCategory === 'featured'
-        ? await axios.get('/products/featured', { baseURL: backendUrl })
-        : await axios.get(`/stores${selectedCategoryData?.queryParam ? `?category=${encodeURIComponent(selectedCategoryData.queryParam)}` : ''}`, { baseURL: backendUrl });
+      console.log('📂 Selected Category:', selectedCategory);
+      console.log('📂 Category Data:', selectedCategoryData);
+      
+      // Use relative URLs to work with Vite proxy
+      const url = selectedCategory === 'featured'
+        ? '/api/products/featured'
+        : `/api/stores${selectedCategoryData?.queryParam ? `?category=${encodeURIComponent(selectedCategoryData.queryParam)}` : ''}`;
+      
+      console.log('🔗 Fetching URL:', url);
+      const response = await axios.get(url);
+      
+      console.log('📦 Response Data:', response.data);
       
       // Ensure we're getting an array from the response
       const data = Array.isArray(response.data) ? response.data : 
@@ -93,7 +100,35 @@ const CategoryGrid = () => {
           };
         });
       
-      setStores(transformedData);
+      // Sort by weighted rating (considers both rating value and number of ratings)
+      // Formula: weighted_score = average_rating * log(total_ratings + 1) + (total_ratings / 100)
+      // This gives preference to items with more ratings while still considering quality
+      const sortedData = transformedData.sort((a, b) => {
+        const getWeightedScore = (store) => {
+          const rating = store.average_rating || 0;
+          const count = store.total_ratings || 0;
+          // Using logarithmic scale for ratings count to prevent extreme bias
+          // Adding 1 to avoid log(0)
+          const weightedScore = rating * Math.log10(count + 1) + (count / 100);
+          return weightedScore;
+        };
+        
+        const hasRatings = (store) => {
+          return (store.total_ratings || 0) > 0;
+        };
+        
+        // ALWAYS prioritize stores with ratings over stores without ratings
+        const aHasRatings = hasRatings(a);
+        const bHasRatings = hasRatings(b);
+        
+        if (aHasRatings && !bHasRatings) return -1; // a has ratings, b doesn't - a comes first
+        if (!aHasRatings && bHasRatings) return 1;  // b has ratings, a doesn't - b comes first
+        
+        // If both have ratings or both don't, sort by weighted score
+        return getWeightedScore(b) - getWeightedScore(a);
+      });
+      
+      setStores(sortedData);
     } catch (error) {
       console.error("❌ Error fetching data:", error);
       console.error("❌ Error details:", error.response?.data);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Heart, ShoppingCart, Star, Minus, Plus, ArrowLeft, Play, MessageCircle, ChevronLeft, ChevronRight, Users, Calendar, Award } from "lucide-react";
+import { Heart, ShoppingCart, Star, Minus, Plus, ArrowLeft, Play, MessageCircle, ChevronLeft, ChevronRight, Users, Award, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
@@ -27,6 +27,8 @@ const ProductDetails = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [allMedia, setAllMedia] = useState([]);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showFavoriteModal, setShowFavoriteModal] = useState(false);
 
   // Helper function to convert image URLs to use correct backend
   const fixImageUrl = (url) => {
@@ -174,8 +176,7 @@ const ProductDetails = () => {
   const handleAddToCart = async () => {
     const token = sessionStorage.getItem("auth_token");
     if (!token) {
-      alert("Please log in to add items to your cart.");
-      navigate("/login");
+      setShowLoginModal(true);
       return;
     }
 
@@ -197,6 +198,11 @@ const ProductDetails = () => {
   };
 
   const handleFavoriteClick = () => {
+    const token = sessionStorage.getItem("auth_token");
+    if (!token) {
+      setShowFavoriteModal(true);
+      return;
+    }
     isFavorited ? removeFavorite(product.id) : addFavorite(product);
   };
 
@@ -251,14 +257,6 @@ const ProductDetails = () => {
     ));
   };
 
-  const getRatingText = (rating) => {
-    if (rating >= 4.5) return "Excellent";
-    if (rating >= 3.5) return "Good";
-    if (rating >= 2.5) return "Average";
-    if (rating >= 1.5) return "Fair";
-    return "Poor";
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f0eb] to-[#ede5dc] py-8">
       <div className="container mx-auto px-4 mb-6">
@@ -272,7 +270,8 @@ const ProductDetails = () => {
         </Button>
       </div>
 
-      <div className="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-10">
+      <div className="container mx-auto px-4 max-w-6xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Image Gallery */}
         <div className="space-y-4">
           <div className="w-full">
@@ -359,20 +358,38 @@ const ProductDetails = () => {
         </div>
 
         {/* Product Info */}
-        <div className="space-y-6 flex flex-col">
+        <div className="space-y-4 flex flex-col">
           <Card className="bg-white border-2 border-[#d5bfae] shadow-xl">
-            <CardContent className="p-8">
-              <h1 className="text-4xl font-bold text-[#5c3d28] mb-3">{product.productName}</h1>
+            <CardContent className="p-6">
+              <h1 className="text-3xl font-bold text-[#5c3d28] mb-3">{product.productName}</h1>
               
-              <div className="flex items-center gap-2 mb-4">
-                <Award className="h-5 w-5 text-[#a4785a]" />
-                <p className="text-[#7b5a3b] text-lg font-medium">
-                  by {product.seller?.store?.store_name || product.seller?.businessName || product.seller?.user?.userName || "Unknown Artisan"}
+              {/* Store Info with Logo */}
+              <div className="flex items-center gap-3 mb-4">
+                {product.seller?.store?.logo_url ? (
+                  <img 
+                    src={fixImageUrl(product.seller.store.logo_url)} 
+                    alt={product.seller.store.store_name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-[#d5bfae] shadow-md"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                {/* Fallback icon if no logo */}
+                <div 
+                  className="w-12 h-12 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-md"
+                  style={{ display: product.seller?.store?.logo_url ? 'none' : 'flex' }}
+                >
+                  <Award className="h-6 w-6 text-white" />
+                </div>
+                <p className="text-[#7b5a3b] text-lg font-semibold">
+                  {product.seller?.store?.store_name || product.seller?.businessName || "Unknown Store"}
                 </p>
               </div>
 
-              {/* Enhanced Rating Section */}
-              <div className="bg-gradient-to-r from-[#f5f0eb] to-[#ede5dc] p-6 rounded-xl border-2 border-[#d5bfae] mb-6">
+              {/* Enhanced Rating Section with Container */}
+              <div className="bg-gradient-to-r from-[#f5f0eb] to-[#ede5dc] p-4 rounded-xl border-2 border-[#d5bfae] mb-4 max-h-20 overflow-hidden">
                 <div className="flex items-center gap-4 mb-3">
                   <div className="flex items-center gap-2">
                     {renderStars(averageRating, false, () => {}, "w-6 h-6")}
@@ -380,23 +397,16 @@ const ProductDetails = () => {
                       {averageRating > 0 ? averageRating.toFixed(1) : "0.0"}
                     </span>
                   </div>
-                  <Badge className="bg-[#a4785a] text-white px-3 py-1 text-sm font-semibold">
-                    {getRatingText(averageRating)}
-                  </Badge>
                 </div>
                 <div className="flex items-center gap-6 text-sm text-[#7b5a3b]">
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
                     <span>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    <span>Updated {new Date().toLocaleDateString()}</span>
-                  </div>
                 </div>
               </div>
 
-              <div className="text-4xl font-bold text-[#5c3d28] mb-6">
+              <div className="text-3xl font-bold text-[#5c3d28] mb-4">
                 ₱{Number(product.productPrice).toFixed(2)}
               </div>
             </CardContent>
@@ -404,8 +414,8 @@ const ProductDetails = () => {
 
           {/* Quantity and Actions */}
           <Card className="bg-white border-2 border-[#d5bfae] shadow-xl">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-4">
                   <span className="text-lg font-semibold text-[#5c3d28]">Quantity:</span>
                   <div className="flex items-center gap-3">
@@ -427,39 +437,52 @@ const ProductDetails = () => {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <Button
-                  onClick={handleAddToCart}
-                  className="w-full bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
-                  disabled={addingToCart}
+              {/* Two Small Buttons */}
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={handleFavoriteClick}
+                  className="flex-1 border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200 py-2 text-sm"
                 >
-                  <ShoppingCart className="w-6 h-6 mr-3" />
-                  {addingToCart ? "Adding to Cart..." : "Add to Cart"}
+                  <Heart
+                    className={`w-4 h-4 mr-2 ${
+                      isFavorited ? "text-red-500 fill-current" : ""
+                    }`}
+                  />
+                  {isFavorited ? "Favorited" : "Add to Favorites"}
                 </Button>
                 
-                <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleFavoriteClick}
-                    className="flex-1 border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200"
-                  >
-                    <Heart
-                      className={`w-5 h-5 mr-2 ${
-                        isFavorited ? "text-red-500 fill-current" : ""
-                      }`}
-                    />
-                    {isFavorited ? "Favorited" : "Add to Favorites"}
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate("/messages")}
-                    className="flex-1 border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200"
-                  >
-                    <MessageCircle className="w-5 h-5 mr-2" />
-                    Message Seller
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/messages")}
+                  className="flex-1 border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200 py-2 text-sm"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Message Seller
+                </Button>
+              </div>
+
+              {/* Two Large Buttons */}
+              <div className="flex gap-3 mt-3">
+                <Button
+                  onClick={handleAddToCart}
+                  className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-bold py-8 text-2xl shadow-lg hover:shadow-xl transition-all duration-200"
+                  disabled={addingToCart}
+                >
+                  <ShoppingCart className="w-8 h-8 mr-4" />
+                  Add to Cart
+                </Button>
+                
+                <Button
+                  onClick={() => {
+                    // Buy now logic - navigate to checkout
+                    navigate("/checkout", { state: { product, quantity } });
+                  }}
+                  style={{ backgroundColor: '#E27D60', color: 'white' }}
+                  className="flex-1 hover:bg-[#d16a4f] font-bold py-8 text-2xl shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  Buy Now
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -468,13 +491,13 @@ const ProductDetails = () => {
             <TabsList className="bg-white border-2 border-[#d5bfae] shadow-lg">
               <TabsTrigger 
                 value="description" 
-                className="data-[state=active]:bg-[#a4785a] data-[state=active]:text-white text-[#5c3d28] font-semibold"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-md text-[#5c3d28] font-semibold transition-all duration-200 hover:text-[#a4785a] hover:bg-[#a4785a]/10"
               >
                 Description
               </TabsTrigger>
               <TabsTrigger 
                 value="reviews" 
-                className="data-[state=active]:bg-[#a4785a] data-[state=active]:text-white text-[#5c3d28] font-semibold"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-md text-[#5c3d28] font-semibold transition-all duration-200 hover:text-[#a4785a] hover:bg-[#a4785a]/10"
               >
                 Reviews ({reviews.length})
               </TabsTrigger>
@@ -489,43 +512,56 @@ const ProductDetails = () => {
               </Card>
             </TabsContent>
             
-            <TabsContent value="reviews" className="mt-6 space-y-6">
+            <TabsContent value="reviews" className="mt-6">
               {reviews.length > 0 ? (
-                <div className="space-y-4">
-                  {reviews.map((review) => (
-                    <Card key={review.review_id || review.id} className="bg-white border-2 border-[#d5bfae] shadow-lg hover:shadow-xl transition-all duration-200">
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
-                              <span className="text-white font-bold text-lg">
-                                {(review.user?.userName || "A").charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-[#5c3d28] text-lg">
-                                {review.user?.userName || "Anonymous"}
-                              </h4>
-                              <div className="flex items-center gap-2">
-                                {renderStars(review.rating, false, () => {}, "w-4 h-4")}
-                                <span className="text-sm text-[#7b5a3b]">
-                                  {new Date(review.review_date || review.created_at).toLocaleDateString()}
+                <div className="bg-white border-2 border-[#d5bfae] shadow-xl rounded-lg overflow-hidden">
+                  <div className="p-4 bg-gradient-to-r from-[#f5f0eb] to-[#ede5dc] border-b-2 border-[#d5bfae]">
+                    <h3 className="text-lg font-bold text-[#5c3d28]">Customer Reviews</h3>
+                    <p className="text-sm text-[#7b5a3b]">{reviews.length} review{reviews.length !== 1 ? 's' : ''} total</p>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto p-4 space-y-3">
+                    {reviews.slice(0, 3).map((review) => (
+                      <Card key={review.review_id || review.id} className="bg-white border border-[#d5bfae] shadow-sm hover:shadow-md transition-all duration-200">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
+                                <span className="text-white font-bold text-sm">
+                                  {(review.user?.userName || "A").charAt(0).toUpperCase()}
                                 </span>
                               </div>
+                              <div>
+                                <h4 className="font-bold text-[#5c3d28] text-base">
+                                  {review.user?.userName || "Anonymous"}
+                                </h4>
+                                <div className="flex items-center gap-2">
+                                  {renderStars(review.rating, false, () => {}, "w-3 h-3")}
+                                  <span className="text-xs text-[#7b5a3b]">
+                                    {new Date(review.review_date || review.created_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
+                            <Badge className="bg-[#a4785a] text-white text-xs">
+                              {review.rating} Star{review.rating !== 1 ? 's' : ''}
+                            </Badge>
                           </div>
-                          <Badge className="bg-[#a4785a] text-white">
-                            {review.rating} Star{review.rating !== 1 ? 's' : ''}
-                          </Badge>
-                        </div>
-                        {review.comment && (
-                          <p className="text-[#7b5a3b] text-base leading-relaxed pl-15">
-                            "{review.comment}"
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+                          {review.comment && (
+                            <p className="text-[#7b5a3b] text-sm leading-relaxed">
+                              "{review.comment}"
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {reviews.length > 3 && (
+                      <div className="text-center py-3">
+                        <p className="text-sm text-[#7b5a3b]">
+                          Showing 3 of {reviews.length} reviews. Scroll to see more.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <Card className="bg-white border-2 border-[#d5bfae] shadow-xl">
@@ -543,7 +579,102 @@ const ProductDetails = () => {
             </TabsContent>
           </Tabs>
         </div>
+        </div>
       </div>
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white w-11/12 max-w-md rounded-xl shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-[#5c3d28]">Login Required</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowLoginModal(false)}
+                className="h-8 w-8 p-0 hover:bg-gray-100"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="mb-6">
+              <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full mx-auto mb-4">
+                <ShoppingCart className="h-8 w-8 text-white" />
+              </div>
+              <p className="text-[#7b5a3b] text-center text-lg">
+                Please log in to add items to your cart and continue shopping.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowLoginModal(false)}
+                className="flex-1 border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowLoginModal(false);
+                  navigate("/login");
+                }}
+                className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold transition-all duration-200"
+              >
+                Go to Login
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Favorites Modal */}
+      {showFavoriteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white w-11/12 max-w-md rounded-xl shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-[#5c3d28]">Login Required</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFavoriteModal(false)}
+                className="h-8 w-8 p-0 hover:bg-gray-100"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="mb-6">
+              <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full mx-auto mb-4">
+                <Heart className="h-8 w-8 text-white" />
+              </div>
+              <p className="text-[#7b5a3b] text-center text-lg">
+                Please log in to add items to your favorites and save them for later.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowFavoriteModal(false)}
+                className="flex-1 border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowFavoriteModal(false);
+                  navigate("/login");
+                }}
+                className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold transition-all duration-200"
+              >
+                Go to Login
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

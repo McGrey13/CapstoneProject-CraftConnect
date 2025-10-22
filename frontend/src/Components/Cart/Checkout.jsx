@@ -133,7 +133,7 @@ const Checkout = () => {
                 <div className="w-16 h-16 flex-shrink-0">
                   <img
                     src={item.image ? 
-                      (item.image.startsWith('http') ? item.image : `http://localhost:8080/storage/${item.image}`) 
+                      (item.image.startsWith('http') ? item.image : `/storage/${item.image}`) 
                       : '/placeholder-product.jpg'}
                     alt={item.title}
                     className="w-full h-full object-cover rounded-lg border border-gray-200"
