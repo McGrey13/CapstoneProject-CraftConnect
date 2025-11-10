@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, Store, MapPin, Star, Users } from "lucide-react";
+import { Search, Store, MapPin, Star, Users, Package } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent } from "../ui/card";
@@ -39,6 +39,22 @@ const CategoriesPage = () => {
       setLoading(true);
       setError(null);
       
+      // Get recommended store IDs first (only if no search term)
+      let recommendedStoreIds = [];
+      if (!searchTerm) {
+        try {
+          const recResponse = await api.get('/recommendations/stores', {
+            params: { limit: 50 }
+          });
+          
+          if (recResponse.data.success && recResponse.data.store_ids) {
+            recommendedStoreIds = recResponse.data.store_ids;
+          }
+        } catch (err) {
+          console.log('No store recommendations available');
+        }
+      }
+      
       // Build URL with search parameter if provided
       const url = searchTerm 
         ? `/stores?search=${encodeURIComponent(searchTerm)}`
@@ -50,10 +66,27 @@ const CategoriesPage = () => {
       const storesData = data.data || data;
       
       // Fix image URLs in the data
-      const fixedStoresData = storesData.map(store => ({
+      let fixedStoresData = storesData.map(store => ({
         ...store,
-        logo_url: fixImageUrl(store.logo_url)
+        logo_url: fixImageUrl(store.logo_url),
+        isRecommended: recommendedStoreIds.includes(store.storeID)
       }));
+      
+      // Sort: Recommended stores first (only if no search term)
+      if (!searchTerm && recommendedStoreIds.length > 0) {
+        fixedStoresData = fixedStoresData.sort((a, b) => {
+          const aIsRecommended = recommendedStoreIds.includes(a.storeID);
+          const bIsRecommended = recommendedStoreIds.includes(b.storeID);
+          
+          if (aIsRecommended && !bIsRecommended) return -1;
+          if (!aIsRecommended && bIsRecommended) return 1;
+          
+          // If both recommended or both not, sort by rating
+          const aRating = a.average_rating || 0;
+          const bRating = b.average_rating || 0;
+          return bRating - aRating;
+        });
+      }
       
       setStores(fixedStoresData);
       
@@ -160,10 +193,26 @@ const CategoriesPage = () => {
         {/* Stores Grid */}
         {!loading && !error && stores.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
-            {stores.map((store) => (
-              <Link to={`/artisan/${store.seller?.sellerID || store.user?.userID}`} key={store.storeID}>
+            {stores.map((store, index) => {
+              const sellerId =
+                store?.seller?.sellerID ??
+                store?.sellerID ??
+                store?.seller_id ??
+                store?.user?.sellerID ??
+                store?.user?.userID ??
+                store?.seller_user_id ??
+                null;
+              const storeId = store?.storeID ?? store?.store_id ?? store?.id ?? null;
+              const detailPath = sellerId
+                ? `/artisans/${sellerId}`
+                : storeId
+                ? `/store/${storeId}`
+                : null;
+              const key = store?.storeID ?? sellerId ?? storeId ?? `store-${index}`;
+
+              const cardContent = (
                 <Card className="h-full overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-105 border border-gray-200">
-                  {/* Store Logo/Image */}
+                    {/* Store Logo/Image */}
                   <div className="relative h-32 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
                     {store.logo_url ? (
                       <img
@@ -177,14 +226,42 @@ const CategoriesPage = () => {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-black/10 hover:bg-black/5 transition-colors"></div>
+                    {/* Recommended Badge */}
+                    {store.isRecommended && (
+                      <div className="absolute top-2 right-2 bg-gradient-to-r from-[#b88668] to-[#7b5a3b] text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg border border-white/50">
+                         Recommended
+                      </div>
+                    )}
                   </div>
                   
                   {/* Store Info */}
                   <CardContent className="p-3">
                     <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-sm line-clamp-1 text-gray-900">
                         {store.store_name || "Unnamed Store"}
                       </h3>
+                          {/* Category below store name */}
+                          {store.category && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                              {store.category}
+                            </p>
+                          )}
+                        </div>
+                        {/* Number of items/products on the right */}
+                        <div className="flex-shrink-0 text-right flex flex-col items-end">
+                          <div className="flex items-center gap-1">
+                            <Package className="h-3 w-3 text-gray-500" />
+                            <span className="text-xs font-semibold text-gray-700">
+                              {store.products_count || store.total_products || 0}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {store.products_count === 1 || store.total_products === 1 ? 'item' : 'items'}
+                          </div>
+                        </div>
+                      </div>
                       
                       <div className="flex items-center text-xs text-gray-600">
                         <Users className="h-3 w-3 mr-1" />
@@ -192,15 +269,6 @@ const CategoriesPage = () => {
                           {store.seller?.user?.userName || store.user?.userName || store.owner_name || "Artisan"}
                         </span>
                       </div>
-                      
-                      {/* Rating Display */}
-                      {store.average_rating > 0 && (
-                        <div className="flex items-center text-xs">
-                          <Star className="h-3 w-3 mr-1 text-yellow-400 fill-yellow-400" />
-                          <span className="font-semibold text-gray-800">{store.average_rating}</span>
-                          <span className="ml-1 text-gray-500">({store.total_ratings})</span>
-                        </div>
-                      )}
                       
                       {store.seller?.specialty && (
                         <div className="flex items-center text-xs text-blue-600">
@@ -218,8 +286,18 @@ const CategoriesPage = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </Link>
-            ))}
+              );
+
+              return detailPath ? (
+                <Link to={detailPath} key={key} className="block">
+                  {cardContent}
+                </Link>
+              ) : (
+                <div key={key} className="block cursor-default">
+                  {cardContent}
+                </div>
+              );
+            })}
           </div>
         )}
 

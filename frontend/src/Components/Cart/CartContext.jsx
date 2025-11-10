@@ -10,8 +10,8 @@ export const CartProvider = ({ children }) => {
   const addToCartTimeoutRef = useRef(null);
 
   const fetchCart = async () => {
-    if (!isAuthenticated) {
-      console.log("User not authenticated, clearing cart");
+    if (!isAuthenticated || (user?.role && user.role !== 'customer')) {
+      console.log("Cart disabled for current user, clearing cart", { isAuthenticated, role: user?.role });
       setCartItems([]);
       return;
     }
@@ -47,56 +47,157 @@ export const CartProvider = ({ children }) => {
           }
 
           // Transform backend response to frontend cart item structure
-          const formattedCart = cartData.map(item => {
+          const formattedCart = cartData.map(rawItem => {
             try {
-              if (!item) return null;
-              
-              console.log("Processing cart item:", item);
-              
-              const product = item.product || item;
-              const cartItemId = item.cart_id || item.id || `temp-${Math.random().toString(36).substr(2, 9)}`;
-              const productId = item.product_id || (product ? product.product_id || product.id : null);
-              
+              if (!rawItem) return null;
+
+              const cartId = rawItem.cart_id ?? rawItem.cartItemId ?? rawItem.id ?? `temp-${Math.random().toString(36).slice(2)}`;
+              const productData = rawItem.product ?? rawItem.productData ?? rawItem;
+              const productId = rawItem.product_id ?? productData.product_id ?? productData.id;
+
               if (!productId) {
-                console.warn("Invalid cart item - missing product ID:", item);
+                console.warn("Invalid cart item - missing product ID:", rawItem);
                 return null;
               }
-              
-              const productName = product.productName || product.name || 'Unknown Product';
-              const productImage = product.productImage || product.image || '';
-              const price = parseFloat(item.price || product.price || product.productPrice || 0);
-              const quantity = parseInt(item.quantity || 1, 10);
-              const availableQuantity = parseInt(product.productQuantity || 0, 10);
-              const sellerName = item.product?.seller_name || 
-                               (product.seller && (product.seller.businessName || 
-                               (product.seller.user && product.seller.user.userName))) || 
-                               'Unknown Seller';
-              
-              // Log if product is out of stock
-              if (availableQuantity === 0) {
-                console.warn(`Product "${productName}" is out of stock (ID: ${productId})`);
-              }
-              
+
+              const quantity = parseInt(rawItem.quantity ?? rawItem.qty ?? 1, 10);
+              const sellerName =
+                rawItem.seller_name ??
+                productData.seller_name ??
+                productData.seller?.businessName ??
+                productData.seller?.user?.userName ??
+                "Unknown Seller";
+
+              const normalizeAttributes = (attributes) => {
+                if (!attributes) return [];
+                if (typeof attributes === "string") {
+                  try {
+                    const parsed = JSON.parse(attributes);
+                    attributes = parsed;
+                  } catch {
+                    return [];
+                  }
+                }
+                if (Array.isArray(attributes)) {
+                  return attributes
+                    .map((attr, index) => {
+                      if (typeof attr === "string") {
+                        return { id: `attr-${index}`, label: attr, value: attr };
+                      }
+                      if (attr && typeof attr === "object") {
+                        return {
+                          id: attr.id ?? `attr-${index}`,
+                          label: attr.label ?? attr.name ?? `Option ${index + 1}`,
+                          value: attr.value ?? attr.label ?? attr.name ?? "",
+                        };
+                      }
+                      return null;
+                    })
+                    .filter(Boolean);
+                }
+                if (attributes && typeof attributes === "object") {
+                  return Object.entries(attributes).map(([key, value], index) => ({
+                    id: `attr-${index}`,
+                    label: key,
+                    value,
+                  }));
+                }
+                return [];
+              };
+
+              const variationId =
+                rawItem.variation_id ??
+                rawItem.selectedVariation?.id ??
+                productData.variation_id ??
+                null;
+              const variationLabel =
+                rawItem.variation_label ??
+                rawItem.selectedVariation?.label ??
+                productData.variation_label ??
+                null;
+              const variationAttributes =
+                rawItem.variation_attributes ??
+                rawItem.selectedVariation?.attributes ??
+                productData.variation_attributes ??
+                null;
+              const variationQuantity =
+                rawItem.available_quantity ??
+                rawItem.selectedVariation?.quantity ??
+                productData.available_quantity ??
+                null;
+              const variationPrice =
+                rawItem.unit_price ??
+                rawItem.selectedVariation?.price ??
+                rawItem.price ??
+                productData.price ??
+                productData.productPrice ??
+                0;
+              const sku =
+                rawItem.sku ??
+                rawItem.selectedVariation?.sku ??
+                productData.sku ??
+                null;
+
+              const variationData =
+                variationId ||
+                variationLabel ||
+                sku ||
+                variationAttributes
+                  ? {
+                      id: variationId,
+                      label: variationLabel,
+                      price: Number(variationPrice) || 0,
+                      quantity:
+                        variationQuantity !== null && variationQuantity !== undefined
+                          ? Number(variationQuantity)
+                          : null,
+                      sku: sku,
+                      attributes: normalizeAttributes(variationAttributes),
+                    }
+                  : null;
+
+              const unitPrice = Number(
+                rawItem.unit_price ??
+                  (variationData ? variationData.price : rawItem.price ?? productData.price ?? productData.productPrice ?? 0)
+              ) || 0;
+
+              const availableQuantity =
+                variationData?.quantity ??
+                Number(productData.productQuantity ?? productData.available_quantity ?? 0);
+
+              const imageSource =
+                rawItem.image ??
+                productData.productImage ??
+                productData.image ??
+                null;
+
               return {
-                id: cartItemId,
-                cartItemId: cartItemId,
+                id: cartId,
+                cartItemId: cartId,
                 product_id: productId,
-                title: productName,
-                image: productImage,
-                price: price,
-                quantity: quantity,
-                availableQuantity: availableQuantity, // Add available stock
-                isOutOfStock: availableQuantity === 0, // Flag for out of stock items
-                total_price: price * quantity,
+                title: rawItem.title ?? productData.productName ?? productData.name ?? "Unknown Product",
+                image: imageSource,
+                price: unitPrice,
+                quantity,
+                availableQuantity,
+                isOutOfStock: availableQuantity <= 0,
+                total_price: unitPrice * quantity,
                 artisanName: sellerName,
                 seller_name: sellerName,
-                product: product // Keep full product data with productQuantity
+                selectedVariation: variationData,
+                sku,
+                unit_price: unitPrice,
+                product: {
+                  ...productData,
+                  productQuantity: availableQuantity,
+                  seller_name: sellerName,
+                },
               };
             } catch (error) {
-              console.error("Error processing cart item:", error, item);
+              console.error("Error processing cart item:", error, rawItem);
               return null;
             }
-          }).filter(Boolean); // Remove any null items
+          }).filter(Boolean);
           
           console.log("Formatted cart items:", formattedCart);
           setCartItems(formattedCart);
@@ -131,7 +232,7 @@ export const CartProvider = ({ children }) => {
 
   // Add product to cart with debounce
   const addToCart = async (product, quantity = 1) => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || (user?.role && user.role !== 'customer')) {
       const errorMsg = "Please log in to add items to your cart.";
       console.warn(errorMsg);
       return { success: false, error: errorMsg };
@@ -157,22 +258,50 @@ export const CartProvider = ({ children }) => {
           
           // Ensure quantity is a positive number
           const qty = Math.max(1, parseInt(quantity, 10) || 1);
+          const selectedVariation = product.selectedVariation || null;
           
           console.log('Adding to cart:', { product_id: productId, quantity: qty });
           
           // Check if item already exists in cart
-          const existingItem = cartItems.find(item => item.product_id === productId);
+          const existingItem = cartItems.find(item => {
+            const sameProduct = item.product_id === productId;
+            const currentVariationId = item.selectedVariation?.id ?? item.variation_id ?? null;
+            const newVariationId = selectedVariation?.id ?? null;
+            return sameProduct && currentVariationId === newVariationId;
+          });
           if (existingItem) {
             // Update quantity instead of adding new item
-            const result = await updateQuantity(productId, existingItem.quantity + qty);
+            const result = await updateQuantity(existingItem.cartItemId, existingItem.quantity + qty);
             resolve(result);
             return;
           }
-          
-          const response = await api.post('/cart/add', {
+
+          const payload = {
             product_id: Number(productId),
-            quantity: qty
-          });
+            quantity: qty,
+          };
+
+          if (selectedVariation) {
+            if (selectedVariation.id !== undefined && selectedVariation.id !== null) {
+              payload.variation_id = selectedVariation.id;
+            }
+            if (selectedVariation.label) {
+              payload.variation_label = selectedVariation.label;
+            }
+            if (selectedVariation.attributes) {
+              payload.variation_attributes = selectedVariation.attributes;
+            }
+            if (selectedVariation.sku) {
+              payload.sku = selectedVariation.sku;
+            }
+            if (selectedVariation.price !== undefined && selectedVariation.price !== null) {
+              payload.unit_price = selectedVariation.price;
+            }
+          } else if (product.productPrice !== undefined && product.productPrice !== null) {
+            payload.unit_price = Number(product.productPrice);
+          }
+
+          const response = await api.post('/cart/add', payload);
 
           console.log('Cart API Response:', response.data);
           
@@ -190,10 +319,10 @@ export const CartProvider = ({ children }) => {
     });
   };
 
-  const updateQuantity = async (productId, quantity) => {
-    const item = cartItems.find(i => i.product_id === productId);
-    if (!isAuthenticated || !item || !item.cartItemId) {
-      console.error('Missing required data for update:', { isAuthenticated, item, productId });
+  const updateQuantity = async (cartItemId, quantity) => {
+    const item = cartItems.find(i => i.cartItemId === cartItemId || i.cart_id === cartItemId);
+    if (!isAuthenticated || (user?.role && user.role !== 'customer') || !item || !item.cartItemId) {
+      console.error('Missing required data for update:', { isAuthenticated, item, cartItemId });
       return;
     }
 
@@ -218,7 +347,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const removeItem = async (cartId) => {
-    if (!isAuthenticated || !cartId) {
+    if (!isAuthenticated || (user?.role && user.role !== 'customer') || !cartId) {
       console.error('Missing authentication or cart ID:', { isAuthenticated, cartId });
       return { success: false, error: 'Missing required data' };
     }
@@ -261,7 +390,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const checkout = async (paymentMethod = 'cod', selectedCartItems = null) => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || (user?.role && user.role !== 'customer')) {
       const errorMsg = "Please log in to proceed to checkout.";
       console.warn(errorMsg);
       return { success: false, error: errorMsg, requiresLogin: true };
@@ -284,16 +413,112 @@ export const CartProvider = ({ children }) => {
       }
       
       // Format fresh cart data
+      const normalizeVariationAttributes = (attributes) => {
+        if (!attributes) return [];
+        let resolved = attributes;
+        if (typeof resolved === 'string') {
+          try {
+            resolved = JSON.parse(resolved);
+          } catch {
+            return [];
+          }
+        }
+        if (Array.isArray(resolved)) {
+          return resolved
+            .map((attr, index) => {
+              if (typeof attr === 'string') {
+                return { id: `attr-${index}`, label: attr, value: attr };
+              }
+              if (attr && typeof attr === 'object') {
+                return {
+                  id: attr.id ?? `attr-${index}`,
+                  label: attr.label ?? attr.name ?? `Option ${index + 1}`,
+                  value: attr.value ?? attr.label ?? attr.name ?? '',
+                };
+              }
+              return null;
+            })
+            .filter(Boolean);
+        }
+        if (resolved && typeof resolved === 'object') {
+          return Object.entries(resolved).map(([key, value], index) => ({
+            id: `attr-${index}`,
+            label: key,
+            value,
+          }));
+        }
+        return [];
+      };
+
       const currentCart = freshCartData.map(item => {
         const product = item.product || item;
+        const price = Number(
+          item.unit_price ??
+            item.price ??
+            product.price ??
+            product.productPrice ??
+            0
+        );
+
+        const variationAttributes = normalizeVariationAttributes(
+          (item.selectedVariation && item.selectedVariation.attributes) ||
+            item.variation_attributes ||
+            product.variation_attributes ||
+            null
+        );
+
+        const variationId = item.selectedVariation?.id ?? item.variation_id ?? null;
+        const variationLabel =
+          item.selectedVariation?.label ?? item.variation_label ?? item.size ?? null;
+        const variationSku =
+          item.selectedVariation?.sku ?? item.sku ?? product.sku ?? null;
+        const variationQuantityRaw =
+          item.selectedVariation?.quantity ??
+          item.available_quantity ??
+          product.available_quantity ??
+          product.productQuantity ??
+          null;
+
+        const normalizedVariation =
+          variationId ||
+          variationLabel ||
+          variationSku ||
+          variationAttributes.length
+            ? {
+                id: variationId,
+                label: variationLabel,
+                price,
+                quantity:
+                  variationQuantityRaw !== null && variationQuantityRaw !== undefined
+                    ? Number(variationQuantityRaw)
+                    : null,
+                sku: variationSku,
+                attributes: variationAttributes,
+              }
+            : null;
+
+        const availableQuantity =
+          normalizedVariation?.quantity ??
+          Number(product.productQuantity ?? 0);
+
         return {
           cartItemId: item.cart_id || item.id,
           product_id: item.product_id,
           title: product.productName || 'Unknown Product',
           quantity: parseInt(item.quantity || 1, 10),
-          availableQuantity: parseInt(product.productQuantity || 0, 10),
-          isOutOfStock: parseInt(product.productQuantity || 0, 10) === 0,
-          price: parseFloat(product.productPrice || 0),
+          availableQuantity: Number(
+            availableQuantity !== null && availableQuantity !== undefined
+              ? availableQuantity
+              : 0
+          ),
+          isOutOfStock:
+            Number(
+              availableQuantity !== null && availableQuantity !== undefined
+                ? availableQuantity
+                : 0
+            ) <= 0,
+          price,
+          selectedVariation: normalizedVariation,
         };
       });
       
@@ -469,7 +694,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const clearCart = async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || (user?.role && user.role !== 'customer')) {
       console.log("No token found or user not authenticated");
       return;
     }

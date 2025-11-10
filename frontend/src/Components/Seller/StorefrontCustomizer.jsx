@@ -500,7 +500,7 @@ const handleImageUpload = (type, file) => {
       
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
       <div>
-        <h1 className="text-base sm:text-2xl font-bold">Storefront Customizer</h1>
+        <h1 className="text-base sm:text-2xl font-bold">Store Customizer</h1>
         <p className="text-gray-500 mt-0.5 sm:mt-1 text-[10px] sm:text-base">
           Personalize your shop's appearance to reflect your brand identity.
         </p>
@@ -593,7 +593,7 @@ const handleImageUpload = (type, file) => {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
-                    <span className="p-1 bg-[#a4785a]/10 rounded">🏪</span>
+                    <span className="p-1 bg-[#a4785a]/10 rounded"></span>
                     Store Name
                   </Label>
                   <Input 
@@ -602,13 +602,13 @@ const handleImageUpload = (type, file) => {
                     className="bg-[#faf9f8] border-[#e5ded7] text-[#5c3d28] font-medium cursor-not-allowed"
                   />
                   <p className="text-xs text-[#7b5a3b] flex items-center gap-1">
-                    <span className="text-amber-600">ℹ️</span> Store name cannot be changed here
+                    <span className="text-amber-600"></span> Store name cannot be changed here
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
-                    <span className="p-1 bg-[#a4785a]/10 rounded">📝</span>
+                    <span className="p-1 bg-[#a4785a]/10 rounded"></span>
                     Store Description
                   </Label>
                   <textarea
@@ -626,13 +626,13 @@ const handleImageUpload = (type, file) => {
                     className="w-full min-h-[100px] p-3 rounded-xl border-2 border-[#e5ded7] focus:outline-none focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] resize-y bg-white text-[#5c3d28] transition-all duration-200"
                   />
                   <p className="text-xs text-[#7b5a3b] flex items-center gap-1">
-                    <span className="text-blue-600">💡</span> This description will appear on your store's homepage
+                    This description will appear on your store's homepage
                   </p>
                 </div>
 
                 <div className="space-y-3">
                   <Label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
-                    <span className="p-1 bg-[#a4785a]/10 rounded">🎨</span>
+                    <span className="p-1 bg-[#a4785a]/10 rounded"></span>
                     Store Logo
                   </Label>
                   <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-[#faf9f8] to-white border-2 border-[#e5ded7] rounded-xl hover:border-[#a4785a] transition-all duration-200">
@@ -753,7 +753,7 @@ const handleImageUpload = (type, file) => {
 
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                       <div className="text-sm text-blue-800 space-y-1">
-                        <p className="font-medium">💡 Pro Tips for Great Banner Images:</p>
+                        <p className="font-medium">!! Pro Tips for Great Banner Images:</p>
                         <p>• Use high-resolution images (1920x1080px or larger)</p>
                         <p>• Choose images that complement your brand colors</p>
                         <p>• Ensure text remains readable over the background</p>
@@ -926,7 +926,6 @@ const handleImageUpload = (type, file) => {
                 
                 <div className="p-3 sm:p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
                   <p className="text-xs sm:text-sm text-blue-800 flex items-center gap-2">
-                    <span className="text-lg">💡</span>
                     <span className="font-medium">Tips: Choose a theme that matches your brand personality and product style</span>
                   </p>
                 </div>

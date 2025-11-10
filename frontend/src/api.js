@@ -3,6 +3,8 @@ import axios from 'axios';
 
 const API_BASE_URL = '/api';
 
+const TOKEN_STORAGE_KEY = 'auth_token';
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL || API_BASE_URL,
   timeout: 30000, // 30 second timeout
@@ -11,15 +13,30 @@ const api = axios.create({
 
 // Token management functions
 const getToken = () => {
-  return sessionStorage.getItem('auth_token');
+  const sessionToken = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+  if (sessionToken) {
+    return sessionToken;
+  }
+
+  const localToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+  if (localToken) {
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, localToken);
+    return localToken;
+  }
+
+  return null;
 };
 
-const setToken = (token) => {
+const setToken = (token, { persistToLocalStorage = true } = {}) => {
   if (token) {
-    sessionStorage.setItem('auth_token', token);
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+    if (persistToLocalStorage) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    }
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
-    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
     delete api.defaults.headers.common['Authorization'];
   }
 };

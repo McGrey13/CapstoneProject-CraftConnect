@@ -43,6 +43,7 @@ const ArtisanTable = () => {
   const [actionMessage, setActionMessage] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [openMenuSellerId, setOpenMenuSellerId] = useState(null);
 
   const fetchSellers = async () => {
     try {
@@ -96,12 +97,18 @@ const ArtisanTable = () => {
     }
   };
 
+  const closeSellerMenu = () => {
+    setOpenMenuSellerId(null);
+  };
+
   const handleViewSeller = (sellerId) => {
+    closeSellerMenu();
     setSelectedSellerId(sellerId);
     setIsViewDialogOpen(true);
   };
 
   const handleEditSeller = (seller) => {
+    closeSellerMenu();
     setSelectedSeller(seller);
     setIsEditDialogOpen(true);
   };
@@ -121,6 +128,7 @@ const ArtisanTable = () => {
 
   // Account management functions
   const handleDeactivateArtisan = async (seller) => {
+    closeSellerMenu();
     setConfirmAction({
       type: 'deactivate',
       seller: seller,
@@ -155,6 +163,7 @@ const ArtisanTable = () => {
   };
 
   const handleReactivateArtisan = async (seller) => {
+    closeSellerMenu();
     setConfirmAction({
       type: 'reactivate',
       seller: seller,
@@ -189,6 +198,7 @@ const ArtisanTable = () => {
   };
 
   const handleResetPassword = async (seller) => {
+    closeSellerMenu();
     setConfirmAction({
       type: 'reset_password',
       seller: seller,
@@ -503,17 +513,34 @@ const ArtisanTable = () => {
                           <Edit className="h-4 w-4 mr-1" />
                           Edit
                         </Button>
-                        <DropdownMenu>
+                        <DropdownMenu
+                          open={openMenuSellerId === seller.sellerID}
+                          onOpenChange={(open) =>
+                            setOpenMenuSellerId(open ? seller.sellerID : null)
+                          }
+                        >
                           <DropdownMenuTrigger asChild>
                             <Button 
                               variant="outline" 
                               size="sm"
                               className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300 hover:border-gray-400"
+                              onPointerDown={(event) => event.preventDefault()}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setOpenMenuSellerId((current) =>
+                                  current === seller.sellerID ? null : seller.sellerID
+                                );
+                              }}
                             >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 border-2 border-[#d5bfae] shadow-xl">
+                          <DropdownMenuContent
+                            align="end"
+                            sideOffset={10}
+                            className="w-48 border-2 border-[#d5bfae] shadow-xl"
+                          >
                             <DropdownMenuLabel className="text-[#5c3d28] font-bold">More Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator className="bg-[#d5bfae]" />
                             <DropdownMenuItem 

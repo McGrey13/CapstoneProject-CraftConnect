@@ -18,13 +18,19 @@ class OrderProduct extends Model
         'price',
         'total_amount',
         'status',
-        'notes'
+        'notes',
+        'size', // Product size variation
+        'variation_id', // Reference to product_variations table
+        'variation_label',
+        'variation_attributes',
+        'sku',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'total_amount' => 'decimal:2',
-        'quantity' => 'integer'
+        'quantity' => 'integer',
+        'variation_attributes' => 'array',
     ];
 
     // Relationships

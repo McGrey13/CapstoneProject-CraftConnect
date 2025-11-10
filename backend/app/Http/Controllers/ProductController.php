@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use app\Models\Seller;
+use App\Services\ProductValidationService;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 
 class ProductController extends Controller
@@ -209,6 +211,11 @@ class ProductController extends Controller
             'productImages' => 'nullable|array',
             'productImages.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120',
             'productVideo' => 'nullable|mimes:mp4,avi,mov|max:20480',
+            'variations' => 'nullable|array', // Array of size variations
+            'variations.*.size' => 'required_with:variations|string|max:50',
+            'variations.*.quantity' => 'required_with:variations|integer|min:0',
+            'variations.*.price' => 'nullable|numeric|min:0',
+            'variations.*.sku' => 'nullable|string|max:100',
         ]);
         
         $sellerId = $seller->sellerID;
@@ -227,8 +234,18 @@ class ProductController extends Controller
             $data['publish_status'] = 'draft';
         }
 
-        // Auto-approve products
-        $data['approval_status'] = 'approved';
+        // Validate product using validation service
+        $validation = ProductValidationService::validateProduct($data);
+        
+        // Set approval status based on validation
+        if (!$validation['valid']) {
+            $data['approval_status'] = 'rejected';
+            $data['rejection_reason'] = $validation['rejection_reason'];
+        } elseif ($validation['auto_approve']) {
+            $data['approval_status'] = 'approved';
+        } else {
+            $data['approval_status'] = 'pending';
+        }
         
         // Generate unique SKU
         $data['sku'] = $this->generateSKU($sellerId, $data['category']);
@@ -263,8 +280,64 @@ class ProductController extends Controller
         }
 
         try {
+            // If product validation failed, return error response
+            if (!$validation['valid']) {
+                Log::warning('Product validation failed', [
+                    'seller_id' => $sellerId,
+                    'errors' => $validation['errors'],
+                    'rejection_reason' => $validation['rejection_reason']
+                ]);
+                
+                return response()->json([
+                    'message' => 'Product validation failed',
+                    'errors' => $validation['errors'],
+                    'rejection_reason' => $validation['rejection_reason'],
+                    'suggestions' => ProductValidationService::getImprovementSuggestion($validation)
+                ], 422);
+            }
+            
             $product = Product::create($data);
-            Log::info('Product created successfully:', ['product_id' => $product->product_id, 'sku' => $product->sku]);
+            Log::info('Product created successfully:', [
+                'product_id' => $product->product_id,
+                'sku' => $product->sku,
+                'approval_status' => $product->approval_status
+            ]);
+            
+            // Handle product size variations
+            if ($request->has('variations') && is_array($request->variations)) {
+                foreach ($request->variations as $variation) {
+                    if (!empty($variation['size']) && isset($variation['quantity'])) {
+                        \App\Models\ProductVariation::create([
+                            'product_id' => $product->product_id,
+                            'size' => $variation['size'],
+                            'quantity' => $variation['quantity'],
+                            'price' => $variation['price'] ?? null, // Use variation price or null (will use product price)
+                            'sku' => $variation['sku'] ?? null,
+                        ]);
+                    }
+                }
+                
+                // If variations exist, update product quantity to sum of all variations
+                $totalQuantity = \App\Models\ProductVariation::where('product_id', $product->product_id)
+                    ->sum('quantity');
+                $product->productQuantity = $totalQuantity;
+                $product->save();
+            }
+            
+            // Notify admins if product is pending approval
+            if ($product->approval_status === 'pending') {
+                try {
+                    $seller = $product->seller;
+                    $sellerName = $seller && $seller->user ? $seller->user->userName : 'Unknown Seller';
+                    NotificationService::notifyAdminsPendingProduct(
+                        $product->productName,
+                        $sellerName,
+                        $product->product_id
+                    );
+                } catch (\Exception $e) {
+                    Log::warning('Failed to send admin notification for pending product: ' . $e->getMessage());
+                }
+            }
             
             // Transform product to include full image URL
             $productImageUrl = $product->productImage
@@ -286,11 +359,24 @@ class ProductController extends Controller
                 'approval_status' => $product->approval_status,
                 'publish_status' => $product->publish_status,
                 'sku' => $product->sku,
+                'rejection_reason' => $product->rejection_reason,
                 'created_at' => $product->created_at,
                 'updated_at' => $product->updated_at,
             ];
             
-            return response()->json(['message' => 'Product created successfully!', 'product' => $productData]);
+            // Return appropriate message based on approval status
+            $message = 'Product created successfully!';
+            if ($product->approval_status === 'pending') {
+                $message = 'Product submitted for review. It will be approved by an administrator shortly.';
+            } elseif ($product->approval_status === 'approved') {
+                $message = 'Product approved and created successfully!';
+            }
+            
+            return response()->json([
+                'message' => $message,
+                'product' => $productData,
+                'validation_warnings' => $validation['warnings'] ?? []
+            ]);
         } catch (\Exception $e) {
             Log::error('Error creating product:', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Error creating product: ' . $e->getMessage()], 500);
@@ -514,7 +600,7 @@ class ProductController extends Controller
     public function getProductDetails($id)
     {
         try {
-            $product = Product::with(['seller.user', 'reviews.user'])->findOrFail($id);
+            $product = Product::with(['seller.user', 'reviews.user', 'variations'])->findOrFail($id);
 
             $productImageUrl = $product->productImage
                 ? url('storage/' . ltrim($product->productImage, '/'))
@@ -546,6 +632,22 @@ class ProductController extends Controller
 
             // Format reviews for frontend
             $formattedReviews = $reviews->map(function($review) {
+                // Process review images
+                $imageUrls = [];
+                if ($review->images && is_array($review->images)) {
+                    foreach ($review->images as $image) {
+                        if ($image) {
+                            $imageUrls[] = asset('storage/' . $image);
+                        }
+                    }
+                }
+                
+                // Process review video
+                $videoUrl = null;
+                if ($review->video_path) {
+                    $videoUrl = asset('storage/' . $review->video_path);
+                }
+                
                 return [
                     'review_id' => $review->review_id,
                     'id' => $review->review_id, // For compatibility
@@ -553,10 +655,25 @@ class ProductController extends Controller
                     'comment' => $review->comment,
                     'review_date' => $review->review_date,
                     'created_at' => $review->created_at,
+                    'images' => $imageUrls,
+                    'video_path' => $videoUrl,
+                    'is_flagged' => $review->is_flagged ?? false,
+                    'flag_reason' => $review->flag_reason,
                     'user' => $review->user ? [
                         'userName' => $review->user->userName,
                         'userEmail' => $review->user->userEmail,
                     ] : null,
+                ];
+            });
+
+            // Get product variations (sizes)
+            $variations = $product->variations->map(function($variation) {
+                return [
+                    'variation_id' => $variation->variation_id,
+                    'size' => $variation->size,
+                    'quantity' => $variation->quantity,
+                    'price' => $variation->price,
+                    'sku' => $variation->sku,
                 ];
             });
 
@@ -576,6 +693,9 @@ class ProductController extends Controller
                 'publish_status' => $product->publish_status,
                 'created_at' => $product->created_at,
                 'updated_at' => $product->updated_at,
+                // Product variations (sizes)
+                'variations' => $variations,
+                'has_variations' => $variations->count() > 0,
                 // Reviews and ratings data
                 'reviews' => $formattedReviews,
                 'average_rating' => round($averageRating, 2),
@@ -703,7 +823,34 @@ class ProductController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user || $user->role !== 'administrator') {
+        if (!$user) {
+            \Log::warning('Product approval blocked: unauthenticated user.');
+            return response()->json(['message' => 'Only admins can approve products'], 403);
+        }
+
+        $rawRole = is_string($user->role) ? $user->role : '';
+        $normalizedRole = strtolower(trim(preg_replace('/\s+/', ' ', $rawRole)));
+        $allowedRoles = [
+            'administrator',
+            'admin',
+            'superadmin',
+            'super admin',
+            'support admin',
+            'support_admin',
+        ];
+        $hasAdminRelation = method_exists($user, 'administrator') && $user->administrator()->exists();
+
+        $isAdmin = $hasAdminRelation
+            || in_array($normalizedRole, $allowedRoles, true)
+            || str_contains($normalizedRole, 'admin');
+
+        if (!$isAdmin) {
+            \Log::warning('Product approval blocked: insufficient role.', [
+                'user_id' => $user->userID ?? null,
+                'role' => $user->role,
+                'normalized_role' => $normalizedRole,
+                'admin_relation' => $hasAdminRelation,
+            ]);
             return response()->json(['message' => 'Only admins can approve products'], 403);
         }
 
@@ -721,11 +868,38 @@ class ProductController extends Controller
     }
 
     // Reject a product
-    public function reject($id)
+    public function reject(Request $request, $id)
     {
         $user = Auth::user();
 
-        if (!$user || $user->role !== 'administrator') {
+        if (!$user) {
+            \Log::warning('Product rejection blocked: unauthenticated user.');
+            return response()->json(['message' => 'Only admins can reject products'], 403);
+        }
+
+        $rawRole = is_string($user->role) ? $user->role : '';
+        $normalizedRole = strtolower(trim(preg_replace('/\s+/', ' ', $rawRole)));
+        $allowedRoles = [
+            'administrator',
+            'admin',
+            'superadmin',
+            'super admin',
+            'support admin',
+            'support_admin',
+        ];
+        $hasAdminRelation = method_exists($user, 'administrator') && $user->administrator()->exists();
+
+        $isAdmin = $hasAdminRelation
+            || in_array($normalizedRole, $allowedRoles, true)
+            || str_contains($normalizedRole, 'admin');
+
+        if (!$isAdmin) {
+            \Log::warning('Product rejection blocked: insufficient role.', [
+                'user_id' => $user->userID ?? null,
+                'role' => $user->role,
+                'normalized_role' => $normalizedRole,
+                'admin_relation' => $hasAdminRelation,
+            ]);
             return response()->json(['message' => 'Only admins can reject products'], 403);
         }
 
@@ -737,9 +911,19 @@ class ProductController extends Controller
         }
 
         $product->approval_status = 'rejected';
+        $product->rejection_reason = $request->input('reason', 'Rejected by administrator');
         $product->save();
 
-        return response()->json(['message' => 'Product rejected successfully']);
+        Log::info('Product rejected by admin', [
+            'product_id' => $product->product_id,
+            'reason' => $product->rejection_reason,
+            'admin_id' => $user->userID
+        ]);
+
+        return response()->json([
+            'message' => 'Product rejected successfully',
+            'rejection_reason' => $product->rejection_reason
+        ]);
     }
 
     /**
@@ -1297,6 +1481,105 @@ class ProductController extends Controller
         } catch (\Exception $e) {
             Log::error('Error fetching admin products:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json(['message' => 'Error fetching products: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get related products for a specific product
+     * Based on category, seller, or popular products
+     */
+    public function getRelatedProducts($id)
+    {
+        try {
+            $product = Product::with(['seller', 'reviews'])->find($id);
+            
+            if (!$product) {
+                return response()->json(['message' => 'Product not found'], 404);
+            }
+
+            // Get related products by category first
+            $relatedByCategory = Product::with(['seller.user', 'seller.store', 'reviews'])
+                ->where('product_id', '!=', $id)
+                ->where('category', $product->category)
+                ->where('approval_status', 'approved')
+                ->where('publish_status', 'published')
+                ->whereHas('seller.user', function($q) {
+                    $q->where('status', 'active');
+                })
+                ->limit(3)
+                ->get();
+
+            // If not enough, get products from same seller
+            if ($relatedByCategory->count() < 3 && $product->seller_id) {
+                $relatedBySeller = Product::with(['seller.user', 'seller.store', 'reviews'])
+                    ->where('product_id', '!=', $id)
+                    ->where('seller_id', $product->seller_id)
+                    ->where('approval_status', 'approved')
+                    ->where('publish_status', 'published')
+                    ->whereHas('seller.user', function($q) {
+                        $q->where('status', 'active');
+                    })
+                    ->whereNotIn('product_id', $relatedByCategory->pluck('product_id'))
+                    ->limit(3 - $relatedByCategory->count())
+                    ->get();
+                
+                $relatedByCategory = $relatedByCategory->merge($relatedBySeller);
+            }
+
+            // If still not enough, get popular products
+            if ($relatedByCategory->count() < 6) {
+                $popularProducts = Product::with(['seller.user', 'seller.store', 'reviews'])
+                    ->where('product_id', '!=', $id)
+                    ->where('approval_status', 'approved')
+                    ->where('publish_status', 'published')
+                    ->whereHas('seller.user', function($q) {
+                        $q->where('status', 'active');
+                    })
+                    ->whereNotIn('product_id', $relatedByCategory->pluck('product_id'))
+                    ->orderBy('created_at', 'desc')
+                    ->limit(6 - $relatedByCategory->count())
+                    ->get();
+                
+                $relatedByCategory = $relatedByCategory->merge($popularProducts);
+            }
+
+            // Transform products
+            $products = $relatedByCategory->take(6)->map(function ($p) {
+                $productImageUrl = $p->productImage
+                    ? url('storage/' . ltrim($p->productImage, '/'))
+                    : '';
+                
+                $averageRating = 0;
+                if ($p->reviews && $p->reviews->count() > 0) {
+                    $averageRating = $p->reviews->avg('rating');
+                }
+
+                return [
+                    'id' => $p->product_id,
+                    'product_id' => $p->product_id,
+                    'productName' => $p->productName,
+                    'productPrice' => $p->productPrice,
+                    'productImage' => $productImageUrl,
+                    'category' => $p->category,
+                    'average_rating' => round($averageRating, 1),
+                    'seller' => $p->seller ? [
+                        'sellerID' => $p->seller->sellerID,
+                        'businessName' => $p->seller->businessName,
+                        'store' => $p->seller->store ? [
+                            'store_name' => $p->seller->store->store_name,
+                            'logo_url' => $p->seller->store->logo_url ? url('storage/' . ltrim($p->seller->store->logo_url, '/')) : null,
+                        ] : null,
+                    ] : null,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'products' => $products
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching related products: ' . $e->getMessage());
+            return response()->json(['message' => 'Error fetching related products'], 500);
         }
     }
 

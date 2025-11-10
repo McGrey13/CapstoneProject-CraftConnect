@@ -42,6 +42,7 @@ const CustomerTable = () => {
   const [actionMessage, setActionMessage] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [openMenuCustomerId, setOpenMenuCustomerId] = useState(null);
 
   const fetchCustomers = async () => {
     try {
@@ -77,12 +78,18 @@ const CustomerTable = () => {
     setSearchQuery(e.target.value.toLowerCase());
   };
 
+  const closeCustomerMenu = () => {
+    setOpenMenuCustomerId(null);
+  };
+
   const handleViewCustomer = (customerId) => {
+    closeCustomerMenu();
     setSelectedCustomerId(customerId);
     setIsViewDialogOpen(true);
   };
 
   const handleEditCustomer = (customer) => {
+    closeCustomerMenu();
     setSelectedCustomer(customer);
     setIsEditDialogOpen(true);
   };
@@ -97,6 +104,7 @@ const CustomerTable = () => {
 
   // Account management functions
   const handleDeactivateCustomer = async (customer) => {
+    closeCustomerMenu();
     setConfirmAction({
       type: 'deactivate',
       customer: customer,
@@ -128,6 +136,7 @@ const CustomerTable = () => {
   };
 
   const handleReactivateCustomer = async (customer) => {
+    closeCustomerMenu();
     setConfirmAction({
       type: 'reactivate',
       customer: customer,
@@ -159,6 +168,7 @@ const CustomerTable = () => {
   };
 
   const handleResetPassword = async (customer) => {
+    closeCustomerMenu();
     setConfirmAction({
       type: 'reset_password',
       customer: customer,
@@ -538,17 +548,34 @@ const CustomerTable = () => {
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
-                      <DropdownMenu>
+                      <DropdownMenu
+                        open={openMenuCustomerId === customer.userID}
+                        onOpenChange={(open) =>
+                          setOpenMenuCustomerId(open ? customer.userID : null)
+                        }
+                      >
                         <DropdownMenuTrigger asChild>
                           <Button 
                             variant="outline" 
                             size="sm"
                             className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300 hover:border-gray-400"
+                            onPointerDown={(event) => event.preventDefault()}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              setOpenMenuCustomerId((current) =>
+                                current === customer.userID ? null : customer.userID
+                              );
+                            }}
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 border-2 border-[#d5bfae] shadow-xl">
+                        <DropdownMenuContent
+                          align="end"
+                          sideOffset={10}
+                          className="w-48 border-2 border-[#d5bfae] shadow-xl"
+                        >
                           <DropdownMenuLabel className="text-[#5c3d28] font-bold">More Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator className="bg-[#d5bfae]" />
                           <DropdownMenuItem

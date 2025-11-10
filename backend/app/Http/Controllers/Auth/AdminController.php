@@ -10,6 +10,8 @@ use App\Models\Seller;
 use App\Models\Customer;
 use App\Models\Administrator;
 use App\Models\Store;
+use App\Models\Review;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
@@ -21,7 +23,13 @@ class AdminController extends AuthController
     private function checkAdminRole()
     {
         $user = Auth::user();
-        if (!$user || $user->role !== 'administrator') {
+        if (!$user) {
+            abort(403, 'Unauthorized: Admin access required.');
+        }
+
+        $role = is_string($user->role) ? strtolower(trim($user->role)) : null;
+
+        if (!in_array($role, ['administrator', 'admin'], true)) {
             abort(403, 'Unauthorized: Admin access required.');
         }
     }
@@ -254,6 +262,11 @@ class AdminController extends AuthController
         $seller = $store->seller;
         if ($seller) {
             $seller->update(['is_verified' => true]);
+            
+            // Notify seller about store approval
+            if ($seller->user_id) {
+                NotificationService::notifyStoreVerification($seller->user_id, true);
+            }
         }
 
         // Clear verification stats cache
@@ -283,6 +296,12 @@ class AdminController extends AuthController
             'status' => 'rejected',
             'rejection_reason' => $request->reason
         ]);
+
+        // Notify seller about store rejection
+        $seller = $store->seller;
+        if ($seller && $seller->user_id) {
+            NotificationService::notifyStoreVerification($seller->user_id, false, $request->reason);
+        }
 
         // Clear verification stats cache
         Cache::forget('verification_stats');
@@ -463,6 +482,9 @@ class AdminController extends AuthController
             
             $user->status = 'deactivated';
             $user->save();
+
+            // Notify customer about account deactivation
+            NotificationService::notifyAccountAction($user->userID, 'deactivated');
             
             return response()->json([
                 'message' => 'Customer account deactivated successfully',
@@ -489,6 +511,9 @@ class AdminController extends AuthController
             
             $user->status = 'active';
             $user->save();
+
+            // Notify customer about account reactivation
+            NotificationService::notifyAccountAction($user->userID, 'reactivated');
             
             return response()->json([
                 'message' => 'Customer account reactivated successfully',
@@ -512,6 +537,9 @@ class AdminController extends AuthController
             
             $user->status = 'deactivated';
             $user->save();
+
+            // Notify seller about account deactivation
+            NotificationService::notifyAccountAction($user->userID, 'deactivated');
             
             return response()->json([
                 'message' => 'Seller account deactivated successfully',
@@ -535,6 +563,9 @@ class AdminController extends AuthController
             
             $user->status = 'active';
             $user->save();
+
+            // Notify seller about account reactivation
+            NotificationService::notifyAccountAction($user->userID, 'reactivated');
             
             return response()->json([
                 'message' => 'Seller account reactivated successfully',
@@ -603,4 +634,114 @@ class AdminController extends AuthController
             return response()->json(['message' => 'Failed to reset password: ' . $e->getMessage()], 500);
         }
     }
+
+    /**
+     * Get all reviews for admin management
+     */
+    public function getAllReviews()
+    {
+        $this->checkAdminRole();
+        
+        try {
+            $reviews = Review::with(['user' => function($query) {
+                    $query->select('userID', 'userName', 'userEmail');
+                }, 'product' => function($query) {
+                    $query->select('product_id', 'productName');
+                }])
+                ->latest('review_date')
+                ->get()
+                ->map(function($review) {
+                    // Process review images
+                    $imageUrls = [];
+                    if ($review->images && is_array($review->images)) {
+                        foreach ($review->images as $image) {
+                            if ($image) {
+                                $imageUrls[] = asset('storage/' . $image);
+                            }
+                        }
+                    }
+                    
+                    // Process review video
+                    $videoUrl = null;
+                    if ($review->video_path) {
+                        $videoUrl = asset('storage/' . $review->video_path);
+                    }
+                    
+                    // Convert to array and add formatted URLs
+                    $reviewData = $review->toArray();
+                    $reviewData['images'] = $imageUrls;
+                    $reviewData['video_path'] = $videoUrl;
+                    
+                    return $reviewData;
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $reviews
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch reviews',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Flag a review
+     */
+    public function flagReview(Request $request, $reviewId)
+    {
+        $this->checkAdminRole();
+        
+        try {
+            $request->validate([
+                'reason' => 'required|string|max:500'
+            ]);
+
+            $review = Review::findOrFail($reviewId);
+            $review->is_flagged = true;
+            $review->flag_reason = $request->reason;
+            $review->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Review flagged successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to flag review',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Unflag a review
+     */
+    public function unflagReview($reviewId)
+    {
+        $this->checkAdminRole();
+        
+        try {
+            $review = Review::findOrFail($reviewId);
+            $review->is_flagged = false;
+            $review->flag_reason = null;
+            $review->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Review unflagged successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to unflag review',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

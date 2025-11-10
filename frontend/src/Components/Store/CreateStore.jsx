@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Settings, UserCircle, LogOut } from "lucide-react";
 import { createStore } from "../../api/storeApi";
 import { useNavigate } from "react-router-dom";
 import StoreDetails from "./StoreDetails";
@@ -7,6 +7,72 @@ import OwnerInfo from "./OwnerInfo";
 import VerificationDocuments from "./VerificationDocuments";
 import RulesGuidelines from "./RulesGuidelines";
 import VerificationPending from "./VerificationPending";
+import NotificationDropdown from "../ui/NotificationDropdown";
+import { useUser } from "../Context/UserContext";
+
+const SellerOnboardingNavbar = () => {
+  const navigate = useNavigate();
+  const { logout, user } = useUser();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Error during logout:", error);
+    } finally {
+      navigate("/login");
+    }
+  };
+
+  return (
+    <nav className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-white to-[#faf9f8] shadow-lg border-b border-[#e5ded7] px-4 flex items-center justify-between z-40">
+      <div
+        className="flex items-center gap-2 cursor-pointer"
+        onClick={() => navigate("/seller")}
+      >
+        <div className="p-2 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-lg shadow-sm">
+          <svg
+            className="w-5 h-5 text-white"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+        </div>
+        <div className="flex flex-col leading-tight">
+          <span className="text-sm font-semibold text-[#5c3d28]">
+            CraftConnect
+          </span>
+          <span className="text-xs text-[#7b5a3b] font-medium uppercase tracking-wide">
+            Seller Portal
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#f5eee6] rounded-full border border-[#e5ded7]">
+          <UserCircle className="h-4 w-4 text-[#a4785a]" />
+          <span className="text-xs font-medium text-[#5c3d28]">
+            {user?.userName || "Seller"}
+          </span>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="p-2 rounded-lg hover:bg-red-50 transition"
+          title="Logout"
+        >
+          <LogOut className="h-4 w-4 text-red-500" />
+        </button>
+      </div>
+    </nav>
+  );
+};
 
 const CreateStore = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -25,6 +91,9 @@ const CreateStore = () => {
     ownerEmail: "",
     ownerPhone: "",
     ownerAddress: "",
+    ownerCity: "",
+    ownerProvince: "Laguna",
+    ownerRegion: "CALABARZON",
   });
 
   const categories = [
@@ -85,6 +154,9 @@ const CreateStore = () => {
     formData.append('owner_email', storeData.ownerEmail);
     formData.append('owner_phone', storeData.ownerPhone);
     formData.append('owner_address', storeData.ownerAddress);
+    if (storeData.ownerCity) formData.append('owner_city', storeData.ownerCity);
+    if (storeData.ownerProvince) formData.append('owner_province', storeData.ownerProvince);
+    if (storeData.ownerRegion) formData.append('owner_region', storeData.ownerRegion);
 
     try {
       await createStore(formData);
@@ -92,7 +164,15 @@ const CreateStore = () => {
       // Stay on verification pending page - no redirect
     } catch (err) {
       console.error('Failed to create store', err);
-      setError(err.response?.data?.message || 'Failed to submit store. Please try again.');
+      const backendErrors = err.response?.data;
+      if (backendErrors?.errors && typeof backendErrors.errors === 'object') {
+        const formatted = Object.entries(backendErrors.errors)
+          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('\n');
+        setError(formatted || backendErrors.message || 'Failed to submit store. Please review your inputs.');
+      } else {
+        setError(backendErrors?.message || 'Failed to submit store. Please try again.');
+      }
       setCurrentStep(1); // Return to first step if there's an error
     }
   };
@@ -119,6 +199,9 @@ const CreateStore = () => {
               email: storeData.ownerEmail,
               phone: storeData.ownerPhone,
               address: storeData.ownerAddress,
+              userCity: storeData.ownerCity,
+              userProvince: storeData.ownerProvince,
+              userRegion: storeData.ownerRegion,
             }}
             setOwnerData={(data) => {
               updateStoreData({
@@ -126,6 +209,9 @@ const CreateStore = () => {
                 ownerEmail: data.email,
                 ownerPhone: data.phone,
                 ownerAddress: data.address,
+                ownerCity: data.userCity || storeData.ownerCity,
+                ownerProvince: data.userProvince || storeData.ownerProvince,
+                ownerRegion: data.userRegion || storeData.ownerRegion,
               });
             }}
             onNext={handleNext}
@@ -347,7 +433,9 @@ const CreateStore = () => {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto bg-white shadow-lg rounded-xl p-6 border border-amber-100">
+    <div className="min-h-screen bg-[#faf9f8]">
+      <SellerOnboardingNavbar />
+      <div className="w-full max-w-3xl mx-auto bg-white shadow-lg rounded-xl p-6 border border-amber-100 mt-24 mb-12">
       {!isSubmitted ? (
         <>
           {renderStepIndicator()}
@@ -356,6 +444,7 @@ const CreateStore = () => {
       ) : (
         renderSuccessScreen()
       )}
+      </div>
     </div>
   );
 };

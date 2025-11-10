@@ -4,21 +4,21 @@ import { Card, CardContent } from "../ui/card";
 import axios from "axios";
 import "./CategoryGrid.css"; // Add this import
 
-const categoryFilters = [
-  { id: "all", name: "All", queryParam: "" },
-  { id: "miniatures", name: "Miniatures & Souvenirs", queryParam: "Miniatures & Souvenirs" },
-  { id: "rubber-stamp", name: "Rubber Stamp", queryParam: "Rubber Stamp Engraving"},
-  { id: "traditional", name: "Traditional", queryParam: "Traditional Accessories" },
-  { id: "statuary", name: "Statuary", queryParam: "Statuary & Sculpture" },
-  { id: "basketry", name: "Basketry", queryParam: "Basketry & Weaving" },
-  { id: "featured", name: "Featured", queryParam: "featured"}
-];
-
 const CategoryGrid = () => {
   const [stores, setStores] = useState([]);
+  const [allStores, setAllStores] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [loading, setLoading] = useState(true);
   const [showScrollHint, setShowScrollHint] = useState(true);
+  const [categoryFilters, setCategoryFilters] = useState([
+    { id: "all", name: "All", queryParam: "" }
+  ]);
+  const buildCategoryId = (name = "") =>
+    name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "uncategorized";
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -46,19 +46,27 @@ const CategoryGrid = () => {
     fetchStores();
   }, [selectedCategory]);
 
-  const fetchStores = async () => {
+  const fetchStores = async (searchTerm = "") => {
     try {
       setLoading(true);
-      const selectedCategoryData = categoryFilters.find(cat => cat.id === selectedCategory);
+      const filters = categoryFilters.length
+        ? categoryFilters
+        : [{ id: "all", name: "All", queryParam: "" }];
+      const selectedCategoryData = filters.find(cat => cat.id === selectedCategory);
       
       console.log('📂 Selected Category:', selectedCategory);
       console.log('📂 Category Data:', selectedCategoryData);
-      
-      // Use relative URLs to work with Vite proxy
-      const url = selectedCategory === 'featured'
-        ? '/api/products/featured'
-        : `/api/stores${selectedCategoryData?.queryParam ? `?category=${encodeURIComponent(selectedCategoryData.queryParam)}` : ''}`;
-      
+
+      const url = (() => {
+        if (searchTerm) {
+          return `/api/stores?search=${encodeURIComponent(searchTerm)}`;
+        }
+        if (selectedCategoryData?.queryParam) {
+          return `/api/stores?category=${encodeURIComponent(selectedCategoryData.queryParam)}`;
+        }
+        return "/api/stores?includeEmpty=false";
+      })();
+
       console.log('🔗 Fetching URL:', url);
       const response = await axios.get(url);
       
@@ -68,37 +76,46 @@ const CategoryGrid = () => {
       const data = Array.isArray(response.data) ? response.data : 
                   response.data.data ? response.data.data : [];
       
-      // Transform the data based on whether it's products or stores
-      const transformedData = selectedCategory === 'featured'
-        ? data.map(item => ({
-            storeID: item.seller?.sellerID,
-            seller_id: item.seller?.sellerID,
-            store_name: item.productName,
-            store_description: item.productDescription,
-            category: item.category,
-            logo_path: fixImageUrl(item.productImage),
-            followers_count: 0,
-            location: '',
-            years_active: 0
-          }))
-        : data.map(item => {
-          // Use logo_url from backend and fix it to use relative path
-          const logoUrl = fixImageUrl(item.logo_url || item.logo_path);
-          
-          return {
-            storeID: item.storeID,
-            seller_id: item.seller_id,
-            store_name: item.store_name,
-            store_description: item.store_description,
-            category: item.category,
-            logo_path: logoUrl,
-            followers_count: item.followers_count || 0,
-            location: item.location || '',
-            years_active: item.years_active || 0,
-            average_rating: item.average_rating || 0,
-            total_ratings: item.total_ratings || 0
-          };
-        });
+      const transformedData = data.map(item => {
+        const logoUrl = fixImageUrl(item.logo_url || item.logo_path);
+        
+        return {
+          storeID: item.storeID,
+          seller_id: item.seller_id,
+          store_name: item.store_name,
+          store_description: item.store_description,
+          category: item.category,
+          logo_path: logoUrl,
+          followers_count: item.followers_count || 0,
+          location: item.location || '',
+          years_active: item.years_active || 0,
+          average_rating: item.average_rating || 0,
+          total_ratings: item.total_ratings || 0
+        };
+      });
+
+      if (!searchTerm && selectedCategory === "all") {
+        const uniqueCategories = Array.from(
+          new Set(transformedData.map(store => store.category).filter(Boolean))
+        );
+        const dynamicFilters = uniqueCategories.map(categoryName => ({
+          id: buildCategoryId(categoryName),
+          name: categoryName,
+          queryParam: categoryName
+        }));
+        const nextFilters = [
+          { id: "all", name: "All", queryParam: "" },
+          ...dynamicFilters
+        ];
+        setCategoryFilters(nextFilters);
+
+        if (
+          selectedCategory !== "all" &&
+          !nextFilters.some(filter => filter.id === selectedCategory)
+        ) {
+          setSelectedCategory("all");
+        }
+      }
       
       // Sort by weighted rating (considers both rating value and number of ratings)
       // Formula: weighted_score = average_rating * log(total_ratings + 1) + (total_ratings / 100)
@@ -129,6 +146,10 @@ const CategoryGrid = () => {
       });
       
       setStores(sortedData);
+
+      if (!searchTerm && selectedCategory === "all") {
+        setAllStores(sortedData);
+      }
     } catch (error) {
       console.error("❌ Error fetching data:", error);
       console.error("❌ Error details:", error.response?.data);
@@ -140,6 +161,13 @@ const CategoryGrid = () => {
 
   return (
     <div className="w-full bg-[#fefefe] py-8">
+      <div className="max-w-7xl mx-auto px-4 text-center mb-8">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Explore Local Craft Stores</h2>
+        <p className="text-sm md:text-base text-gray-600 max-w-2xl mx-auto mb-4">
+          Discover talented artisans and their unique craft stores
+        </p>
+      </div>
+
       {/* Category Filter Bar */}
       <div className="mb-8 bg-white sticky top-[65px] z-40">
         <div className="max-w-7xl mx-auto px-4">
@@ -182,11 +210,7 @@ const CategoryGrid = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 text-center">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Explore Local Craft Stores</h2>
-        <p className="text-sm md:text-base text-gray-600 max-w-2xl mx-auto mb-8 md:mb-10">
-          Discover talented artisans and their unique craft stores
-        </p>
+      <div className="max-w-7xl mx-auto px-4">
 
         {loading ? (
           <div className="flex justify-center items-center h-40">

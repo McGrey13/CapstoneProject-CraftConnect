@@ -17,9 +17,9 @@ const OwnerInfo = ({ onNext, onBack, ownerData, setOwnerData }) => {
   
   // Local state for location fields since parent doesn't include them
   const [localLocationData, setLocalLocationData] = useState({
-    userCity: "",
-    userProvince: "",
-    userRegion: "CALABARZON"
+    userCity: ownerData.userCity || "",
+    userProvince: ownerData.userProvince || "Laguna",
+    userRegion: ownerData.userRegion || "CALABARZON"
   });
 
   // Fixed region and province for sellers
@@ -35,6 +35,15 @@ const OwnerInfo = ({ onNext, onBack, ownerData, setOwnerData }) => {
     "San Pablo", "San Pedro", "Santa Cruz", "Santa Maria",
     "Santa Rosa", "Siniloan", "Victoria"
   ];
+
+  // Keep local location state in sync with parent data
+  useEffect(() => {
+    setLocalLocationData({
+      userCity: ownerData.userCity || "",
+      userProvince: ownerData.userProvince || fixedProvince,
+      userRegion: ownerData.userRegion || fixedRegion,
+    });
+  }, [ownerData.userCity, ownerData.userProvince, ownerData.userRegion]);
 
   // Debug effect to track ownerData changes
   useEffect(() => {
@@ -73,13 +82,16 @@ const OwnerInfo = ({ onNext, onBack, ownerData, setOwnerData }) => {
           email: userData.userEmail || ownerData.email || "",
           phone: userData.userContactNumber || ownerData.phone || "",
           address: ownerData.address || "", // Keep existing address, don't auto-fill from API
+          userCity: userData.userCity || ownerData.userCity || "",
+          userProvince: userData.userProvince || ownerData.userProvince || fixedProvince,
+          userRegion: userData.userRegion || ownerData.userRegion || fixedRegion,
         };
         
         // Update local location data
         setLocalLocationData({
-          userCity: userData.userCity || "",
-          userRegion: userData.userRegion || fixedRegion,
-          userProvince: userData.userProvince || fixedProvince,
+          userCity: newOwnerData.userCity || "",
+          userRegion: newOwnerData.userRegion || fixedRegion,
+          userProvince: newOwnerData.userProvince || fixedProvince,
         });
         
         console.log("🔧 Setting ownerData to:", newOwnerData);
@@ -118,10 +130,21 @@ const OwnerInfo = ({ onNext, onBack, ownerData, setOwnerData }) => {
     console.log(`🔧 handleLocationChange: ${name} = "${value}"`);
     
     // Update local location state
-    setLocalLocationData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setLocalLocationData(prev => {
+      const updated = {
+        ...prev,
+        [name]: value,
+      };
+
+      setOwnerData(prevOwner => ({
+        ...prevOwner,
+        userCity: name === 'userCity' ? value : (updated.userCity || prevOwner.userCity || ""),
+        userProvince: name === 'userProvince' ? value : (updated.userProvince || prevOwner.userProvince || ""),
+        userRegion: updated.userRegion || prevOwner.userRegion || fixedRegion,
+      }));
+
+      return updated;
+    });
     
     if (errors[name]) {
       setErrors({ ...errors, [name]: "" });
@@ -190,6 +213,13 @@ const OwnerInfo = ({ onNext, onBack, ownerData, setOwnerData }) => {
             userProvince: "Laguna"
           };
           console.log("🔧 Updated location data:", updated);
+          // Sync with parent
+          setOwnerData(prevOwner => ({
+            ...prevOwner,
+            userCity: updated.userCity,
+            userRegion: updated.userRegion,
+            userProvince: updated.userProvince,
+          }));
           return updated;
         });
         
@@ -278,70 +308,6 @@ const OwnerInfo = ({ onNext, onBack, ownerData, setOwnerData }) => {
               {errors.general}
             </div>
           )}
-
-          {/* Debug Section - Remove after testing */}
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded text-sm">
-            <h4 className="font-semibold text-blue-800 mb-2">🐛 Debug Info</h4>
-            <div className="space-y-1 text-blue-700">
-              <p><strong>fullName:</strong> "{ownerData.fullName || 'EMPTY'}"</p>
-              <p><strong>email:</strong> "{ownerData.email || 'EMPTY'}"</p>
-              <p><strong>phone:</strong> "{ownerData.phone || 'EMPTY'}"</p>
-              <p><strong>userCity:</strong> "{localLocationData.userCity || 'EMPTY'}"</p>
-              <p><strong>userProvince:</strong> "{localLocationData.userProvince || 'EMPTY'}"</p>
-              <p><strong>userRegion:</strong> "{localLocationData.userRegion || 'EMPTY'}"</p>
-            </div>
-            <button 
-              onClick={async () => {
-                console.log("🔧 MANUAL FIX: Fetching and setting data...");
-                try {
-                  const response = await api.get('/profile');
-                  console.log("📡 Manual API Response:", response.data);
-                  
-                  const newData = {
-                    ...ownerData, // Keep existing data first
-                    fullName: response.data.userName || ownerData.fullName || "",
-                    email: response.data.userEmail || ownerData.email || "",
-                    phone: response.data.userContactNumber || ownerData.phone || "",
-                    address: ownerData.address || "", // Keep existing address, don't auto-fill from API
-                  };
-                  
-                  // Update local location data separately
-                  setLocalLocationData({
-                    userCity: response.data.userCity || "",
-                    userRegion: response.data.userRegion || fixedRegion,
-                    userProvince: response.data.userProvince || fixedProvince,
-                  });
-                  
-                  console.log("🔧 MANUAL SET personal data:", newData);
-                  console.log("🔧 MANUAL SET location data:", {
-                    userCity: response.data.userCity || "",
-                    userRegion: response.data.userRegion || fixedRegion,
-                    userProvince: response.data.userProvince || fixedProvince,
-                  });
-                  
-                  setOwnerData(newData);
-                  setIsDataLoaded(true);
-                  alert("✅ Data manually set! Check the form now.");
-                } catch (error) {
-                  console.error("❌ Manual fetch error:", error);
-                  alert(`❌ Error: ${error.message}`);
-                }
-              }}
-              className="mt-2 px-3 py-1 bg-blue-500 text-white text-sm rounded"
-            >
-              MANUAL FIX
-            </button>
-            <button 
-              onClick={() => {
-                console.log("🔄 Resetting data loaded flag...");
-                setIsDataLoaded(false);
-                alert("🔄 Reset complete. Data will be fetched again on next render.");
-              }}
-              className="mt-2 ml-2 px-3 py-1 bg-red-500 text-white text-sm rounded"
-            >
-              RESET
-            </button>
-          </div>
 
           <div className="space-y-4">
             {/* Full Name */}

@@ -26,7 +26,7 @@ const ConversationList = ({ onSelectConversation, currentConversationId }) => {
         return;
       }
 
-      const response = await api.get('/chat/seller/conversations');
+      const response = await api.get('/                     /seller/conversations');
       console.log('Conversations API response:', response.data);
       setConversations(response.data);
     } catch (err) {

@@ -26,13 +26,30 @@ const Login = () => {
   const [oauthRole, setOauthRole] = useState(null);
   const [oauthProvider, setOauthProvider] = useState(null); // 'google' or 'facebook'
   const [roleError, setRoleError] = useState("");
+  const [lockedUntil, setLockedUntil] = useState(null);
+  const [lockedEmail, setLockedEmail] = useState(null);
+  const [minutesRemaining, setMinutesRemaining] = useState(0);
   const navigate = useNavigate();
   const { login } = useUser();
+
+  const normalizedEmailInput = (email || '').trim().toLowerCase();
+  const isLockActive = lockedUntil && minutesRemaining > 0;
+  const isCurrentEmailLocked = Boolean(
+    isLockActive &&
+    lockedEmail &&
+    normalizedEmailInput &&
+    lockedEmail === normalizedEmailInput
+  );
 
   // 🔹 Handle Email/Password Login
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (isCurrentEmailLocked) {
+      return;
+    }
+
     try {
     const result = await login({
       userEmail: email,
@@ -51,13 +68,48 @@ const Login = () => {
       navigate("/home");
   }
     } catch (err) {
+      // ✅ Account locked due to brute force protection
+      if (err.response?.status === 423 && err.response?.data?.locked) {
+        const minsRemaining = err.response?.data?.minutes_remaining || 0;
+        const lockedUntilTime = err.response?.data?.locked_until;
+        const normalizedEmail = (email || '').trim().toLowerCase();
+
+        setError("");
+
+        if (lockedUntilTime) {
+          setLockedUntil(lockedUntilTime);
+          setLockedEmail(normalizedEmail || null);
+          setMinutesRemaining(minsRemaining);
+
+          const lockPayload = {
+            email: normalizedEmail,
+            locked_until: lockedUntilTime,
+          };
+
+          try {
+            localStorage.setItem('account_lock', JSON.stringify(lockPayload));
+          } catch (storageError) {
+            console.warn('Failed to persist lock info', storageError);
+          }
+        }
+
+        return;
+      }
       // ✅ OTP handling
-      if (
+      else if (
         err.response?.status === 403 &&
         err.response?.data?.message === "Please verify your account before logging in."
       ) {
         navigate("/verify-otp", { state: { email } });
-      } else {
+      } 
+      // ✅ Show attempts remaining for failed login
+      else if (err.response?.status === 401 && err.response?.data?.attempts_remaining !== undefined) {
+        const attemptsRemaining = err.response?.data?.attempts_remaining;
+        setError(
+          `Invalid credentials. ${attemptsRemaining} attempt(s) remaining before account lockout.`
+        );
+      }
+      else {
         setError(
           err.response?.data?.message ||
             "Login failed. Please check your credentials."
@@ -65,6 +117,86 @@ const Login = () => {
       }
     }
   };
+
+  // 🔹 Check for account lockout on component mount and update countdown
+  useEffect(() => {
+    const checkLockout = () => {
+      try {
+        // Clean up legacy key from previous versions
+        if (localStorage.getItem('account_locked_until')) {
+          localStorage.removeItem('account_locked_until');
+        }
+
+        const storedLock = localStorage.getItem('account_lock');
+        if (!storedLock) {
+          setLockedUntil(null);
+          setLockedEmail(null);
+          setMinutesRemaining(0);
+          return;
+        }
+
+        const parsed = JSON.parse(storedLock);
+        if (!parsed || !parsed.locked_until || !parsed.email) {
+          localStorage.removeItem('account_lock');
+          setLockedUntil(null);
+          setLockedEmail(null);
+          setMinutesRemaining(0);
+          return;
+        }
+
+        const lockedUntilDate = new Date(parsed.locked_until);
+        const now = new Date();
+
+        if (lockedUntilDate > now) {
+          const normalizedEmail = (parsed.email || '').toLowerCase();
+          setLockedUntil(parsed.locked_until);
+          setLockedEmail(normalizedEmail);
+          const minsRemaining = Math.ceil((lockedUntilDate - now) / 60000);
+          setMinutesRemaining(Math.max(minsRemaining, 1));
+        } else {
+          localStorage.removeItem('account_lock');
+          setLockedUntil(null);
+          setLockedEmail(null);
+          setMinutesRemaining(0);
+        }
+      } catch (storageError) {
+        console.warn('Failed to read lock info:', storageError);
+        localStorage.removeItem('account_lock');
+        setLockedUntil(null);
+        setLockedEmail(null);
+        setMinutesRemaining(0);
+      }
+    };
+
+    checkLockout();
+    const interval = setInterval(checkLockout, 1000); // Check every second
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // 🔹 Update countdown timer every second
+  useEffect(() => {
+    if (!lockedUntil) return;
+
+    const interval = setInterval(() => {
+      const lockedUntilDate = new Date(lockedUntil);
+      const now = new Date();
+
+      if (lockedUntilDate > now) {
+        const minsRemaining = Math.ceil((lockedUntilDate - now) / 60000);
+        setMinutesRemaining(Math.max(minsRemaining, 1));
+      } else {
+        // Lockout expired
+        localStorage.removeItem('account_lock');
+        setLockedUntil(null);
+        setLockedEmail(null);
+        setMinutesRemaining(0);
+        setError("");
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lockedUntil]);
 
 // 🔹 Handle OAuth (Google/Facebook) Login Redirect
 useEffect(() => {
@@ -285,14 +417,37 @@ useEffect(() => {
             </label>
           </div>
 
-          {error && <div className="text-red-500 text-sm">{error}</div>}
+          {error && !isCurrentEmailLocked && (
+            <div className="text-sm p-3 rounded-md text-red-500">
+              {error}
+            </div>
+          )}
+
+          {isCurrentEmailLocked && (
+            <div className="text-sm p-3 rounded-md bg-red-50 border border-red-200 text-red-700">
+              Account for <span className="font-semibold">{lockedEmail}</span> is temporarily locked due to multiple failed attempts.
+              <div className="mt-2 text-xs font-semibold">
+                Time remaining: {minutesRemaining} minute(s)
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white font-medium py-3 rounded-md text-lg mt-2 shadow-md flex items-center justify-center gap-2 transition-all hover:from-[#8f674a] hover:to-[#6a4c34] hover:shadow-lg"
+            disabled={isCurrentEmailLocked}
+            className={`w-full bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white font-medium py-3 rounded-md text-lg mt-2 shadow-md flex items-center justify-center gap-2 transition-all ${
+              isCurrentEmailLocked
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:from-[#8f674a] hover:to-[#6a4c34] hover:shadow-lg'
+            }`}
           >
-            {role === "customer" ? "Sign in as Customer" : "Sign in as Seller"}
-            <ArrowRight className="h-4 w-4" />
+            {isCurrentEmailLocked
+              ? `Account Locked (${minutesRemaining}m)`
+              : role === "customer" 
+                ? "Sign in as Customer" 
+                : "Sign in as Seller"
+            }
+            {!isCurrentEmailLocked && <ArrowRight className="h-4 w-4" />}
           </button>
 
           {/* Divider */}

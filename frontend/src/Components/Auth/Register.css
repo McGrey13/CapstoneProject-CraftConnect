@@ -60,10 +60,11 @@
 /* Tabs */
 .register-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  background: #a4785a;
+  grid-template-columns: repeat(3, 1fr);
+  background: #f9f2ea;
   border-radius: 0.5rem;
   overflow: hidden;
+  border: 1px solid #d5bfae;
   margin-bottom: 1.5rem;
 }
 
@@ -71,21 +72,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0;
-  font-weight: 500;
+  gap: 0.4rem;
+  padding: 0.55rem 0.75rem;
+  font-weight: 600;
   font-size: 0.95rem;
-  color: #ffffff;
-  background: none;
+  color: #5c3d28;
+  background: transparent;
   border: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.register-tab:hover {
+  background: rgba(164, 120, 90, 0.12);
 }
 
 .register-tab.active {
-  background: #fff;
-  color: #a4785a;
-  box-shadow: 0 2px 8px 0 rgba(99, 102, 241, 0.10);
+  background: #a4785a;
+  color: #ffffff;
 }
 
 /* Form labels and inputs */

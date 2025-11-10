@@ -7,6 +7,10 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\Product;
+use App\Models\ProductVariation;
+use App\Models\Seller;
+use App\Http\Controllers\ChatController;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -47,31 +51,65 @@ class CartController extends Controller
             ->keyBy('product_id');
 
             // Map cart items with product data
-            $formattedCart = $cartItems->map(function($item) use ($products) {
+            $variationIds = $cartItems->pluck('variation_id')->filter()->unique()->toArray();
+            $variations = !empty($variationIds)
+                ? ProductVariation::whereIn('variation_id', $variationIds)->get()->keyBy('variation_id')
+                : collect();
+
+            $formattedCart = $cartItems->map(function($item) use ($products, $variations) {
                 $product = $products->get($item->product_id);
-                
+
                 if (!$product) {
                     return null;
                 }
 
+                $variation = $item->variation_id ? $variations->get($item->variation_id) : null;
+
                 $sellerName = 'Unknown Seller';
                 if ($product->seller) {
                     $seller = $product->seller;
-                    $sellerName = $seller->businessName ?? 
+                    $sellerName = $seller->businessName ??
                                 ($seller->user ? $seller->user->userName : 'Unknown Seller');
+                }
+
+                $unitPrice = $item->unit_price ?? ($variation ? (float) $variation->price : (float) $product->productPrice);
+                $availableQuantity = $variation
+                    ? (int) ($variation->quantity ?? 0)
+                    : (int) ($product->productQuantity ?? 0);
+
+                $variationAttributes = $item->variation_attributes;
+                if (is_string($variationAttributes)) {
+                    $decodedAttributes = json_decode($variationAttributes, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decodedAttributes)) {
+                        $variationAttributes = $decodedAttributes;
+                    } else {
+                        $variationAttributes = null;
+                    }
+                }
+                if (!$variationAttributes && $variation) {
+                    $variationAttributes = array_filter([
+                        'size' => $variation->size,
+                        'color' => $variation->color,
+                    ]);
                 }
 
                 return [
                     'cart_id' => $item->cart_id,
                     'product_id' => $item->product_id,
+                    'variation_id' => $item->variation_id,
+                    'variation_label' => $item->variation_label ?? ($variation->size ?? null),
+                    'variation_attributes' => $variationAttributes ?: null,
+                    'sku' => $item->sku ?? ($variation->sku ?? null),
                     'quantity' => $item->quantity,
-                    'price' => (float) $product->productPrice,
-                    'total_price' => (float) $product->productPrice * $item->quantity,
+                    'price' => $unitPrice,
+                    'total_price' => $unitPrice * $item->quantity,
+                    'unit_price' => $unitPrice,
+                    'available_quantity' => $availableQuantity,
                     'product' => [
                         'product_id' => $product->product_id,
                         'productName' => $product->productName ?? 'Unknown Product',
                         'productPrice' => (float) $product->productPrice,
-                        'productQuantity' => (int) ($product->productQuantity ?? 0), // Add available stock
+                        'productQuantity' => $availableQuantity,
                         'productImage' => $product->productImage,
                         'seller_name' => $sellerName,
                         'category' => $product->category ?? null,
@@ -115,34 +153,82 @@ class CartController extends Controller
         $validated = $request->validate([
             'product_id' => 'required|exists:products,product_id',
             'quantity'   => 'required|integer|min:1',
+            'variation_id' => 'nullable|exists:product_variations,variation_id',
+            'variation_label' => 'nullable|string|max:255',
+            'variation_attributes' => 'nullable|array',
+            'sku' => 'nullable|string|max:255',
+            'unit_price' => 'nullable|numeric|min:0',
         ]);
 
-        // Use database transaction to prevent race conditions
-        return DB::transaction(function () use ($validated) {
-            // Check if item already exists in cart
-            $existingCartItem = Cart::where('userID', Auth::user()->userID)
-                                   ->where('product_id', $validated['product_id'])
-                                   ->first();
+        $product = Product::findOrFail($validated['product_id']);
+        $variation = null;
+
+        if (!empty($validated['variation_id'])) {
+            $variation = ProductVariation::where('variation_id', $validated['variation_id'])
+                ->where('product_id', $product->product_id)
+                ->first();
+
+            if (!$variation) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid variation for selected product.'
+                ], 422);
+            }
+        }
+
+        $unitPrice = $validated['unit_price'] ??
+            ($variation ? (float) $variation->price : (float) $product->productPrice);
+
+        $variationLabel = $validated['variation_label']
+            ?? ($variation ? ($variation->size ?? $variation->color ?? null) : null);
+
+        $variationAttributes = $validated['variation_attributes'] ?? [];
+        if (empty($variationAttributes) && $variation) {
+            $variationAttributes = array_filter([
+                'size' => $variation->size,
+                'color' => $variation->color,
+            ]);
+        }
+
+        $sku = $validated['sku'] ?? ($variation->sku ?? null);
+
+        return DB::transaction(function () use ($validated, $variation, $variationLabel, $variationAttributes, $unitPrice, $sku) {
+            $query = Cart::where('userID', Auth::user()->userID)
+                ->where('product_id', $validated['product_id']);
+
+            if ($variation) {
+                $query->where('variation_id', $variation->variation_id);
+            } else {
+                $query->whereNull('variation_id');
+            }
+
+            $existingCartItem = $query->first();
 
             if ($existingCartItem) {
-                // Update existing item quantity
                 $existingCartItem->update([
-                    'quantity' => $existingCartItem->quantity + $validated['quantity']
+                    'quantity' => $existingCartItem->quantity + $validated['quantity'],
+                    'unit_price' => $unitPrice,
+                    'variation_label' => $variationLabel,
+                    'variation_attributes' => !empty($variationAttributes) ? $variationAttributes : null,
+                    'sku' => $sku,
                 ]);
                 $existingCartItem->load('product');
                 return response()->json($existingCartItem, 200);
-            } else {
-                // Create new cart item
-                $cartItem = Cart::create([
-                    'userID' => Auth::user()->userID,
-                    'product_id' => $validated['product_id'],
-                    'quantity' => $validated['quantity'],
-                ]);
-                
-                // Load the product relationship to include in the response
-                $cartItem->load('product');
-                return response()->json($cartItem, 201);
             }
+
+            $cartItem = Cart::create([
+                'userID' => Auth::user()->userID,
+                'product_id' => $validated['product_id'],
+                'variation_id' => $variation->variation_id ?? null,
+                'variation_label' => $variationLabel,
+                'variation_attributes' => !empty($variationAttributes) ? $variationAttributes : null,
+                'sku' => $sku,
+                'quantity' => $validated['quantity'],
+                'unit_price' => $unitPrice,
+            ]);
+
+            $cartItem->load('product');
+            return response()->json($cartItem, 201);
         });
     }
 
@@ -213,25 +299,36 @@ class CartController extends Controller
                 
                 // Validate stock availability BEFORE creating order
                 foreach ($cartItems as $item) {
-                    // Refresh product data to get latest stock
                     $freshProduct = Product::find($item->product_id);
-                    
                     if (!$freshProduct) {
-                        throw new \Exception("Product '{$item->product->productName}' no longer exists.");
+                        throw new \Exception("Product no longer exists.");
                     }
-                    
+
+                    $variation = null;
+                    if ($item->variation_id) {
+                        $variation = ProductVariation::find($item->variation_id);
+                        if (!$variation || $variation->product_id !== $freshProduct->product_id) {
+                            throw new \Exception("Selected variation is no longer available for product: {$freshProduct->productName}.");
+                        }
+                    }
+
+                    $availableQuantity = $variation
+                        ? (int) ($variation->quantity ?? 0)
+                        : (int) ($freshProduct->productQuantity ?? 0);
+
                     Log::info('Stock check', [
                         'product' => $freshProduct->productName,
-                        'available' => $freshProduct->productQuantity,
+                        'variation_id' => $variation?->variation_id,
+                        'available' => $availableQuantity,
                         'requested' => $item->quantity
                     ]);
-                    
-                    if ($freshProduct->productQuantity < $item->quantity) {
-                        throw new \Exception("Insufficient stock for product: {$freshProduct->productName}. Available: {$freshProduct->productQuantity}, Requested: {$item->quantity}");
+
+                    if ($availableQuantity < $item->quantity) {
+                        throw new \Exception("Insufficient stock for product: {$freshProduct->productName}. Available: {$availableQuantity}, Requested: {$item->quantity}");
                     }
-                    
-                    // Update the cart item's product with fresh data
+
                     $item->product = $freshProduct;
+                    $item->selected_variation = $variation;
                 }
 
                 // Get payment method from request, default to 'cod'
@@ -240,7 +337,9 @@ class CartController extends Controller
 
                 // Calculate total amount
                 $totalAmount = $cartItems->sum(function ($item) {
-                    return $item->product->productPrice * $item->quantity;
+                    $unitPrice = $item->unit_price
+                        ?? ($item->selected_variation ? (float) $item->selected_variation->price : (float) $item->product->productPrice);
+                    return $unitPrice * $item->quantity;
                 });
 
                 // Find or create customer record
@@ -292,12 +391,34 @@ class CartController extends Controller
                 // Create order products
                 $orderProducts = [];
                 foreach ($cartItems as $item) {
-                    $price = $item->product->productPrice;
+                    $variation = $item->selected_variation;
+                    $variationAttributes = $item->variation_attributes;
+                    if (is_string($variationAttributes)) {
+                        $decoded = json_decode($variationAttributes, true);
+                        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                            $variationAttributes = $decoded;
+                        } else {
+                            $variationAttributes = null;
+                        }
+                    }
+                    if (!$variationAttributes && $variation) {
+                        $variationAttributes = array_filter([
+                            'size' => $variation->size,
+                            'color' => $variation->color,
+                        ]);
+                    }
+                    $price = $item->unit_price
+                        ?? ($variation ? (float) $variation->price : (float) $item->product->productPrice);
                     $quantity = $item->quantity;
                     
                     $orderProducts[] = [
                         'order_id' => $order->orderID,
                         'product_id' => $item->product_id,
+                        'variation_id' => $variation?->variation_id,
+                        'size' => $variation->size ?? null,
+                        'variation_label' => $item->variation_label ?? ($variation->size ?? $variation->color ?? null),
+                        'variation_attributes' => $variationAttributes ? json_encode($variationAttributes) : null,
+                        'sku' => $item->sku ?? ($variation->sku ?? null),
                         'quantity' => $quantity,
                         'price' => $price,
                         'created_at' => now(),
@@ -305,10 +426,18 @@ class CartController extends Controller
                     ];
 
                     // Update product quantity (if needed) - check if enough stock
-                    if ($item->product->productQuantity >= $quantity) {
+                    if ($variation) {
+                        if ($variation->quantity < $quantity) {
+                            throw new \Exception("Insufficient stock for selected variation: {$item->variation_label}.");
+                        }
+                        $variation->decrement('quantity', $quantity);
+                    }
+
+                    if ($item->product->productQuantity !== null) {
+                        if ($item->product->productQuantity < $quantity) {
+                            throw new \Exception("Insufficient stock for product: {$item->product->productName}. Available: {$item->product->productQuantity}, Requested: {$quantity}");
+                        }
                         $item->product->decrement('productQuantity', $quantity);
-                    } else {
-                        throw new \Exception("Insufficient stock for product: {$item->product->productName}. Available: {$item->product->productQuantity}, Requested: {$quantity}");
                     }
                 }
 
@@ -335,6 +464,22 @@ class CartController extends Controller
 
                 // Load relationships for response
                 $order->load('orderProducts.product');
+
+                // Notify seller about new order
+                // Note: Payment notification will be sent separately when payment is confirmed
+                if ($sellerID) {
+                    $seller = Seller::find($sellerID);
+                    if ($seller && $seller->user_id) {
+                        NotificationService::notifyNewOrder($order, $seller->user_id);
+                    }
+                }
+
+                // Notify customer about order creation
+                NotificationService::notifyOrderStatusChange($order, $user->userID, 'pending');
+
+                // Automatically create a conversation so seller can communicate with customer
+                // This allows sellers to send receipts and communicate about the order
+                ChatController::createConversationForOrder($order);
 
                 return response()->json([
                     'success' => true,

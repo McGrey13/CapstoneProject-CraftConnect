@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import {
   Card,
@@ -12,7 +13,8 @@ import { Button } from "../ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
-import { Search, Filter, Plus, Download, RefreshCw, Edit, Trash2, Image as ImageIcon, ShoppingBag, Share2, MoreHorizontal, Package, Truck } from "lucide-react";
+import { Textarea } from "../ui/textarea";
+import { Search, Filter, Plus, RefreshCw, Edit, Trash2, Image as ImageIcon, ShoppingBag, Share2, MoreHorizontal, Package, Truck, RotateCcw, CheckCircle, XCircle, Clock, Calendar, Star } from "lucide-react";
 import { AddProductModal } from "./AddProductModal";
 import EditProductModal from "./EditProductModal";
 import { useOrdersData } from "../../hooks/useOrdersData";
@@ -26,10 +28,682 @@ const ShippingTab = () => {
   return <ShippingSimulation />;
 };
 
+const ReturnRefundRequestsTab = () => {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
+  const [responseText, setResponseText] = useState("");
+  const [responseStatus, setResponseStatus] = useState("approved");
+
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get('/after-sale/seller/requests');
+      setRequests(response.data || []);
+    } catch (error) {
+      console.error('Error fetching after-sale requests:', error);
+      setError('Failed to load return/refund requests');
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+    // Disable auto-refresh to prevent video playback interruptions
+    // Users can manually refresh by closing and reopening the tab or clicking refresh button
+    // const interval = setInterval(fetchRequests, 10000);
+    // return () => clearInterval(interval);
+  }, []);
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "pending": return "bg-yellow-100 text-yellow-800";
+      case "approved": return "bg-green-100 text-green-800";
+      case "rejected": return "bg-red-100 text-red-800";
+      case "processing": return "bg-blue-100 text-blue-800";
+      case "completed": return "bg-gray-100 text-gray-800";
+      case "cancelled": return "bg-gray-100 text-gray-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getRequestTypeColor = (type) => {
+    switch (type?.toLowerCase()) {
+      case "return": return "bg-orange-100 text-orange-800";
+      case "refund": return "bg-purple-100 text-purple-800";
+      case "exchange": return "bg-blue-100 text-blue-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status?.toLowerCase()) {
+      case "pending": return <Clock className="h-3 w-3" />;
+      case "approved": return <CheckCircle className="h-3 w-3" />;
+      case "rejected": return <XCircle className="h-3 w-3" />;
+      case "processing": return <RefreshCw className="h-3 w-3" />;
+      default: return <Package className="h-3 w-3" />;
+    }
+  };
+
+  const statusOptions = [
+    { value: "all", label: "All Requests" },
+    { value: "pending", label: "Pending" },
+    { value: "approved", label: "Approved" },
+    { value: "rejected", label: "Rejected" },
+    { value: "processing", label: "Processing" },
+    { value: "completed", label: "Completed" }
+  ];
+
+  const getDateFilterRange = (filterType) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch (filterType) {
+      case 'today':
+        return { start: today, end: now };
+      case 'thisWeek':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        return { start: weekStart, end: now };
+      case 'thisMonth':
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        return { start: monthStart, end: now };
+      case 'lastMonth':
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+        return { start: lastMonthStart, end: lastMonthEnd };
+      case 'custom':
+        if (startDate && endDate) {
+          return { 
+            start: new Date(startDate + 'T00:00:00'), 
+            end: new Date(endDate + 'T23:59:59') 
+          };
+        }
+        return null;
+      default:
+        return null;
+    }
+  };
+
+  const filteredRequests = requests.filter(request => {
+    const matchesSearch = 
+      request.request_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.order?.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.customer?.user?.userName?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || request.status?.toLowerCase() === statusFilter.toLowerCase();
+    
+    let matchesDate = true;
+    if (dateFilter !== "all") {
+      const range = getDateFilterRange(dateFilter);
+      if (range) {
+        const requestDate = new Date(request.created_at);
+        matchesDate = requestDate >= range.start && requestDate <= range.end;
+      } else if (dateFilter === "custom") {
+        matchesDate = true; // Custom date will be handled separately below
+      }
+    }
+    
+    // Handle custom date range
+    if (dateFilter === "custom" && startDate && endDate) {
+      const requestDate = new Date(request.created_at);
+      const start = new Date(startDate + 'T00:00:00');
+      const end = new Date(endDate + 'T23:59:59');
+      matchesDate = requestDate >= start && requestDate <= end;
+    } else if (dateFilter === "custom" && (!startDate || !endDate)) {
+      matchesDate = true; // Show all if custom date range is incomplete
+    }
+    
+    return matchesSearch && matchesStatus && matchesDate;
+  });
+
+  const handleViewRequest = (request) => {
+    setSelectedRequest(request);
+    setIsViewModalOpen(true);
+  };
+
+  const handleRespond = (request) => {
+    setSelectedRequest(request);
+    setResponseText("");
+    setResponseStatus("approved");
+    setIsResponseModalOpen(true);
+  };
+
+  const submitResponse = async () => {
+    if (!selectedRequest || !responseText.trim() || responseText.trim().length < 10) {
+      alert('Please provide a response with at least 10 characters');
+      return;
+    }
+
+    try {
+      // Use id (database primary key) for the API endpoint
+      const requestId = selectedRequest.id || selectedRequest.request_id;
+      if (!requestId) {
+        alert('Error: Request ID not found');
+        return;
+      }
+      const response = await api.post(`/after-sale/seller/requests/${requestId}/respond`, {
+        response: responseText,
+        status: responseStatus
+      });
+
+      if (response.data.success) {
+        alert(`Request ${responseStatus} successfully!`);
+        setIsResponseModalOpen(false);
+        setSelectedRequest(null);
+        setResponseText("");
+        fetchRequests();
+      }
+    } catch (error) {
+      console.error('Error responding to request:', error);
+      alert(error.response?.data?.error || 'Failed to submit response');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="w-full pt-4">
+        <LoadingSpinner message="Loading return/refund requests..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full pt-4">
+        <ErrorState message={error} onRetry={fetchRequests} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      {/* Search and Filters */}
+      <div className="flex flex-col gap-2">
+        <div className="relative w-full">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#a4785a]" />
+          <Input 
+            placeholder="Search requests..." 
+            className="pl-7 pr-2 py-1.5 text-xs border border-[#d5bfae] rounded focus:border-[#a4785a] focus:ring-1 focus:ring-[#a4785a]/20 transition-all h-8" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-1.5 relative">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className="h-7 border border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200 text-[10px] px-2"
+          >
+            <Filter className="mr-1 h-3 w-3" />Filter
+            {(statusFilter !== "all" || dateFilter !== "all") && (
+              <Badge className="ml-1 bg-[#a4785a] text-white text-[10px] px-1">
+                {(statusFilter !== "all" ? 1 : 0) + (dateFilter !== "all" ? 1 : 0)}
+              </Badge>
+            )}
+          </Button>
+          {isFilterOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#d5bfae] rounded shadow-lg z-10 p-3 space-y-3 min-w-[280px]">
+              {/* Status Filter */}
+              <div>
+                <div className="text-[10px] font-semibold text-[#5c3d28] mb-2 flex items-center gap-1">
+                  <Package className="h-3 w-3" /> Filter by Status
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full p-2 border border-[#d5bfae] rounded text-[10px] focus:border-[#a4785a] focus:ring-1 focus:ring-[#a4785a]/20"
+                >
+                  {statusOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Filter */}
+              <div>
+                <div className="text-[10px] font-semibold text-[#5c3d28] mb-2 flex items-center gap-1">
+                  <Calendar className="h-3 w-3" /> Filter by Date/Time
+                </div>
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="w-full p-2 border border-[#d5bfae] rounded text-[10px] focus:border-[#a4785a] focus:ring-1 focus:ring-[#a4785a]/20 mb-2"
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="thisWeek">This Week</option>
+                  <option value="thisMonth">This Month</option>
+                  <option value="lastMonth">Last Month</option>
+                  <option value="custom">Custom Date Range</option>
+                </select>
+
+                {/* Custom Date Range */}
+                {dateFilter === "custom" && (
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-[9px] text-gray-600 block mb-1">Start Date</label>
+                      <Input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full p-1.5 border border-[#d5bfae] rounded text-[10px] focus:border-[#a4785a] focus:ring-1 focus:ring-[#a4785a]/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-gray-600 block mb-1">End Date</label>
+                      <Input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full p-1.5 border border-[#d5bfae] rounded text-[10px] focus:border-[#a4785a] focus:ring-1 focus:ring-[#a4785a]/20"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Clear Filters Button */}
+              {(statusFilter !== "all" || dateFilter !== "all") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setStatusFilter("all");
+                    setDateFilter("all");
+                    setStartDate("");
+                    setEndDate("");
+                  }}
+                  className="w-full h-7 border border-red-300 text-red-600 hover:bg-red-50 text-[10px]"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Card className="border-[#e5ded7] shadow overflow-visible">
+        <CardHeader className="pb-2 border-b border-[#e5ded7] bg-[#faf9f8] px-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-[#5c3d28] text-sm">Return/Refund Requests</CardTitle>
+              <CardDescription className="text-[#7b5a3b] text-[10px]">Manage customer return and refund requests</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchRequests}
+              className="h-7 border border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200 text-[10px] px-2"
+              title="Refresh requests"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-2 px-2 overflow-visible">
+          <div className="overflow-x-auto -mx-2 overflow-y-visible">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px] px-2 py-2">Request ID</TableHead>
+                  <TableHead className="text-[10px] px-2 py-2">Order #</TableHead>
+                  <TableHead className="text-[10px] px-2 py-2">Customer</TableHead>
+                  <TableHead className="text-[10px] px-2 py-2">Type</TableHead>
+                  <TableHead className="text-[10px] px-2 py-2">Status</TableHead>
+                  <TableHead className="w-8 px-1 py-2"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredRequests.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-4">
+                      <EmptyState
+                        icon="📦"
+                        title="No Requests"
+                        description={searchTerm ? "No matching requests" : "No return/refund requests yet"}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredRequests.map((request, index) => (
+                    <TableRow key={request.request_id || request.id || `request-${index}`}>
+                      <TableCell className="font-medium text-[10px] px-2 py-2">{request.request_id || 'N/A'}</TableCell>
+                      <TableCell className="text-[10px] px-2 py-2">{request.order?.order_number || 'N/A'}</TableCell>
+                      <TableCell className="text-[10px] px-2 py-2 truncate max-w-[80px]">
+                        {request.customer?.user?.userName || 'Unknown'}
+                      </TableCell>
+                      <TableCell className="px-2 py-2">
+                        <Badge className={`${getRequestTypeColor(request.request_type)} text-[10px]`} variant="outline">
+                          {request.request_type ? request.request_type.charAt(0).toUpperCase() + request.request_type.slice(1) : 'N/A'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-2 py-2">
+                        <Badge className={`${getStatusColor(request.status)} text-[10px] flex items-center gap-1 w-fit`} variant="outline">
+                          {getStatusIcon(request.status)}
+                          {request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'N/A'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-2 py-2">
+                        <div className="hidden sm:flex items-center gap-2">
+                          <button
+                            onClick={() => handleViewRequest(request)}
+                            className="px-3 py-1 text-[10px] bg-white border border-[#a4785a] text-[#a4785a] rounded hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
+                          >
+                            View
+                          </button>
+                          {request.status === 'pending' && (
+                            <button
+                              onClick={() => handleRespond(request)}
+                              className="px-3 py-1 text-[10px] bg-white border border-green-600 text-green-600 rounded hover:!bg-green-600 hover:!text-white cursor-pointer transition-all duration-200"
+                            >
+                              Respond
+                            </button>
+                          )}
+                        </div>
+                        <div className="sm:hidden flex items-center justify-end">
+                          <button
+                            onClick={() => handleViewRequest(request)}
+                            className="p-2 bg-gray-200 hover:bg-gray-300 rounded cursor-pointer"
+                          >
+                            <MoreHorizontal className="h-4 w-4 text-gray-600" />
+                          </button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* View Request Modal */}
+      {isViewModalOpen && selectedRequest && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg sm:rounded-2xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl relative">
+            <div className="sticky top-0 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-4 sm:p-6 rounded-t-lg sm:rounded-t-2xl z-10">
+              <div className="flex items-center justify-between pr-0">
+                <h2 className="text-lg sm:text-2xl font-bold text-white">Request Details</h2>
+                <button 
+                  onClick={() => setIsViewModalOpen(false)}
+                  className="text-white hover:bg-white/30 bg-white/10 border-2 border-white/30 rounded-full p-2 transition-all text-2xl sm:text-3xl font-bold flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 shrink-0 shadow-lg hover:shadow-xl hover:scale-110"
+                  aria-label="Close"
+                  title="Close"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+              {/* Request Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-gray-500 font-medium">Request ID</p>
+                  <p className="text-base sm:text-lg font-semibold text-[#5c3d28]">{selectedRequest.request_id || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-gray-500 font-medium">Order Number</p>
+                  <p className="text-base sm:text-lg font-semibold text-[#5c3d28]">{selectedRequest.order?.order_number || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-gray-500 font-medium">Request Type</p>
+                  <Badge className={`${getRequestTypeColor(selectedRequest.request_type)} text-xs`}>
+                    {selectedRequest.request_type ? selectedRequest.request_type.charAt(0).toUpperCase() + selectedRequest.request_type.slice(1) : 'N/A'}
+                  </Badge>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-gray-500 font-medium">Status</p>
+                  <Badge className={`${getStatusColor(selectedRequest.status)} text-xs flex items-center gap-1 w-fit`}>
+                    {getStatusIcon(selectedRequest.status)}
+                    {selectedRequest.status ? selectedRequest.status.charAt(0).toUpperCase() + selectedRequest.status.slice(1) : 'N/A'}
+                  </Badge>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-gray-500 font-medium">Customer</p>
+                  <p className="text-base sm:text-lg font-semibold text-[#5c3d28]">
+                    {selectedRequest.customer?.user?.userName || 'Unknown'}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-gray-500 font-medium">Date</p>
+                  <p className="text-base sm:text-lg font-semibold text-[#5c3d28]">
+                    {selectedRequest.created_at ? new Date(selectedRequest.created_at).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Description */}
+              {selectedRequest.description && (
+                <div className="border-t border-[#e5ded7] pt-3 sm:pt-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-[#5c3d28] mb-2 sm:mb-3">Description</h3>
+                  <div className="bg-[#faf9f8] rounded-lg border border-[#e5ded7] p-3 sm:p-4">
+                    <p className="text-[#5c3d28] whitespace-pre-wrap text-xs sm:text-sm">{selectedRequest.description}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Reason */}
+              {selectedRequest.reason && (
+                <div className="border-t border-[#e5ded7] pt-3 sm:pt-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-[#5c3d28] mb-2 sm:mb-3">Reason</h3>
+                  <p className="text-sm text-[#5c3d28]">{selectedRequest.reason}</p>
+                </div>
+              )}
+
+              {/* Unboxing Video */}
+              {selectedRequest.video_path && (
+                <div className="border-t border-[#e5ded7] pt-3 sm:pt-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-[#5c3d28] mb-2 sm:mb-3">Unboxing Video</h3>
+                  <div className="bg-[#faf9f8] rounded-lg border border-[#e5ded7] p-3 sm:p-4">
+                    <video
+                      controls
+                      className="w-full max-h-96 rounded-lg"
+                      src={
+                        selectedRequest.video_path.includes('/storage/')
+                          ? selectedRequest.video_path.replace('/storage/', '/images/')
+                          : selectedRequest.video_path.startsWith('http')
+                          ? selectedRequest.video_path
+                          : `/images/${selectedRequest.video_path.replace(/^\/+/, '')}`
+                      }
+                      onError={(e) => {
+                        console.error('Video failed to load:', selectedRequest.video_path);
+                        e.target.style.display = 'none';
+                        if (e.target.nextSibling) {
+                          e.target.nextSibling.style.display = 'block';
+                        }
+                      }}
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                    <div className="hidden text-center py-4 text-gray-500">
+                      <p className="text-sm">Video could not be loaded</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Product Images */}
+              {selectedRequest.images && Array.isArray(selectedRequest.images) && selectedRequest.images.length > 0 && (
+                <div className="border-t border-[#e5ded7] pt-3 sm:pt-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-[#5c3d28] mb-2 sm:mb-3">
+                    Product Images ({selectedRequest.images.length})
+                  </h3>
+                  <div className="bg-[#faf9f8] rounded-lg border border-[#e5ded7] p-3 sm:p-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                      {selectedRequest.images.map((imagePath, index) => {
+                        const imageUrl = imagePath.includes('/storage/')
+                          ? imagePath.replace('/storage/', '/images/')
+                          : imagePath.startsWith('http')
+                          ? imagePath
+                          : `/images/${imagePath.replace(/^\/+/, '')}`;
+                        
+                        return (
+                          <div key={index} className="relative group">
+                            <img
+                              src={imageUrl}
+                              alt={`Product image ${index + 1}`}
+                              className="w-full h-32 sm:h-40 object-cover rounded-lg border border-[#e5ded7] cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => {
+                                // Open image in full screen or new window
+                                window.open(imageUrl, '_blank');
+                              }}
+                              onError={(e) => {
+                                console.error('Image failed to load:', imageUrl);
+                                e.target.style.display = 'none';
+                                if (e.target.nextSibling) {
+                                  e.target.nextSibling.style.display = 'flex';
+                                }
+                              }}
+                            />
+                            <div className="hidden absolute inset-0 bg-gray-200 rounded-lg items-center justify-center">
+                              <div className="text-center">
+                                <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                <p className="text-xs text-gray-500">Image not available</p>
+                              </div>
+                            </div>
+                            {/* Image number badge */}
+                            <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                              {index + 1}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Seller Response */}
+              {selectedRequest.seller_response && (
+                <div className="border-t border-[#e5ded7] pt-3 sm:pt-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-[#5c3d28] mb-2 sm:mb-3">Your Response</h3>
+                  <div className="bg-green-50 rounded-lg border border-green-200 p-3 sm:p-4">
+                    <p className="text-sm text-green-800">{selectedRequest.seller_response}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-[#e5ded7]">
+                <Button 
+                  onClick={() => setIsViewModalOpen(false)}
+                  variant="outline"
+                  className="w-full sm:flex-1 border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] text-sm"
+                >
+                  Close
+                </Button>
+                {selectedRequest.status === 'pending' && (
+                  <Button 
+                    onClick={() => {
+                      setIsViewModalOpen(false);
+                      handleRespond(selectedRequest);
+                    }}
+                    className="w-full sm:flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 text-sm"
+                  >
+                    Respond to Request
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Response Modal */}
+      {isResponseModalOpen && selectedRequest && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg sm:rounded-2xl max-w-md w-full shadow-2xl">
+            <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-4 sm:p-6 rounded-t-lg sm:rounded-t-2xl">
+              <h2 className="text-lg sm:text-2xl font-bold text-white">Respond to Request</h2>
+            </div>
+            
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="bg-[#f8f1ec] border-2 border-[#e5ded7] rounded-lg p-3 sm:p-4">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">Request ID</p>
+                <p className="text-base sm:text-lg font-bold text-[#5c3d28]">{selectedRequest.request_id || 'N/A'}</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-semibold text-[#5c3d28]">Status</label>
+                <select
+                  value={responseStatus}
+                  onChange={(e) => setResponseStatus(e.target.value)}
+                  className="w-full p-2 border-2 border-[#d5bfae] rounded-md text-sm"
+                >
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="processing">Processing</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-semibold text-[#5c3d28]">Response (min 10 characters)</label>
+                <Textarea
+                  value={responseText}
+                  onChange={(e) => setResponseText(e.target.value)}
+                  rows={4}
+                  className="w-full p-2 border-2 border-[#d5bfae] rounded-md text-sm focus:border-[#a4785a] focus:ring-1 focus:ring-[#a4785a]/20"
+                  placeholder="Enter your response to the customer..."
+                />
+                <p className="text-xs text-gray-500">Character count: {responseText.length} / 10 minimum</p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-[#e5ded7]">
+                <Button 
+                  onClick={() => {
+                    setIsResponseModalOpen(false);
+                    setSelectedRequest(null);
+                    setResponseText("");
+                  }}
+                  variant="outline"
+                  className="w-full sm:flex-1 border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] text-sm"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={submitResponse}
+                  disabled={responseText.trim().length < 10}
+                  className="w-full sm:flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 text-sm disabled:opacity-50"
+                >
+                  Submit Response
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const OrdersTab = () => {
   const { ordersData, loading, error, refetch } = useOrdersData();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -37,15 +711,16 @@ const OrdersTab = () => {
   const [orderToUpdate, setOrderToUpdate] = useState(null);
   const [openActionMenu, setOpenActionMenu] = useState(null);
 
-  // Auto-refresh functionality (silent background refresh)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Silent refresh - call refetch from the hook
-      refetch();
-    }, 10000); // Refresh every 10 seconds
-
-    return () => clearInterval(interval);
-  }, [refetch]);
+  // Auto-refresh disabled to prevent video playback interruptions
+  // Users can manually refresh by closing/reopening tabs or using refresh button
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     // Silent refresh - call refetch from the hook
+  //     refetch();
+  //   }, 10000); // Refresh every 10 seconds
+  //
+  //   return () => clearInterval(interval);
+  // }, [refetch]);
 
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
@@ -70,6 +745,37 @@ const OrdersTab = () => {
   ];
 
   // Filter orders based on search term and status
+  const getDateFilterRange = (filterType) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch (filterType) {
+      case 'today':
+        return { start: today, end: now };
+      case 'thisWeek':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        return { start: weekStart, end: now };
+      case 'thisMonth':
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        return { start: monthStart, end: now };
+      case 'lastMonth':
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+        return { start: lastMonthStart, end: lastMonthEnd };
+      case 'custom':
+        if (startDate && endDate) {
+          return { 
+            start: new Date(startDate + 'T00:00:00'), 
+            end: new Date(endDate + 'T23:59:59') 
+          };
+        }
+        return null;
+      default:
+        return null;
+    }
+  };
+
   const filteredOrders = ordersData ? ordersData.filter(order => {
     const matchesSearch = order.customer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -77,7 +783,37 @@ const OrdersTab = () => {
     
     const matchesStatus = statusFilter === "all" || order.status?.toLowerCase() === statusFilter.toLowerCase();
     
-    return matchesSearch && matchesStatus;
+    let matchesDate = true;
+    if (dateFilter !== "all") {
+      const range = getDateFilterRange(dateFilter);
+      if (range) {
+        // Try to parse order date - it might be in different formats
+        const orderDate = order.date ? new Date(order.date) : (order.created_at ? new Date(order.created_at) : null);
+        if (orderDate && !isNaN(orderDate)) {
+          matchesDate = orderDate >= range.start && orderDate <= range.end;
+        } else {
+          matchesDate = true; // If date parsing fails, show the order
+        }
+      } else if (dateFilter === "custom") {
+        matchesDate = true; // Custom date will be handled separately below
+      }
+    }
+    
+    // Handle custom date range
+    if (dateFilter === "custom" && startDate && endDate) {
+      const orderDate = order.date ? new Date(order.date) : (order.created_at ? new Date(order.created_at) : null);
+      if (orderDate && !isNaN(orderDate)) {
+        const start = new Date(startDate + 'T00:00:00');
+        const end = new Date(endDate + 'T23:59:59');
+        matchesDate = orderDate >= start && orderDate <= end;
+      } else {
+        matchesDate = true; // If date parsing fails, show the order
+      }
+    } else if (dateFilter === "custom" && (!startDate || !endDate)) {
+      matchesDate = true; // Show all if custom date range is incomplete
+    }
+    
+    return matchesSearch && matchesStatus && matchesDate;
   }) : [];
 
   const handleViewOrder = (order) => {
@@ -160,7 +896,7 @@ const OrdersTab = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 relative">
           <Button 
             variant="outline" 
             size="sm"
@@ -168,45 +904,114 @@ const OrdersTab = () => {
             className="h-7 border border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200 text-[10px] px-2"
           >
             <Filter className="mr-1 h-3 w-3" />Filter
-            {statusFilter !== "all" && (
-              <Badge className="ml-1 bg-[#a4785a] text-white text-[10px] px-1">1</Badge>
+            {(statusFilter !== "all" || dateFilter !== "all") && (
+              <Badge className="ml-1 bg-[#a4785a] text-white text-[10px] px-1">
+                {(statusFilter !== "all" ? 1 : 0) + (dateFilter !== "all" ? 1 : 0)}
+              </Badge>
             )}
           </Button>
           {isFilterOpen && (
-            <div className="absolute top-[6.5rem] left-0 right-0 bg-white border border-[#d5bfae] rounded shadow-lg z-10 p-2">
-              <div className="text-[10px] font-semibold text-[#5c3d28] mb-1">Filter by Status</div>
-              {statusOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => {
-                    setStatusFilter(option.value);
-                    setIsFilterOpen(false);
-                  }}
-                  className={`w-full text-left px-2 py-1 rounded transition-all text-[10px] ${
-                    statusFilter === option.value
-                      ? "bg-[#7b5a3b] text-white"
-                      : "hover:bg-[#f8f1ec] text-[#5c3d28]"
-                  }`}
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#d5bfae] rounded shadow-lg z-10 p-3 space-y-3 min-w-[280px]">
+              {/* Status Filter */}
+              <div>
+                <div className="text-[10px] font-semibold text-[#5c3d28] mb-2 flex items-center gap-1">
+                  <Package className="h-3 w-3" /> Filter by Status
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full p-2 border border-[#d5bfae] rounded text-[10px] focus:border-[#a4785a] focus:ring-1 focus:ring-[#a4785a]/20"
                 >
-                  {option.label}
-                </button>
-              ))}
+                  {statusOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Filter */}
+              <div>
+                <div className="text-[10px] font-semibold text-[#5c3d28] mb-2 flex items-center gap-1">
+                  <Calendar className="h-3 w-3" /> Filter by Date/Time
+                </div>
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="w-full p-2 border border-[#d5bfae] rounded text-[10px] focus:border-[#a4785a] focus:ring-1 focus:ring-[#a4785a]/20 mb-2"
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="thisWeek">This Week</option>
+                  <option value="thisMonth">This Month</option>
+                  <option value="lastMonth">Last Month</option>
+                  <option value="custom">Custom Date Range</option>
+                </select>
+
+                {/* Custom Date Range */}
+                {dateFilter === "custom" && (
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-[9px] text-gray-600 block mb-1">Start Date</label>
+                      <Input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full p-1.5 border border-[#d5bfae] rounded text-[10px] focus:border-[#a4785a] focus:ring-1 focus:ring-[#a4785a]/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-gray-600 block mb-1">End Date</label>
+                      <Input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full p-1.5 border border-[#d5bfae] rounded text-[10px] focus:border-[#a4785a] focus:ring-1 focus:ring-[#a4785a]/20"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Clear Filters Button */}
+              {(statusFilter !== "all" || dateFilter !== "all") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setStatusFilter("all");
+                    setDateFilter("all");
+                    setStartDate("");
+                    setEndDate("");
+                  }}
+                  className="w-full h-7 border border-red-300 text-red-600 hover:bg-red-50 text-[10px]"
+                >
+                  Clear Filters
+                </Button>
+              )}
             </div>
           )}
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="h-7 border border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200 text-[10px] px-2"
-          >
-            <Download className="h-3 w-3" />Export
-          </Button>
         </div>
       </div>
 
         <Card className="border-[#e5ded7] shadow overflow-visible">
           <CardHeader className="pb-2 border-b border-[#e5ded7] bg-[#faf9f8] px-2">
-            <CardTitle className="text-[#5c3d28] text-sm">Recent Orders</CardTitle>
-            <CardDescription className="text-[#7b5a3b] text-[10px]">Manage your customer orders and track their status</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-[#5c3d28] text-sm">Recent Orders</CardTitle>
+                <CardDescription className="text-[#7b5a3b] text-[10px]">Manage your customer orders and track their status</CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refetch}
+                className="h-7 border border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200 text-[10px] px-2"
+                title="Refresh orders"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Refresh
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="pt-2 px-2 overflow-visible">
             <div className="overflow-x-auto -mx-2 overflow-y-visible">
@@ -370,15 +1175,17 @@ const OrdersTab = () => {
       {/* View Order Modal */}
       {isViewModalOpen && selectedOrder && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-lg sm:rounded-2xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-4 sm:p-6 rounded-t-lg sm:rounded-t-2xl">
-              <div className="flex items-center justify-between">
+          <div className="bg-white rounded-lg sm:rounded-2xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl relative">
+            <div className="sticky top-0 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-4 sm:p-6 rounded-t-lg sm:rounded-t-2xl z-10">
+              <div className="flex items-center justify-between pr-0">
                 <h2 className="text-lg sm:text-2xl font-bold text-white">Order Details</h2>
                 <button 
                   onClick={() => setIsViewModalOpen(false)}
-                  className="text-white hover:bg-white/20 rounded-full p-1.5 sm:p-2 transition-all text-lg sm:text-xl"
+                  className="text-white hover:bg-white/30 bg-white/10 border-2 border-white/30 rounded-full p-2 transition-all text-2xl sm:text-3xl font-bold flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 shrink-0 shadow-lg hover:shadow-xl hover:scale-110"
+                  aria-label="Close"
+                  title="Close"
                 >
-                  ✕
+                  ×
                 </button>
               </div>
             </div>
@@ -427,13 +1234,29 @@ const OrdersTab = () => {
                           <TableRow key={index} className="hover:bg-white/50">
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                {product.product_image && (
+                                {product.product_image ? (
                                   <img 
-                                    src={product.product_image} 
+                                    src={product.product_image.includes('/storage/') 
+                                      ? product.product_image.replace('/storage/', '/images/')
+                                      : product.product_image.startsWith('http')
+                                      ? product.product_image
+                                      : `/images/${product.product_image.replace(/^\/+/, '')}`
+                                    } 
                                     alt={product.product_name}
-                                    className="h-10 w-10 rounded object-cover"
+                                    className="h-10 w-10 rounded object-cover border border-[#e5ded7]"
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      if (e.target.nextSibling) {
+                                        e.target.nextSibling.style.display = 'flex';
+                                      }
+                                    }}
                                   />
-                                )}
+                                ) : null}
+                                <div 
+                                  className={`h-10 w-10 rounded flex items-center justify-center bg-gray-200 border border-[#e5ded7] ${product.product_image ? 'hidden' : ''}`}
+                                >
+                                  <ImageIcon className="h-5 w-5 text-gray-400" />
+                                </div>
                                 <span className="font-medium text-[#5c3d28]">{product.product_name || 'Unknown Product'}</span>
                               </div>
                             </TableCell>
@@ -579,6 +1402,7 @@ const InventoryTab_DEPRECATED = () => {
   const [productToShare, setProductToShare] = useState(null);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
   const [quantityChange, setQuantityChange] = useState(0);
+  const [variationQuantityDraft, setVariationQuantityDraft] = useState({});
 
   // Fetch products from backend
   useEffect(() => {
@@ -611,11 +1435,65 @@ const InventoryTab_DEPRECATED = () => {
         console.log("API Response:", result);
 
         // Check if the response has the expected data structure
+        const normalizeProductResponse = (product) => {
+          if (!product) return product;
+
+          let variations = product.variations;
+          if (typeof variations === 'string') {
+            try {
+              const parsed = JSON.parse(variations);
+              if (Array.isArray(parsed)) {
+                variations = parsed;
+              }
+            } catch (error) {
+              console.warn('Failed to parse product variations string:', error);
+              variations = [];
+            }
+          }
+
+          const hasVariations =
+            (Array.isArray(variations) && variations.length > 0) ||
+            product.has_variations === true;
+
+          const normalizedVariations = Array.isArray(variations)
+            ? variations
+                .filter(Boolean)
+                .map((variation) => ({
+                  ...variation,
+                  label: variation?.label || variation?.size || '',
+                  size: variation?.size || variation?.label || '',
+                  quantity:
+                    variation?.quantity !== undefined && variation?.quantity !== null
+                      ? Number(variation.quantity)
+                      : 0,
+                  price:
+                    variation?.price !== undefined && variation?.price !== null
+                      ? Number(variation.price)
+                      : null,
+                }))
+            : [];
+
+          const variationQuantityTotal = hasVariations
+            ? normalizedVariations.reduce(
+                (sum, variation) => sum + (Number.isFinite(variation.quantity) ? variation.quantity : 0),
+                0
+              )
+            : null;
+
+          return {
+            ...product,
+            variations: normalizedVariations,
+            has_variations: hasVariations,
+            productQuantity:
+              variationQuantityTotal !== null ? variationQuantityTotal : product.productQuantity,
+          };
+        };
+
         if (result.status === 'success' && Array.isArray(result.data)) {
-          setInventory(result.data);
+          setInventory(result.data.map(normalizeProductResponse));
         } else if (Array.isArray(result)) {
           // Fallback in case the API returns the array directly
-          setInventory(result);
+          setInventory(result.map(normalizeProductResponse));
         } else {
           console.error('Unexpected response format:', result);
           setInventory([]);
@@ -631,6 +1509,71 @@ const InventoryTab_DEPRECATED = () => {
       if (showLoading) {
         setLoading(false);
       }
+    }
+  };
+
+  const fetchDetailedProduct = async (product) => {
+    const productId = product?.product_id || product?.id;
+    if (!productId) {
+      return product;
+    }
+
+    try {
+      const response = await api.get(`/products/${productId}`);
+      const data = response.data;
+
+      if (!data) {
+        return product;
+      }
+
+      let variations = data.variations ?? [];
+      if (typeof variations === 'string') {
+        try {
+          const parsed = JSON.parse(variations);
+          if (Array.isArray(parsed)) {
+            variations = parsed;
+          }
+        } catch (error) {
+          console.warn('Failed to parse variation data for product', productId, error);
+          variations = [];
+        }
+      }
+
+      const normalizedVariations = Array.isArray(variations)
+        ? variations.filter(Boolean).map((variation) => ({
+            variation_id: variation?.variation_id || variation?.id || null,
+            size: variation?.size || variation?.label || '',
+            label: variation?.label || variation?.size || '',
+            quantity: variation?.quantity ?? 0,
+            price: variation?.price ?? null,
+            sku: variation?.sku || '',
+          }))
+        : [];
+
+    const hasVariations = normalizedVariations.length > 0 || data.has_variations;
+    const variationQuantityTotal = hasVariations
+      ? normalizedVariations.reduce(
+          (sum, variation) => sum + (Number.isFinite(variation.quantity) ? variation.quantity : 0),
+          0
+        )
+      : null;
+
+    return {
+      ...product,
+      ...data,
+      productImage: data.productImage || product.productImage,
+      productImages:
+        (Array.isArray(data.productImages) && data.productImages.length > 0
+          ? data.productImages
+          : product.productImages) || [],
+      variations: normalizedVariations,
+      has_variations: hasVariations,
+      productQuantity:
+        variationQuantityTotal !== null ? variationQuantityTotal : data.productQuantity ?? product.productQuantity,
+    };
+    } catch (error) {
+      console.error('Error fetching detailed product information:', error);
+      return product;
     }
   };
 
@@ -669,7 +1612,12 @@ const InventoryTab_DEPRECATED = () => {
       }
     } catch (error) {
       console.error("Error adding product:", error);
-      alert("Error adding product. Please try again.");
+      if (error.response?.status === 422) {
+        console.error("Validation errors:", error.response.data);
+        alert(error.response?.data?.message || "Product validation failed. Please review the form.");
+      } else {
+        alert("Error adding product. Please try again.");
+      }
     }
   };
 
@@ -709,14 +1657,18 @@ const InventoryTab_DEPRECATED = () => {
   };
 
 
-  const handleEditClick = (product) => {
+  const handleEditClick = async (product) => {
     setCurrentProduct(product);
     setIsEditDialogOpen(true);
+    const detailedProduct = await fetchDetailedProduct(product);
+    setCurrentProduct(detailedProduct);
   };
 
-  const handleViewProduct = (product) => {
+  const handleViewProduct = async (product) => {
     setCurrentProduct(product);
     setIsViewProductOpen(true);
+    const detailedProduct = await fetchDetailedProduct(product);
+    setCurrentProduct(detailedProduct);
   };
 
   const handleShareProduct = (product) => {
@@ -724,33 +1676,116 @@ const InventoryTab_DEPRECATED = () => {
     setIsShareModalOpen(true);
   };
 
-  const handleQuantityClick = (product) => {
-    setCurrentProduct(product);
+  const buildVariationDraft = (product) => {
+    if (!product?.variations || product.variations.length === 0) {
+      return {};
+    }
+
+    const draft = {};
+    product.variations.forEach((variation, index) => {
+      const key = variation?.variation_id ?? variation?.id ?? `idx-${index}`;
+      const qty = Number(variation?.quantity ?? 0);
+      draft[key] = Number.isFinite(qty) ? qty : 0;
+    });
+    return draft;
+  };
+
+  const handleQuantityClick = async (product) => {
     setQuantityChange(0);
+    setVariationQuantityDraft({});
     setIsQuantityModalOpen(true);
+
+    const detailedProduct = await fetchDetailedProduct(product);
+    setCurrentProduct(detailedProduct);
+
+    if (detailedProduct?.has_variations && Array.isArray(detailedProduct.variations)) {
+      setVariationQuantityDraft(buildVariationDraft(detailedProduct));
+    }
+  };
+
+  const getVariationKey = (variation, index) =>
+    variation?.variation_id ?? variation?.id ?? `idx-${index}`;
+
+  const setVariationQuantityValue = (key, value) => {
+    setVariationQuantityDraft((prev) => {
+      const numericValue = Number(value);
+      const sanitized = Number.isFinite(numericValue) ? Math.max(0, numericValue) : 0;
+      return { ...prev, [key]: sanitized };
+    });
+  };
+
+  const adjustVariationQuantity = (key, delta) => {
+    setVariationQuantityDraft((prev) => {
+      const currentValue = Number(prev[key]);
+      const base = Number.isFinite(currentValue) ? currentValue : 0;
+      const updated = Math.max(0, base + delta);
+      return { ...prev, [key]: updated };
+    });
   };
 
   const handleUpdateQuantity = async () => {
     if (!currentProduct) return;
     
     try {
-      const newQuantity = (currentProduct.productQuantity || 0) + quantityChange;
-      
-      if (newQuantity < 0) {
-        alert('Quantity cannot be negative!');
-        return;
-      }
-
       const formData = new FormData();
       // Send all required fields
       formData.append('productName', currentProduct.productName);
       formData.append('productDescription', currentProduct.productDescription || '');
       formData.append('productPrice', currentProduct.productPrice);
-      formData.append('productQuantity', newQuantity);
       formData.append('category', currentProduct.category);
       formData.append('status', currentProduct.status || 'in stock');
       formData.append('publish_status', currentProduct.publish_status || 'draft');
       formData.append('_method', 'PUT');
+
+      let finalQuantity = (currentProduct.productQuantity || 0) + quantityChange;
+
+      if (currentProduct.has_variations && Array.isArray(currentProduct.variations) && currentProduct.variations.length > 0) {
+        const variationsPayload = currentProduct.variations.map((variation, index) => {
+          const key = variation?.variation_id ?? variation?.id ?? `idx-${index}`;
+          const draftValue = variationQuantityDraft[key];
+          const updatedQuantity = Number.isFinite(Number(draftValue))
+            ? Math.max(0, Number(draftValue))
+            : Math.max(0, Number(variation?.quantity ?? 0));
+
+          return {
+            variation_id: variation?.variation_id ?? variation?.id ?? null,
+            label: variation?.label || variation?.size || '',
+            size: variation?.size || variation?.label || '',
+            quantity: updatedQuantity,
+            price: variation?.price ?? null,
+            sku: variation?.sku ?? null,
+          };
+        });
+
+        finalQuantity = variationsPayload.reduce(
+          (sum, variation) => sum + (Number.isFinite(variation.quantity) ? variation.quantity : 0),
+          0
+        );
+
+        formData.set('productQuantity', finalQuantity);
+        formData.set('has_variations', '1');
+
+        variationsPayload.forEach((variation, index) => {
+          if (variation.variation_id) {
+            formData.append(`variations[${index}][variation_id]`, variation.variation_id);
+          }
+          formData.append(`variations[${index}][label]`, variation.label || '');
+          formData.append(`variations[${index}][size]`, variation.size || '');
+          formData.append(`variations[${index}][quantity]`, variation.quantity);
+          if (variation.price !== null && variation.price !== undefined && variation.price !== '') {
+            formData.append(`variations[${index}][price]`, variation.price);
+          }
+          if (variation.sku) {
+            formData.append(`variations[${index}][sku]`, variation.sku);
+          }
+        });
+      } else {
+        if (finalQuantity < 0) {
+          alert('Quantity cannot be negative!');
+          return;
+        }
+        formData.append('productQuantity', finalQuantity);
+      }
 
       const idToUse = currentProduct.product_id || currentProduct.id;
       const response = await api.post(`/products/${idToUse}`, formData, {
@@ -760,10 +1795,11 @@ const InventoryTab_DEPRECATED = () => {
       });
 
       if (response.data) {
-        alert(`Quantity updated successfully! New quantity: ${newQuantity}`);
+        alert(`Quantity updated successfully! New quantity: ${finalQuantity}`);
         setIsQuantityModalOpen(false);
         setCurrentProduct(null);
         setQuantityChange(0);
+        setVariationQuantityDraft({});
         fetchProducts(false); // Silent refresh
       }
     } catch (error) {
@@ -1377,6 +2413,77 @@ const InventoryTab_DEPRECATED = () => {
     }
   };
 
+  const hasVariationInventory =
+    !!(currentProduct?.has_variations &&
+      Array.isArray(currentProduct?.variations) &&
+      currentProduct.variations.length > 0);
+
+  const variationQuantityPreview = hasVariationInventory
+    ? currentProduct.variations.reduce((sum, variation, index) => {
+        const key = getVariationKey(variation, index);
+        const draftValue = variationQuantityDraft[key];
+        const numericDraft = Number(draftValue);
+        const baseQuantity = Number(variation?.quantity ?? 0);
+        const resolvedQuantity = Number.isFinite(numericDraft)
+          ? Math.max(0, numericDraft)
+          : Math.max(0, baseQuantity);
+        return sum + resolvedQuantity;
+      }, 0)
+    : null;
+
+  const newQuantityPreview = hasVariationInventory
+    ? variationQuantityPreview
+    : currentProduct
+    ? (currentProduct.productQuantity || 0) + quantityChange
+    : 0;
+
+  const renderRatingStars = (ratingValue, showValue = true) => {
+    const rating = Number(ratingValue) || 0;
+    return (
+      <div className="flex items-center gap-1 text-amber-500">
+        {Array.from({ length: 5 }).map((_, index) => {
+          const point = index + 1;
+          let fillColor = "#d1d5db";
+          if (rating >= point) {
+            fillColor = "#f59e0b";
+          } else if (rating > point - 1) {
+            fillColor = "url(#halfGradient)";
+          }
+          return (
+            <svg key={index} className="h-4 w-4">
+              <defs>
+                <linearGradient id="halfGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset={`${((rating - (point - 1)) * 100).toFixed(0)}%`} stopColor="#f59e0b" />
+                  <stop offset={`${((rating - (point - 1)) * 100).toFixed(0)}%`} stopColor="#d1d5db" />
+                </linearGradient>
+              </defs>
+              <Star
+                className="h-4 w-4 text-[#f59e0b]"
+                fill={fillColor.startsWith("url") ? fillColor : fillColor}
+                stroke={rating >= point ? "#f59e0b" : "#d1d5db"}
+              />
+            </svg>
+          );
+        })}
+        {showValue && <span className="text-xs text-[#5c3d28] ml-2">{rating.toFixed(1)}</span>}
+      </div>
+    );
+  };
+
+  const formatReviewDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   if (error) {
     return (
       <div className="w-full pt-4">
@@ -1740,16 +2847,16 @@ const InventoryTab_DEPRECATED = () => {
 
           {/* View Product Modal */}
           {isViewProductOpen && currentProduct && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-              <div className="bg-white rounded-lg sm:rounded-2xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-2 sm:p-4">
+              <div className="bg-white rounded-lg sm:rounded-2xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl">
                 <div className="sticky top-0 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-4 sm:p-6 rounded-t-lg sm:rounded-t-2xl">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg sm:text-2xl font-bold text-white">Product Details</h2>
                     <button 
                       onClick={() => setIsViewProductOpen(false)}
-                      className="text-white hover:bg-white/20 rounded-full p-1.5 sm:p-2 transition-all text-lg sm:text-xl"
+                      className="bg-white text-black rounded-lg sm:rounded-xl p-1.5 sm:p-2 shadow-md transition-all duration-200"
                     >
-                      ✕
+                      <span className="block text-lg sm:text-xl leading-none">✕</span>
                     </button>
                   </div>
                 </div>
@@ -1845,6 +2952,121 @@ const InventoryTab_DEPRECATED = () => {
                     </div>
                   )}
 
+                {Array.isArray(currentProduct.variations) && currentProduct.variations.length > 0 && (
+                  <div className="border-t border-[#e5ded7] pt-3 sm:pt-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-[#5c3d28] mb-2 sm:mb-3">Variation Options</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                      {currentProduct.variations.map((variation, index) => (
+                        <div
+                          key={variation.variation_id || variation.label || `variation-${index}`}
+                          className="bg-[#faf9f8] border border-[#e5ded7] rounded-lg p-3 sm:p-4 shadow-sm"
+                        >
+                          <p className="text-sm font-semibold text-[#5c3d28] flex items-center justify-between">
+                            <span>{variation.label || variation.size || `Option ${index + 1}`}</span>
+                            {variation.sku && (
+                              <span className="text-xs font-medium text-[#7b5a3b] bg-[#f4ebe3] px-2 py-0.5 rounded-full">
+                                SKU: {variation.sku}
+                              </span>
+                            )}
+                          </p>
+                          <div className="mt-2 text-xs sm:text-sm text-[#5c3d28] space-y-1">
+                            <p>Quantity: <span className="font-semibold">{variation.quantity ?? 0}</span></p>
+                            <p>
+                              Price:{' '}
+                              <span className="font-semibold">
+                                {variation.price !== null &&
+                                variation.price !== undefined &&
+                                variation.price !== ''
+                                  ? `₱${parseFloat(variation.price).toFixed(2)}`
+                                  : 'Uses base price'}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="border-t border-[#e5ded7] pt-3 sm:pt-4 space-y-3 sm:space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <h3 className="text-base sm:text-lg font-semibold text-[#5c3d28]">Reviews & Ratings</h3>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs sm:text-sm text-gray-700 font-medium">
+                        Average Rating:
+                      </span>
+                      {renderRatingStars(currentProduct.average_rating, true)}
+                      <span className="text-xs sm:text-sm text-gray-500">
+                        {currentProduct.total_reviews || 0} review
+                        {(currentProduct.total_reviews || 0) === 1 ? "" : "s"}
+                      </span>
+                      <span className="text-xs sm:text-sm text-gray-500">
+                        Verified: {currentProduct.reviews?.filter((r) => r.is_verified)?.length || 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  {Array.isArray(currentProduct.reviews) && currentProduct.reviews.length > 0 ? (
+                    <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                      {currentProduct.reviews.map((review, index) => (
+                        <div
+                          key={review.review_id || review.id || `review-${index}`}
+                          className="border border-[#e5ded7] rounded-lg p-3 sm:p-4 bg-white shadow-sm"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                            <div>
+                              <p className="font-semibold text-[#5c3d28] text-sm">
+                                {review.user?.userName || "Customer"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {formatReviewDate(review.review_date || review.created_at)}
+                              </p>
+                            </div>
+                            {renderRatingStars(review.rating, false)}
+                          </div>
+
+                          <p className="mt-2 text-sm text-[#5c3d28] whitespace-pre-wrap">
+                            {review.comment && review.comment.trim().length > 0
+                              ? review.comment
+                              : "No written feedback provided."}
+                          </p>
+
+                          {(Array.isArray(review.images) && review.images.length > 0) || review.video_path ? (
+                            <div className="mt-3 space-y-2">
+                              {Array.isArray(review.images) && review.images.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                  {review.images.map((imageUrl, mediaIndex) => (
+                                    <img
+                                      key={`${review.review_id || review.id || index}-image-${mediaIndex}`}
+                                      src={imageUrl}
+                                      alt="Review media"
+                                      className="h-16 w-16 object-cover rounded border border-[#e5ded7]"
+                                      onError={(e) => {
+                                        e.target.style.display = "none";
+                                      }}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                              {review.video_path && (
+                                <video
+                                  src={review.video_path}
+                                  controls
+                                  className="w-full rounded border border-[#e5ded7]"
+                                />
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border border-dashed border-[#e5ded7] rounded-lg p-4 text-center text-sm text-gray-500">
+                      No reviews yet for this product. Encourage customers to ask for feedback after purchase.
+                    </div>
+                  )}
+                </div>
+
                   {/* Actions */}
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-[#e5ded7]">
                     <Button 
@@ -1864,16 +3086,6 @@ const InventoryTab_DEPRECATED = () => {
                     >
                       <Share2 className="h-3 w-3 sm:h-4 sm:w-4" />
                       Share Product
-                    </Button>
-                    <Button 
-                      onClick={() => {
-                        setIsViewProductOpen(false);
-                        handleEditClick(currentProduct);
-                      }}
-                      className="w-full sm:flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white hover:from-[#8f674a] hover:to-[#6a4c34] flex items-center justify-center gap-2 text-sm"
-                    >
-                      <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-                      Edit Product
                     </Button>
                   </div>
                 </div>
@@ -1895,10 +3107,11 @@ const InventoryTab_DEPRECATED = () => {
                         setIsQuantityModalOpen(false);
                         setCurrentProduct(null);
                         setQuantityChange(0);
+                        setVariationQuantityDraft({});
                       }}
-                      className="text-white hover:bg-white/20 rounded-full p-1.5 sm:p-2 transition-all text-lg sm:text-xl"
+                      className="bg-white text-black rounded-lg sm:rounded-xl p-1.5 sm:p-2 shadow-md transition-all duration-200"
                     >
-                      ✕
+                      <span className="block text-lg sm:text-xl leading-none">✕</span>
                     </button>
                   </div>
                 </div>
@@ -1913,43 +3126,120 @@ const InventoryTab_DEPRECATED = () => {
                   </div>
 
                   {/* Quantity Change Input */}
-                  <div className="space-y-2">
-                    <label className="text-xs sm:text-sm font-semibold text-[#5c3d28]">Adjust Quantity</label>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setQuantityChange(quantityChange - 1)}
-                        className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] text-sm px-3"
-                      >
-                        -
-                      </Button>
-                      <Input
-                        type="number"
-                        value={quantityChange}
-                        onChange={(e) => setQuantityChange(parseInt(e.target.value) || 0)}
-                        className="text-center border-2 border-[#d5bfae] text-base sm:text-lg font-bold"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setQuantityChange(quantityChange + 1)}
-                        className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] text-sm px-3"
-                      >
-                        +
-                      </Button>
+                  {hasVariationInventory ? (
+                    <div className="space-y-3">
+                      <p className="text-xs sm:text-sm font-semibold text-[#5c3d28]">
+                        Adjust quantities for each variation option
+                      </p>
+                      <div className="space-y-3">
+                        {currentProduct.variations.map((variation, index) => {
+                          const key = getVariationKey(variation, index);
+                          const draftValue = variationQuantityDraft[key];
+                          const currentValue = Number.isFinite(Number(draftValue))
+                            ? Number(draftValue)
+                            : Number(variation?.quantity ?? 0);
+
+                          return (
+                            <div
+                              key={variation.variation_id || variation.label || `variation-${index}`}
+                              className="border border-[#e5ded7] rounded-lg p-3 sm:p-4 bg-[#faf9f8]"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <p className="text-sm font-semibold text-[#5c3d28]">
+                                    {variation.label || variation.size || `Option ${index + 1}`}
+                                  </p>
+                                  {variation.sku && (
+                                    <p className="text-xs text-[#7b5a3b] mt-1">SKU: {variation.sku}</p>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  Current:{" "}
+                                  <span className="font-semibold text-[#5c3d28]">
+                                    {variation.quantity ?? 0}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="mt-3 flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => adjustVariationQuantity(key, -1)}
+                                  className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] text-sm px-3"
+                                >
+                                  -
+                                </Button>
+                                <Input
+                                  type="number"
+                                  value={currentValue}
+                                  onChange={(e) => setVariationQuantityValue(key, e.target.value)}
+                                  className="text-center border-2 border-[#d5bfae] text-base sm:text-lg font-bold"
+                                  min={0}
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => adjustVariationQuantity(key, 1)}
+                                  className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] text-sm px-3"
+                                >
+                                  +
+                                </Button>
+                              </div>
+                              <p className="mt-1 text-xs text-gray-500">
+                                Set the total available quantity for this option.
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500">
-                      Enter positive number to add, negative to remove
-                    </p>
-                  </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <label className="text-xs sm:text-sm font-semibold text-[#5c3d28]">
+                        Adjust Quantity
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setQuantityChange(quantityChange - 1)}
+                          className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] text-sm px-3"
+                        >
+                          -
+                        </Button>
+                        <Input
+                          type="number"
+                          value={quantityChange}
+                          onChange={(e) => setQuantityChange(parseInt(e.target.value) || 0)}
+                          className="text-center border-2 border-[#d5bfae] text-base sm:text-lg font-bold"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setQuantityChange(quantityChange + 1)}
+                          className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] text-sm px-3"
+                        >
+                          +
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Enter positive number to add, negative to remove
+                      </p>
+                    </div>
+                  )}
 
                   {/* Preview New Quantity */}
                   <div className="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-3 sm:p-4">
                     <p className="text-xs sm:text-sm text-green-700 font-medium mb-1">New Quantity Will Be:</p>
                     <p className="text-2xl sm:text-3xl font-bold text-green-700">
-                      {(currentProduct.productQuantity || 0) + quantityChange}
+                      {newQuantityPreview}
                     </p>
+                    {hasVariationInventory && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Total is calculated from the updated variation quantities above.
+                      </p>
+                    )}
                   </div>
 
                   {/* Actions */}
@@ -1959,6 +3249,7 @@ const InventoryTab_DEPRECATED = () => {
                         setIsQuantityModalOpen(false);
                         setCurrentProduct(null);
                         setQuantityChange(0);
+                        setVariationQuantityDraft({});
                       }}
                       variant="outline"
                       className="w-full sm:flex-1 border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] text-sm"
@@ -1989,9 +3280,9 @@ const InventoryTab_DEPRECATED = () => {
                     </h2>
                     <button 
                       onClick={() => setIsShareModalOpen(false)}
-                      className="text-white hover:bg-white/20 rounded-full p-1.5 sm:p-2 transition-all text-lg sm:text-xl"
+                      className="bg-white text-black rounded-lg sm:rounded-xl p-1.5 sm:p-2 shadow-md transition-all duration-200"
                     >
-                      ✕
+                      <span className="block text-lg sm:text-xl leading-none">✕</span>
                     </button>
                   </div>
                 </div>
@@ -2116,7 +3407,134 @@ const InventoryTab_DEPRECATED = () => {
   );
 };
 
+const OrdersSectionWithTabs = () => {
+  const location = useLocation();
+  // Initialize with hash from URL if available, otherwise default to 'orders-list'
+  const getInitialSubTab = () => {
+    const hash = window.location.hash || location.hash;
+    if (hash === '#returns' || hash === '#return-refund' || hash === '#returnrefund') {
+      return 'returns';
+    }
+    return 'orders-list';
+  };
+  const [activeSubTab, setActiveSubTab] = useState(getInitialSubTab());
+
+  // Update sub-tab based on URL hash
+  useEffect(() => {
+    const checkHash = () => {
+      const hash = window.location.hash || location.hash;
+      console.log('OrdersSectionWithTabs - Checking hash:', hash);
+      if (hash === '#returns' || hash === '#return-refund' || hash === '#returnrefund') {
+        console.log('OrdersSectionWithTabs - Setting sub-tab to returns');
+        setActiveSubTab('returns');
+      } else if (hash === '#orders' || !hash || hash === '') {
+        console.log('OrdersSectionWithTabs - Setting sub-tab to orders-list');
+        setActiveSubTab('orders-list');
+      }
+    };
+    
+    // Check immediately on mount
+    checkHash();
+    
+    // Also check after a brief delay to ensure hash is set
+    const timeoutId = setTimeout(checkHash, 50);
+    
+    const handleHashChange = () => {
+      checkHash();
+    };
+    
+    window.addEventListener('hashchange', handleHashChange);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [location.hash, location.pathname]);
+
+  return (
+    <div className="space-y-2 sm:space-y-3">
+      <Tabs value={activeSubTab} onValueChange={(value) => {
+        setActiveSubTab(value);
+        // Update hash when sub-tab changes manually
+        if (value === 'orders-list') {
+          window.location.hash = '#orders';
+        } else if (value === 'returns') {
+          window.location.hash = '#returns';
+        }
+      }} className="w-full">
+        <TabsList className="w-full grid grid-cols-2 bg-white border border-[#e5ded7] rounded-md p-1">
+          <TabsTrigger 
+            value="orders-list" 
+            className="rounded-sm bg-white text-[#a4785a] data-[state=active]:!bg-[#a4785a] data-[state=active]:!text-white data-[state=active]:shadow-sm transition-all duration-200 text-sm font-medium py-2"
+          >
+            Orders
+          </TabsTrigger>
+          <TabsTrigger 
+            value="returns"
+            className="rounded-sm bg-white text-[#a4785a] data-[state=active]:!bg-[#a4785a] data-[state=active]:!text-white data-[state=active]:shadow-sm transition-all duration-200 text-sm font-medium py-2"
+          >
+            Return/Refund
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="orders-list" className="mt-4 sm:mt-6">
+          <OrdersTab />
+        </TabsContent>
+        <TabsContent value="returns" className="mt-4 sm:mt-6">
+          <ReturnRefundRequestsTab />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
 const OrderInventoryManager = () => {
+  const location = useLocation();
+  // Initialize with hash from URL if available, otherwise default to 'orders'
+  const getInitialTab = () => {
+    // Check both window.location.hash and location.hash for reliability
+    const hash = window.location.hash || location.hash;
+    if (hash === '#shipping') {
+      return 'shipping';
+    }
+    // Handle return/refund hash - set main tab to orders (sub-tabs will handle the rest)
+    if (hash === '#returns' || hash === '#return-refund' || hash === '#returnrefund') {
+      return 'orders';
+    }
+    return 'orders';
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab());
+
+  // Update active tab based on URL hash - check on mount and when hash changes
+  useEffect(() => {
+    const checkHash = () => {
+      const hash = window.location.hash || location.hash;
+      if (hash === '#shipping') {
+        setActiveTab('shipping');
+      } else if (hash === '#returns' || hash === '#return-refund' || hash === '#returnrefund') {
+        // Return/refund requests should be in orders tab (sub-tabs will handle the rest)
+        setActiveTab('orders');
+      } else {
+        // Default to 'orders' if hash is '#orders' or empty
+        setActiveTab('orders');
+      }
+    };
+    
+    // Check immediately
+    checkHash();
+    
+    // Also listen for hash changes
+    const handleHashChange = () => {
+      checkHash();
+    };
+    
+    window.addEventListener('hashchange', handleHashChange);
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [location.hash, location.pathname]);
+
   return (
     <div className="space-y-2 sm:space-y-3 max-w-[412px] sm:max-w-none mx-auto px-2 sm:px-0">
       {/* Header Section with Craft Theme */}
@@ -2131,7 +3549,15 @@ const OrderInventoryManager = () => {
       </div>
 
       {/* Tabs with Craft Theme */}
-      <Tabs defaultValue="orders" className="w-full">
+      <Tabs value={activeTab} onValueChange={(value) => {
+        setActiveTab(value);
+        // Update hash when tab changes manually (but don't interfere with #returns)
+        if (value === 'orders' && window.location.hash !== '#returns') {
+          window.location.hash = '#orders';
+        } else if (value === 'shipping') {
+          window.location.hash = '#shipping';
+        }
+      }} className="w-full">
         <TabsList className="w-full grid grid-cols-2 bg-white border border-[#e5ded7] rounded-md p-1">
           <TabsTrigger 
             value="orders" 
@@ -2148,7 +3574,7 @@ const OrderInventoryManager = () => {
         </TabsList>
 
         <TabsContent value="orders" className="mt-4 sm:mt-6">
-          <OrdersTab />
+          <OrdersSectionWithTabs />
         </TabsContent>
         <TabsContent value="shipping" className="mt-4 sm:mt-6">
           <ShippingTab />

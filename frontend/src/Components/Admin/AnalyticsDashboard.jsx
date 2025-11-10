@@ -47,6 +47,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
 import "./AdminTableDesign.css";
+import { useNavigate } from "react-router-dom";
 import api from '../../api';
 import { useUser } from '../Context/UserContext';
 
@@ -71,6 +72,7 @@ import {
 
 const AnalyticsDashboard = () => {
   const { user, loading: userLoading } = useUser();
+  const navigate = useNavigate();
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -84,6 +86,10 @@ const AnalyticsDashboard = () => {
   const [mostSellingProducts, setMostSellingProducts] = useState(null);
   const [highestSalesSellers, setHighestSalesSellers] = useState(null);
   const [microAnalyticsLoading, setMicroAnalyticsLoading] = useState(false);
+  
+  // Reviews and ratings data
+  const [reviewsData, setReviewsData] = useState(null);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // Fetch analytics data
   const fetchAnalyticsData = async () => {
@@ -172,11 +178,56 @@ const AnalyticsDashboard = () => {
     }
   };
 
+  // Fetch reviews and ratings data
+  const fetchReviewsData = async () => {
+    setReviewsLoading(true);
+    try {
+      if (!user) {
+        setReviewsLoading(false);
+        return;
+      }
+
+      const response = await api.get('/admin/reviews');
+      const reviews = response.data.data || response.data || [];
+      
+      // Calculate statistics
+      const totalReviews = reviews.length;
+      const flaggedReviews = reviews.filter(r => r.is_flagged).length;
+      const averageRating = reviews.length > 0 
+        ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length 
+        : 0;
+      const ratingDistribution = {
+        five_star: reviews.filter(r => r.rating === 5).length,
+        four_star: reviews.filter(r => r.rating === 4).length,
+        three_star: reviews.filter(r => r.rating === 3).length,
+        two_star: reviews.filter(r => r.rating === 2).length,
+        one_star: reviews.filter(r => r.rating === 1).length,
+      };
+      const reviewsWithMedia = reviews.filter(r => 
+        (r.images && Array.isArray(r.images) && r.images.length > 0) || r.video_path
+      ).length;
+      
+      setReviewsData({
+        total_reviews: totalReviews,
+        flagged_reviews: flaggedReviews,
+        average_rating: averageRating,
+        rating_distribution: ratingDistribution,
+        reviews_with_media: reviewsWithMedia,
+        reviews: reviews
+      });
+    } catch (error) {
+      console.error('Error fetching reviews data:', error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
   // Fetch data when user is authenticated
   useEffect(() => {
     if (user && !userLoading) {
       fetchAnalyticsData();
       fetchMicroAnalyticsData();
+      fetchReviewsData();
     }
   }, [user, userLoading]);
 
@@ -185,6 +236,7 @@ const AnalyticsDashboard = () => {
     if (user && !userLoading && selectedPeriod && dateRange.start_date && dateRange.end_date) {
       fetchAnalyticsData();
       fetchMicroAnalyticsData();
+      fetchReviewsData();
     }
   }, [selectedPeriod, dateRange.start_date, dateRange.end_date]);
 
@@ -216,6 +268,7 @@ const AnalyticsDashboard = () => {
       
       await fetchAnalyticsData(); // Refresh data after generation
       await fetchMicroAnalyticsData(); // Refresh micro analytics data
+      await fetchReviewsData(); // Refresh reviews data
       console.log('Analytics data refreshed');
     } catch (error) {
       console.error('Error generating analytics data:', error);
@@ -1358,6 +1411,7 @@ const AnalyticsDashboard = () => {
                       <p className="admin-table-description">Average rating over time</p>
                     </div>
                     <div className="p-6">
+                      {reviewChartData.length > 0 ? (
                       <ResponsiveContainer width="100%" height={300}>
                         <LineChart data={reviewChartData}>
                           <CartesianGrid strokeDasharray="3 3" />
@@ -1367,6 +1421,13 @@ const AnalyticsDashboard = () => {
                           <Line type="monotone" dataKey="rating" stroke="#a4785a" strokeWidth={2} />
                         </LineChart>
                       </ResponsiveContainer>
+                      ) : (
+                        <div className="admin-table-empty">
+                          <Star className="admin-table-empty-icon" />
+                          <h3 className="admin-table-empty-title">No Rating Data</h3>
+                          <p className="admin-table-empty-description">No rating trend data available</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1376,25 +1437,46 @@ const AnalyticsDashboard = () => {
                       <p className="admin-table-description">Breakdown of review ratings</p>
                     </div>
                     <div className="p-6">
+                      {reviewsData?.rating_distribution ? (
                       <ResponsiveContainer width="100%" height={300}>
                         <RechartsPieChart>
                           <Pie
-                            data={reviewScoreData}
+                              data={[
+                                { name: '5 Stars', value: reviewsData.rating_distribution.five_star, color: '#10B981' },
+                                { name: '4 Stars', value: reviewsData.rating_distribution.four_star, color: '#34D399' },
+                                { name: '3 Stars', value: reviewsData.rating_distribution.three_star, color: '#FBBF24' },
+                                { name: '2 Stars', value: reviewsData.rating_distribution.two_star, color: '#F59E0B' },
+                                { name: '1 Star', value: reviewsData.rating_distribution.one_star, color: '#EF4444' },
+                              ].filter(item => item.value > 0)}
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              label={({ name, percent, value }) => value > 0 ? `${name}\n${(percent * 100).toFixed(0)}%` : ''}
                             outerRadius={80}
                             fill="#a4785a"
                             dataKey="value"
                           >
-                            {reviewScoreData.map((entry, index) => (
+                              {[
+                                { name: '5 Stars', value: reviewsData.rating_distribution.five_star, color: '#10B981' },
+                                { name: '4 Stars', value: reviewsData.rating_distribution.four_star, color: '#34D399' },
+                                { name: '3 Stars', value: reviewsData.rating_distribution.three_star, color: '#FBBF24' },
+                                { name: '2 Stars', value: reviewsData.rating_distribution.two_star, color: '#F59E0B' },
+                                { name: '1 Star', value: reviewsData.rating_distribution.one_star, color: '#EF4444' },
+                              ].filter(item => item.value > 0).map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.color} />
                             ))}
                           </Pie>
                           <Tooltip />
+                            <Legend />
                         </RechartsPieChart>
                       </ResponsiveContainer>
+                      ) : (
+                        <div className="admin-table-empty">
+                          <PieChart className="admin-table-empty-icon" />
+                          <h3 className="admin-table-empty-title">No Rating Distribution Data</h3>
+                          <p className="admin-table-empty-description">No rating distribution data available</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1410,7 +1492,7 @@ const AnalyticsDashboard = () => {
                       <div className="admin-table-stat">
                         <MessageSquare className="admin-table-stat-icon text-blue-600" />
                         <div className="flex-1">
-                          <div className="admin-table-stat-value">{reviews.total_reviews || 0}</div>
+                          <div className="admin-table-stat-value">{reviewsData?.total_reviews || reviews.total_reviews || 0}</div>
                           <div className="admin-table-stat-label">Total Reviews</div>
                           <div className="text-xs text-gray-500">Customer feedback</div>
                         </div>
@@ -1418,30 +1500,91 @@ const AnalyticsDashboard = () => {
                       <div className="admin-table-stat">
                         <Star className="admin-table-stat-icon text-yellow-600" />
                         <div className="flex-1">
-                          <div className="admin-table-stat-value">{reviews.average_rating ? parseFloat(reviews.average_rating).toFixed(1) : '0.0'}/5</div>
+                          <div className="admin-table-stat-value">
+                            {reviewsData?.average_rating 
+                              ? parseFloat(reviewsData.average_rating).toFixed(1) 
+                              : (reviews.average_rating ? parseFloat(reviews.average_rating).toFixed(1) : '0.0')}/5
+                          </div>
                           <div className="admin-table-stat-label">Average Rating</div>
                           <div className="text-xs text-gray-500">Overall satisfaction</div>
                         </div>
                       </div>
                       <div className="admin-table-stat">
-                        <Activity className="admin-table-stat-icon text-green-600" />
+                        <AlertTriangle className="admin-table-stat-icon text-red-600" />
                         <div className="flex-1">
-                          <div className="admin-table-stat-value">{reviews.response_rate ? parseFloat(reviews.response_rate).toFixed(1) : '0.0'}%</div>
-                          <div className="admin-table-stat-label">Response Rate</div>
-                          <div className="text-xs text-gray-500">Seller engagement</div>
+                          <div className="admin-table-stat-value">{reviewsData?.flagged_reviews || 0}</div>
+                          <div className="admin-table-stat-label">Flagged Reviews</div>
+                          <div className="text-xs text-gray-500">Require attention</div>
                         </div>
                       </div>
                       <div className="admin-table-stat">
-                        <Star className="admin-table-stat-icon text-yellow-500" />
+                        <Image className="admin-table-stat-icon text-purple-600" />
                         <div className="flex-1">
-                          <div className="admin-table-stat-value">{reviews.score_distribution?.five_star || 0}</div>
-                          <div className="admin-table-stat-label">5-Star Reviews</div>
-                          <div className="text-xs text-gray-500">Excellent ratings</div>
+                          <div className="admin-table-stat-value">{reviewsData?.reviews_with_media || 0}</div>
+                          <div className="admin-table-stat-label">Reviews with Media</div>
+                          <div className="text-xs text-gray-500">Images or videos</div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Rating Distribution Breakdown */}
+                {reviewsData?.rating_distribution && (
+                  <div className="admin-table-container">
+                    <div className="admin-table-header">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="admin-table-title">Rating Distribution Breakdown</h4>
+                          <p className="admin-table-description">Detailed breakdown of all review ratings</p>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            // Navigate to reviews tab in admin layout
+                            const event = new CustomEvent('admin-navigate', { detail: { tab: 'reviews' } });
+                            window.dispatchEvent(event);
+                          }}
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          Manage Reviews
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        {[
+                          { stars: 5, count: reviewsData.rating_distribution.five_star, color: 'text-green-600', bg: 'bg-green-50' },
+                          { stars: 4, count: reviewsData.rating_distribution.four_star, color: 'text-green-500', bg: 'bg-green-50' },
+                          { stars: 3, count: reviewsData.rating_distribution.three_star, color: 'text-yellow-500', bg: 'bg-yellow-50' },
+                          { stars: 2, count: reviewsData.rating_distribution.two_star, color: 'text-orange-500', bg: 'bg-orange-50' },
+                          { stars: 1, count: reviewsData.rating_distribution.one_star, color: 'text-red-500', bg: 'bg-red-50' },
+                        ].map((rating) => {
+                          const percentage = reviewsData.total_reviews > 0 
+                            ? ((rating.count / reviewsData.total_reviews) * 100).toFixed(1) 
+                            : 0;
+                          return (
+                            <div key={rating.stars} className={`${rating.bg} rounded-lg p-4 border-2 border-gray-200`}>
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <Star className={`h-5 w-5 ${rating.color} fill-current`} />
+                                  <span className="font-bold text-lg">{rating.stars} Star{rating.stars !== 1 ? 's' : ''}</span>
+                                </div>
+                              </div>
+                              <div className={`text-2xl font-bold ${rating.color} mb-1`}>{rating.count}</div>
+                              <div className="text-xs text-gray-600">{percentage}% of total</div>
+                              <Progress 
+                                value={parseFloat(percentage)} 
+                                className="mt-2 h-2"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>

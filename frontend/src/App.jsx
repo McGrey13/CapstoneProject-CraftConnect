@@ -13,6 +13,7 @@ import StoreView from './Components/storeview';
 import PublicLayout from './Components/Routes/PublicLayout';
 import SellerLayout from './Components/Seller/SellerLayout';
 import AdminLayout from './Components/Admin/AdminLayout';
+import { ToastProvider } from './Components/Context/ToastContext';
 
 // Public Pages
 import Home from './Components/home';
@@ -32,8 +33,11 @@ import ForgotPassword from './Components/Auth/ForgotPassword';
 import ResetPassword from './Components/Auth/ResetPassword';
 import ProductsPage from './Components/product/ProductsPage';
 import ProductDetails from './Components/product/ProductDetails';
+import PurchaseHistory from './Components/product/PurchaseHistory';
 import { Favorites } from './Components/pages/Favorites';
+import NotificationsPage from './Components/pages/Notifications';
 import Orders from './Components/Orders/Orders';
+import OrderDetails from './Components/Orders/OrderDetails';
 import Profile from './Components/Profile/Profile';
 import Settings from './Components/Settings/Settings';
 import PaymentSuccess from './Components/Payment/PaymentSuccess';
@@ -78,6 +82,7 @@ import SimplifiedCustomerTable from './Components/Admin/SimplifiedCustomerTable'
 function App() {
   return (
     <BrowserRouter>
+      <ToastProvider>
       <Routes>
 
         {/* Landing Page Route */}
@@ -90,15 +95,21 @@ function App() {
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
 
+        {/* Standalone Seller Onboarding Routes (no public navbar/footer) */}
+        <Route path="/create-store" element={<CreateStore />} />
+
         {/* Public Routes */}
         <Route path="/" element={<PublicLayout />}>
           <Route path="register" element={<Register />} />
           <Route path="login" element={<Login />} />
           <Route path="home" element={<Home />} />
           <Route path="favorites" element={<Favorites />} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="/cart" element={<ShoppingCart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/orders" element={<Orders />} />
+          <Route path="/orders/details" element={<OrderDetails />} />
+          <Route path="/purchase-history" element={<PurchaseHistory />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="search" element={<SearchResults />} />
@@ -112,7 +123,6 @@ function App() {
           <Route path="product/:id" element={<ProductDetails />} />
           <Route path="store/:id" element={<ArtisanDetail />} />
           <Route path="chatbox" element={<ChatBox />} />
-          <Route path="create-store" element={<CreateStore />} />
           <Route path="verification-pending" element={<VerificationPendingPage />} />
           <Route path="payment-success" element={<PaymentSuccess />} />
           <Route path="payment-failed" element={<PaymentFailed />} />
@@ -155,6 +165,7 @@ function App() {
           <Route path="simplified-customer-table" element={<SimplifiedCustomerTable />} />
         </Route>
       </Routes>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

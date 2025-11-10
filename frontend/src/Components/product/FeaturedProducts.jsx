@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, ArrowRight, Filter, X, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
@@ -10,8 +10,10 @@ import {
   SelectValue,
 } from "../ui/select";
 import ProductCard from "./ProductCard";
-import axios from "axios";
+import api from "../../api";
 import { useFavorites } from "../favorites/FavoritesContext";
+
+const FALLBACK_PRODUCT_IMAGE = null;
 
 const FeaturedProducts = ({
   title = "Featured Products",
@@ -32,84 +34,285 @@ const FeaturedProducts = ({
 
   // Helper function to convert image URLs to proper format
   const fixImageUrl = (url) => {
-    if (!url) {
-      console.log('❌ No image URL provided');
-      return null;
-    }
+    if (!url || url === '') return null;
     
-    console.log('🔧 Processing image URL:', url);
-    
-    // For testing, let's try both ports and see which one works
-    if (url.startsWith('http')) {
-      console.log('✅ Full URL detected:', url);
-      // Try the original URL first
+    // If it's already a full URL, return as is (but ensure it's correct)
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      // If it's a Laravel URL but wrong port, fix it
+      if (url.includes('localhost') && !url.includes(':8000')) {
+        return url.replace(/localhost(:\d+)?/, 'localhost:8000');
+      }
       return url;
     }
     
-    // Handle relative paths - try port 8000 first
-    let cleanPath = url;
-    if (cleanPath.startsWith('/')) {
-      cleanPath = cleanPath.substring(1);
+    // Handle storage paths - Laravel storage URLs
+    if (url.includes('storage/')) {
+      // Remove leading slash if present
+      const cleanPath = url.startsWith('/') ? url.substring(1) : url;
+      return `http://localhost:8000/${cleanPath}`;
     }
     
-    // Try the most common Laravel pattern
-    const testUrl = `http://localhost:8000/${cleanPath}`;
-    console.log('🔄 Trying URL:', testUrl);
-    return testUrl;
+    // Handle other relative paths
+    if (url.startsWith('/')) {
+      return `http://localhost:8000${url}`;
+    }
+    
+    // Default: assume it's a storage path
+    return `http://localhost:8000/storage/${url}`;
   };
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
+      console.log('🚀🚀🚀 FeaturedProducts - fetchProducts called');
       setLoading(true);
-      const response = await axios.get('/products/approved', { baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000/api' });
+      setError(null);
+      
+      // Check if user is logged in as a customer
+      const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+      console.log('🔑 FeaturedProducts - Token check:', { hasToken: !!token, tokenLength: token?.length });
+      let isCustomer = false;
+      if (token) {
+        try {
+          const userDataStr = localStorage.getItem('user_data');
+          if (userDataStr) {
+            const userData = JSON.parse(userDataStr);
+            const userRole = userData.role || userData.userRole || userData.user_type || userData.userType;
+            isCustomer = userRole === 'customer' || userRole === 'Customer';
+            
+            console.log('🔍 FeaturedProducts - User check:', {
+              hasToken: !!token,
+              hasUserData: !!userDataStr,
+              userRole: userRole,
+              isCustomer: isCustomer,
+              userDataKeys: Object.keys(userData || {})
+            });
+          } else {
+            console.log('⚠️ FeaturedProducts - No user_data in localStorage');
+          }
+        } catch (e) {
+          console.error('❌ FeaturedProducts - Error parsing user data:', e);
+        }
+      } else {
+        console.log('ℹ️ FeaturedProducts - No token found, skipping recommendations');
+      }
+      
+      // Get AI-powered recommendations first (only for logged-in customers)
+      let recommendedProductIds = [];
+      let recommendedProductsMap = new Map();
+      
+      if (isCustomer && token) {
+      try {
+          const recResponse = await api.get('/recommendations', {
+            params: { limit: 50 },
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          console.log('📥 FeaturedProducts - Recommendation API Response:', {
+            hasData: !!recResponse.data,
+            success: recResponse.data?.success,
+            hasRecommendations: !!recResponse.data?.recommendations,
+            recommendationsLength: recResponse.data?.recommendations?.length || 0,
+            fullResponse: recResponse.data
+        });
+        
+          if (recResponse.data.success && recResponse.data.recommendations && recResponse.data.recommendations.length > 0) {
+            // Store full recommendation data with scores for better sorting
+            recResponse.data.recommendations.forEach((rec) => {
+              const productId = rec.id || rec.product_id;
+              if (productId) {
+                // Store both string and number versions for matching
+                const productIdStr = String(productId);
+                const productIdNum = Number(productId);
+                
+                // Add both formats to array
+                recommendedProductIds.push(productIdStr);
+                recommendedProductIds.push(productIdNum);
+                
+                // Store in map with both keys
+                recommendedProductsMap.set(productIdStr, {
+                  ...rec,
+                  isRecommended: true,
+                  recommendationScore: rec.score || 0
+                });
+                recommendedProductsMap.set(productIdNum, {
+                  ...rec,
+                  isRecommended: true,
+                  recommendationScore: rec.score || 0
+                });
+              }
+            });
+            
+            console.log('✅✅✅ FeaturedProducts - AI Recommendations loaded:', recResponse.data.recommendations.length, 'products');
+            console.log('📋 Recommendation IDs:', recommendedProductIds.slice(0, 10));
+            console.log('📋 Recommendation Map size:', recommendedProductsMap.size);
+          } else {
+            console.log('⚠️ No recommendations available (user may not have enough browsing history)');
+        }
+      } catch (err) {
+          console.log('⚠️ No recommendations available:', err.response?.data?.message || err.message);
+          console.log('Using default product sorting');
+        }
+      } else {
+        console.log('ℹ️ User not logged in as customer - skipping AI recommendations');
+      }
+      
+      // Fetch all approved products
+      const response = await api.get('/products/approved');
       const data = Array.isArray(response.data) ? response.data : 
                   response.data.data ? response.data.data : [];
       
-      console.log('📦 Featured Products Data:', data);
-      console.log('📦 First product image:', data[0]?.productImage);
+      // Merge recommended products data with all products
+      const allProductsWithRecommendations = data.map(product => {
+        const productId = product.id || product.product_id;
+        const productIdStr = String(productId);
+        const recommendedData = recommendedProductsMap.get(productIdStr) || 
+                                recommendedProductsMap.get(String(productId)) ||
+                                recommendedProductsMap.get(productId);
+        
+        if (recommendedData) {
+          // Merge recommended product data (may have better fields)
+          return {
+            ...product,
+            ...recommendedData,
+            // Keep original product fields as fallback
+            average_rating: recommendedData.average_rating || product.average_rating || 0,
+            reviews_count: recommendedData.reviews_count || product.reviews_count || 0,
+            isRecommended: true, // Explicitly mark as recommended
+          };
+        }
+        return product;
+      });
+      
+      // Helper function to check if product is recommended
+      const isProductRecommended = (p) => {
+        const pid = String(p.id || p.product_id);
+        return recommendedProductIds.includes(pid) || 
+               recommendedProductIds.includes(String(p.id)) ||
+               recommendedProductIds.includes(String(p.product_id));
+      };
+      
+      // Sort: Prioritize recommended products with high ratings first, then others
+      const sortedData = [...allProductsWithRecommendations].sort((a, b) => {
+        const aIsRecommended = isProductRecommended(a);
+        const bIsRecommended = isProductRecommended(b);
+        const ratingA = a.average_rating || 0;
+        const ratingB = b.average_rating || 0;
+        const reviewCountA = a.reviews_count || 0;
+        const reviewCountB = b.reviews_count || 0;
+        
+        // First priority: Recommended products with high ratings (4+ stars)
+        const aIsHighRatedRecommended = aIsRecommended && ratingA >= 4.0;
+        const bIsHighRatedRecommended = bIsRecommended && ratingB >= 4.0;
+        
+        if (aIsHighRatedRecommended && !bIsHighRatedRecommended) return -1;
+        if (!aIsHighRatedRecommended && bIsHighRatedRecommended) return 1;
+        
+        // If both are high-rated recommended, sort by rating first, then review count
+        if (aIsHighRatedRecommended && bIsHighRatedRecommended) {
+          if (ratingB !== ratingA) return ratingB - ratingA;
+          return reviewCountB - reviewCountA;
+        }
+        
+        // Second priority: Other recommended products
+        if (aIsRecommended && !bIsRecommended) return -1;
+        if (!aIsRecommended && bIsRecommended) return 1;
+        
+        // If both recommended, sort by rating
+        if (aIsRecommended && bIsRecommended) {
+          if (ratingB !== ratingA) return ratingB - ratingA;
+          return reviewCountB - reviewCountA;
+        }
+        
+        // Third priority: Rating (for non-recommended products)
+        if (ratingB !== ratingA) {
+          return ratingB - ratingA;
+        }
+        
+        // Fourth priority: Review count
+        return reviewCountB - reviewCountA;
+      });
       
       // Transform the API data to match our component's structure
-      const transformedProducts = data.map(product => {
+      const transformedProducts = sortedData.map(product => {
+        // Check if product is recommended - use the isRecommended flag from merged data first
+        const productId = product.id || product.product_id;
+        const productIdStr = String(productId);
+        const productIdNum = Number(productId);
+        
+        // Check if this product is already marked as recommended from merged data
+        let isRecommended = product.isRecommended === true || product.isRecommended === 'true';
+        
+        // If not already marked, check against recommendation IDs
+        if (!isRecommended) {
+          isRecommended = recommendedProductIds.includes(productIdStr) || 
+                          recommendedProductIds.includes(productIdNum) ||
+                          recommendedProductIds.includes(String(productId)) ||
+                          recommendedProductIds.includes(Number(productId)) ||
+                          recommendedProductsMap.has(productIdStr) ||
+                          recommendedProductsMap.has(productIdNum);
+        }
+        
         // Calculate if product is new (created within last 7 days)
         const isNew = product.created_at 
           ? (new Date() - new Date(product.created_at)) / (1000 * 60 * 60 * 24) < 7
           : false;
         
-        console.log('Product image data:', {
-          id: product.id,
-          productName: product.productName,
-          productImage: product.productImage,
-          fixedImage: fixImageUrl(product.productImage)
-        });
-        
-        // Debug all products to see image URLs
-        console.log('🔍 DEBUGGING PRODUCT:', {
-          productName: product.productName,
-          originalImage: product.productImage,
-          fixedImage: fixImageUrl(product.productImage),
-          hasImage: !!product.productImage
-        });
+          const imageUrl = fixImageUrl(product.productImage) || null;
         
         return {
-          id: product.id,
-          image: product.productImage || '/placeholder-image.jpg',
+          id: product.id || product.product_id,
+          image: imageUrl,
           title: product.productName,
-          price: parseFloat(product.productPrice),
+          price: parseFloat(product.productPrice) || 0,
           artisanName: product.seller?.user?.userName || 'Unknown Artisan',
           artisanId: product.seller?.sellerID,
           storeName: product.seller?.store?.store_name || '',
-          storeLogo: fixImageUrl(product.seller?.store?.logo_url) || '',
-          rating: product.average_rating || 0, // Now guaranteed from backend
+          storeLogo: fixImageUrl(product.seller?.store?.logo_url) || null,
+          rating: product.average_rating || 0,
           reviewsCount: product.reviews_count || 0,
           isNew: isNew,
-          isFeatured: true,
+          isFeatured: product.is_featured || isRecommended,
+          // Explicitly set to boolean true if recommended
+          isRecommended: isRecommended === true || isRecommended === 'true' || isRecommended === 1,
           category: product.category
         };
       });
+      
+      const recommendedCount = transformedProducts.filter(p => p.isRecommended).length;
+      console.log('🔍🔍🔍 FeaturedProducts Recommendation check:', {
+        recommendedProductIds: recommendedProductIds.slice(0, 10),
+        sampleProductIds: transformedProducts.slice(0, 5).map(p => ({ 
+          id: p.id, 
+          idStr: String(p.id),
+          idNum: Number(p.id),
+          isRecommended: p.isRecommended,
+          isRecommendedType: typeof p.isRecommended
+        })),
+        recommendedCount: recommendedCount,
+        totalProducts: transformedProducts.length,
+        recommendedProducts: transformedProducts.filter(p => p.isRecommended).slice(0, 5).map(p => ({
+          id: p.id,
+          name: p.title,
+          isRecommended: p.isRecommended
+        }))
+      });
+      
+      if (recommendedCount === 0 && recommendedProductIds.length > 0) {
+        console.warn('⚠️⚠️⚠️ FeaturedProducts - WARNING: Recommendations fetched but no products matched!', {
+          recommendationIds: recommendedProductIds.slice(0, 10),
+          productIds: transformedProducts.slice(0, 10).map(p => ({
+            id: p.id,
+            idStr: String(p.id),
+            idNum: Number(p.id)
+          }))
+        });
+      }
+      
+      if (recommendedCount > 0) {
+        console.log('🎉🎉🎉 FeaturedProducts - SUCCESS: Found', recommendedCount, 'recommended products!');
+      }
 
       setProducts(transformedProducts);
       setError(null);
@@ -119,7 +322,48 @@ const FeaturedProducts = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Refetch products when user changes (login/logout) to update recommendations
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+      const userData = localStorage.getItem('user_data');
+      
+      // If user logged in/out, refetch products to update recommendations
+      if (token && userData) {
+        try {
+          const user = JSON.parse(userData);
+          if (user.role === 'customer') {
+            console.log('🔄 FeaturedProducts - User changed - refetching for personalized recommendations');
+            fetchProducts();
+          }
+        } catch (e) {
+          console.error('Error parsing user data:', e);
+        }
+      }
+    };
+
+    // Listen for storage changes (login/logout)
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically if user logged in (for same-tab login)
+    const interval = setInterval(() => {
+      const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+      if (token && products.length === 0) {
+        handleStorageChange();
+      }
+    }, 2000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [products.length, fetchProducts]);
 
   const categories = ["All", "Miniatures & Souvenirs", "Rubber Stamp Engraving", "Traditional Accessories", "Statuary & Sculpture", "Basketry & Weaving"];
   const itemsPerPage = 6; // 3 products per row × 2 rows
@@ -129,8 +373,7 @@ const FeaturedProducts = ({
     return product.category === activeTab;
   });
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    // Helper functions
+      const sortWithPreference = (items, preferRecommended = false) => {
     const hasRatings = (product) => (product.reviewsCount || 0) > 0;
     const getWeightedScore = (product) => {
       const rating = product.rating || 0;
@@ -138,50 +381,58 @@ const FeaturedProducts = ({
       return rating * Math.log10(count + 1) + (count / 100);
     };
     
-    // ALWAYS prioritize products with ratings over products without ratings
+        if (preferRecommended) {
+          return [...items].sort((a, b) => {
+            const aRecommended = a.isRecommended ? 1 : 0;
+            const bRecommended = b.isRecommended ? 1 : 0;
+            if (bRecommended !== aRecommended) return bRecommended - aRecommended;
+
     const aHasRatings = hasRatings(a);
     const bHasRatings = hasRatings(b);
+            if (aHasRatings !== bHasRatings) return bHasRatings - aHasRatings;
     
-    if (aHasRatings && !bHasRatings) return -1;
-    if (!aHasRatings && bHasRatings) return 1;
-    
-    // Apply selected sorting
     switch (sortBy) {
       case "price-low":
-        const priceDiffLow = a.price - b.price;
-        if (priceDiffLow !== 0) return priceDiffLow;
-        // Secondary: weighted rating
-        if (aHasRatings && bHasRatings) {
+                if (a.price !== b.price) return a.price - b.price;
+                return getWeightedScore(b) - getWeightedScore(a);
+              case "price-high":
+                if (a.price !== b.price) return b.price - a.price;
+                return getWeightedScore(b) - getWeightedScore(a);
+              case "rating":
+                return getWeightedScore(b) - getWeightedScore(a);
+              default:
+                if (aRecommended && bRecommended) {
           return getWeightedScore(b) - getWeightedScore(a);
         }
-        return 0;
-        
-      case "price-high":
-        const priceDiffHigh = b.price - a.price;
-        if (priceDiffHigh !== 0) return priceDiffHigh;
-        // Secondary: weighted rating
-        if (aHasRatings && bHasRatings) {
+                if (a.isFeatured !== b.isFeatured) return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
           return getWeightedScore(b) - getWeightedScore(a);
         }
-        return 0;
-        
-      case "rating":
-        // Sort by weighted rating
-        if (aHasRatings && bHasRatings) {
-          return getWeightedScore(b) - getWeightedScore(a);
+          });
         }
-        return 0;
-        
+
+        return [...items].sort((a, b) => {
+          const aHasRatings = hasRatings(a);
+          const bHasRatings = hasRatings(b);
+          if (aHasRatings !== bHasRatings) return bHasRatings - aHasRatings;
+
+          switch (sortBy) {
+            case "price-low":
+              if (a.price !== b.price) return a.price - b.price;
+          return getWeightedScore(b) - getWeightedScore(a);
+            case "price-high":
+              if (a.price !== b.price) return b.price - a.price;
+              return getWeightedScore(b) - getWeightedScore(a);
+            case "rating":
+              return getWeightedScore(b) - getWeightedScore(a);
       default:
-        // Featured first, then by weighted rating
-        const featuredDiff = (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
-        if (featuredDiff !== 0) return featuredDiff;
-        if (aHasRatings && bHasRatings) {
+              if (a.isFeatured !== b.isFeatured) return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
           return getWeightedScore(b) - getWeightedScore(a);
-        }
-        return 0;
     }
   });
+      };
+
+      const preferRecommended = products.some(p => p.isRecommended);
+      const sortedProducts = sortWithPreference(filteredProducts, preferRecommended);
 
   const paginatedProducts = sortedProducts.slice(
     currentPage * itemsPerPage,
@@ -305,104 +556,59 @@ const FeaturedProducts = ({
             className="relative h-[300px] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group bg-gray-100"
             onClick={() => window.location.href = `/product/${product.id}`}
           >
-            {/* Background Image */}
+            {/* Background Image / Placeholder */}
+            {product.image ? (
             <img 
-              src={fixImageUrl(product.image) || 'https://via.placeholder.com/400x300?text=Test+Image'}
+                src={product.image}
               alt={product.title}
               className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
               onLoad={(e) => {
-                console.log('✅ Image loaded successfully:', 
-                  'Product:', product.title,
-                  'URL:', e.target.src
-                );
-                // Show the overlay when image loads successfully
                 const overlay = e.target.parentElement.querySelector('.image-overlay');
                 if (overlay) {
-                  overlay.style.display = 'block';
-                }
-                // Show overlay and update styling when image loads
-                const contentOverlay = e.target.parentElement.querySelector('.content-overlay');
-                if (contentOverlay) {
-                  // Change text to white for better contrast over image
-                  contentOverlay.style.color = 'white';
-                  // Update all text elements to white
-                  const textElements = contentOverlay.querySelectorAll('h3, p, span, div');
-                  textElements.forEach(el => {
-                    if (!el.className.includes('bg-')) { // Don't change button backgrounds
-                      el.style.color = 'white';
-                    }
-                  });
+                    overlay.style.opacity = '1';
                 }
               }}
               onError={(e) => {
-                console.log('❌ Image failed to load:', 
-                  'Product:', product.title,
-                  'URL:', e.target.src
-                );
-                
-                // Prevent infinite retry loops
-                const currentSrc = e.target.src;
-                const originalImage = product.image;
-                
-                // Track retry attempts to prevent infinite loops
-                if (!e.target.retryCount) {
-                  e.target.retryCount = 0;
-                }
-                e.target.retryCount++;
-                
-                // Max 2 retries
-                if (e.target.retryCount > 2) {
-                  console.log('🛑 Max retries reached, hiding image');
-                  e.target.style.display = 'none';
-                  return;
-                }
-                
-                // Try alternative URL formats
-                if (originalImage && e.target.retryCount === 1) {
-                  let retryUrl;
-                  if (originalImage.startsWith('http')) {
-                    // If it's a full URL, try switching port
-                    if (originalImage.includes('localhost:8000')) {
-                      retryUrl = originalImage.replace('localhost:8000', 'localhost:8080');
-                    } else {
-                      retryUrl = originalImage.replace('localhost:8080', 'localhost:8000');
-                    }
-                  } else {
-                    // Try with /storage/ prefix for relative paths
-                    retryUrl = `http://localhost:8000/storage/${originalImage.replace(/^\/+/, '')}`;
-                  }
-                  console.log('🔄 Retry 1 - Trying URL:', retryUrl);
-                  e.target.src = retryUrl;
-                  return;
-                }
-                
-                if (originalImage && e.target.retryCount === 2) {
-                  // Final retry - hide image
-                  console.log('🛑 Retry 2 - Hiding image');
-                  e.target.style.display = 'none';
-                  return;
-                }
-                
-                // Final fallback - hide image and keep text dark
-                console.log('🛑 All retries failed, hiding image');
                 e.target.style.display = 'none';
               }}
               />
+            ) : (
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-[#f3e7db] via-[#f7eee4] to-[#efe1d2] flex flex-col items-center justify-center text-[#7b5a3b]">
+                <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center shadow-inner">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2h-3l-1-1h-6l-1 1H5a2 2 0 00-2 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <p className="mt-3 text-sm font-medium">Image not available</p>
+              </div>
+            )}
             
             {/* Dark Overlay - only show when image loads successfully */}
-            <div className="image-overlay absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-50 transition-all duration-300" style={{display: 'none'}} />
+            <div className="image-overlay absolute inset-0 bg-gradient-to-t from-[#2f1f16]/70 via-[#2f1f16]/20 to-transparent opacity-0 transition-opacity duration-300 pointer-events-none" />
             
             {/* Content Overlay */}
             <div className="content-overlay absolute inset-0 flex flex-col justify-between p-4 text-gray-800">
               {/* Top Section - Badges */}
               <div className="flex justify-between items-start">
                 <div className="flex gap-2">
+                  {(() => {
+                    const shouldShow = product.isRecommended === true || product.isRecommended === 'true' || product.isRecommended;
+                    if (shouldShow) {
+                      console.log('✅ FeaturedProducts - Showing Recommended badge for product:', product.id, product.title, { isRecommended: product.isRecommended });
+                    }
+                    return shouldShow ? (
+                      <span className="bg-gradient-to-r from-[#b88668] to-[#7b5a3b] text-white px-2 py-1 rounded-md text-xs font-semibold shadow-md border border-white/40">
+                        Recommended
+                    </span>
+                    ) : null;
+                  })()}
                   {product.isNew && (
                     <span className="bg-blue-500 text-white px-2 py-1 rounded-md text-xs font-medium">
                       New
                     </span>
                   )}
-                  {product.isFeatured && (
+                  {product.isFeatured && !product.isRecommended && (
                     <span className="bg-amber-500 text-white px-2 py-1 rounded-md text-xs font-medium">
                       Featured
                     </span>

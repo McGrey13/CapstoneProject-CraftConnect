@@ -349,6 +349,7 @@ class StoreController extends Controller
             // Calculate average rating from seller's products
             $averageRating = 0;
             $totalRatings = 0;
+            $productsCount = 0;
             if ($store->seller) {
                 try {
                     // Get all reviews for products belonging to this seller
@@ -359,8 +360,14 @@ class StoreController extends Controller
                         $totalRatings = $reviews->count();
                         $averageRating = round($reviews->avg('rating'), 1);
                     }
+                    
+                    // Count total products for this seller (approved and published)
+                    $productsCount = \App\Models\Product::where('seller_id', $store->seller->sellerID)
+                        ->where('approval_status', 'approved')
+                        ->where('publish_status', 'published')
+                        ->count();
                 } catch (\Exception $e) {
-                    Log::warning('Error calculating seller rating', [
+                    Log::warning('Error calculating seller rating or products count', [
                         'seller_id' => $store->seller->sellerID,
                         'error' => $e->getMessage()
                     ]);
@@ -373,7 +380,8 @@ class StoreController extends Controller
                 'logo_url' => $logoUrl,
                 'seller_id' => $sellerId,
                 'average_rating' => $averageRating,
-                'total_ratings' => $totalRatings
+                'total_ratings' => $totalRatings,
+                'products_count' => $productsCount
             ]);
             
             return [
@@ -390,6 +398,7 @@ class StoreController extends Controller
                 'years_active' => $yearsActive,
                 'average_rating' => $averageRating,
                 'total_ratings' => $totalRatings,
+                'products_count' => $productsCount,
                 'created_at' => $store->created_at,
                 'updated_at' => $store->updated_at,
             ];

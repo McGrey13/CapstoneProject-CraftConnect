@@ -29,6 +29,7 @@ class Product extends Model
         'tags',
         'seller_id',
         'approval_status',
+        'rejection_reason',
         'average_rating',
         'review_count',
         'publish_status',
@@ -140,6 +141,22 @@ class Product extends Model
         return $this->belongsToMany(Order::class, 'order_products', 'product_id', 'order_id')
             ->withPivot(['quantity', 'price'])
             ->withTimestamps();
+    }
+
+    /**
+     * Get all variations (sizes) for this product
+     */
+    public function variations()
+    {
+        return $this->hasMany(ProductVariation::class, 'product_id', 'product_id');
+    }
+
+    /**
+     * Check if product has size variations
+     */
+    public function hasVariations()
+    {
+        return $this->variations()->count() > 0;
     }
 }
 

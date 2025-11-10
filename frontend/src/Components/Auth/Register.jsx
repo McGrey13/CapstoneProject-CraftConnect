@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, ArrowRight, Mail } from "lucide-react";
+import { User, ArrowRight } from "lucide-react";
 import api from "../../api";
 import "./Register.css";
 import { useUser } from "../Context/UserContext";
@@ -150,7 +150,6 @@ const Register = () => {
           />
           <label htmlFor="userEmail">Email</label>
           <div className="input-wrapper">
-            <Mail className="input-icon" />
             <input
               id="userEmail"
               name="userEmail" // Corrected name to match state and model

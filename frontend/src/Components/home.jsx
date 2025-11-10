@@ -2,38 +2,19 @@ import React, { useEffect, useState } from "react";
 import HeroSection from "./Home/HeroSection";
 import CategoryGrid from "./Home/CategoryGrid";
 import FeaturedProducts from "./product/FeaturedProducts";
+import WorkshopsEventsGrid from "./Home/WorkshopsEventsGrid";
 import { useCart } from "./Cart/CartContext";
 import { useFavorites } from "./favorites/FavoritesContext";
 import NotificationModal from "./ui/NotificationModal";
 import api from "../api";
 
 const Home = () => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState(null);
   const [notification, setNotification] = useState({ show: false, type: '', message: '' });
   const { addToCart } = useCart();
   const { favorites, addFavorite, removeFavorite } = useFavorites();
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await api.get("/products/approved");
-        const data = response.data;
-        setProducts(Array.isArray(data) ? data : []);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
-  }, []);
 
   // Fetch public workshops and events for the homepage carousel
   useEffect(() => {
@@ -115,19 +96,18 @@ const Home = () => {
         <div className="w-full">
           <CategoryGrid />
         </div>
-        {/* Events are now integrated in the hero carousel (one per slide). */}
+        {/* Featured Products with AI Recommendations */}
         <div className="w-full">
-          {loading ? (
-            <div className="text-center py-12 text-gray-500">Loading products...</div>
-          ) : error ? (
-            <div className="text-center py-12 text-red-500">{error}</div>
-          ) : (
             <FeaturedProducts
-              products={products}
+            title="Featured Products"
+            subtitle="Discover unique handcrafted items from talented artisans around Laguna"
               onAddToCart={handleAddToCart}
               onFavorite={handleFavorite}
-            />
-          )}
+          />
+        </div>
+        {/* Workshops & Events Section */}
+        <div className="w-full">
+          <WorkshopsEventsGrid />
         </div>
       </main>
       

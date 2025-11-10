@@ -3,6 +3,7 @@ import { useCart } from "./CartContext";
 import { Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
+import { Badge } from "../ui/badge";
 import { useNavigate } from "react-router-dom";
 
 const PALETTE = {
@@ -12,15 +13,91 @@ const PALETTE = {
   gold: "#e6b17e",
 };
 
+// J&T Express Shipping Rates (Reference: https://philnews.ph/2023/09/04/jt-express-rates-list-shipping-fees-package-weight/)
+const JNT_RATES = {
+  "Metro Manila": {
+    "Metro Manila": [85, 115, 155, 225, 305, 455],
+    "Luzon": [95, 165, 190, 280, 370, 465],
+    "Visayas": [100, 180, 200, 300, 400, 500],
+    "Mindanao": [105, 195, 220, 330, 440, 550],
+    "Island": [115, 205, 230, 340, 450, 560],
+  },
+  "Luzon": {
+    "Luzon": [85, 155, 180, 270, 360, 455],
+    "Metro Manila": [95, 165, 190, 280, 370, 465],
+    "Visayas": [100, 180, 200, 300, 400, 500],
+    "Mindanao": [105, 195, 220, 330, 440, 550],
+    "Island": [115, 205, 230, 340, 450, 560],
+  },
+  "Visayas": {
+    "Visayas": [85, 155, 180, 270, 360, 455],
+    "Metro Manila": [100, 180, 200, 300, 400, 500],
+    "Luzon": [100, 180, 200, 300, 400, 500],
+    "Mindanao": [105, 175, 200, 290, 380, 475],
+    "Island": [115, 185, 210, 300, 390, 485],
+  },
+  "Mindanao": {
+    "Mindanao": [85, 155, 180, 270, 360, 455],
+    "Luzon": [105, 195, 215, 325, 435, 545],
+    "Metro Manila": [105, 195, 215, 325, 435, 545],
+    "Visayas": [105, 175, 195, 285, 375, 470],
+    "Island": [115, 205, 230, 340, 450, 560],
+  },
+  "Island": {
+    "Island": [115, 205, 230, 340, 450, 560],
+    "Metro Manila": [115, 205, 230, 340, 450, 560],
+    "Luzon": [115, 205, 230, 340, 450, 560],
+    "Visayas": [115, 185, 210, 300, 390, 485],
+    "Mindanao": [115, 205, 230, 340, 450, 560],
+  },
+};
+
+// Weight brackets: [500g and below, 500g-1kg, 1kg-3kg, 3kg-4kg, 4kg-5kg, 5kg-6kg]
+const WEIGHT_BRACKETS = [0.5, 1, 3, 4, 5, 6];
+
+// Calculate J&T Express shipping fee
+const calculateJNTShipping = (totalWeightKg, origin = "Metro Manila", destination = "Luzon") => {
+  if (totalWeightKg <= 0) return 0;
+  
+  // Get the appropriate rate table
+  const rateTable = JNT_RATES[origin] || JNT_RATES["Metro Manila"];
+  const rates = rateTable[destination] || rateTable["Luzon"];
+  
+  // Determine weight bracket index
+  let bracketIndex = 0;
+  for (let i = 0; i < WEIGHT_BRACKETS.length; i++) {
+    if (totalWeightKg <= WEIGHT_BRACKETS[i]) {
+      bracketIndex = i;
+      break;
+    }
+  }
+  
+  // If weight exceeds 6kg, use the highest rate (6kg rate) as base and add extra
+  if (totalWeightKg > 6) {
+    const baseRate = rates[rates.length - 1];
+    const extraWeight = totalWeightKg - 6;
+    const extraKilos = Math.ceil(extraWeight);
+    // Add approximately 100-150 per extra kg beyond 6kg
+    return baseRate + (extraKilos * 120);
+  }
+  
+  return rates[bracketIndex] || rates[0];
+};
+
 const ShoppingCart = () => {
   const { cartItems, updateQuantity, removeItem } = useCart();
   const navigate = useNavigate();
   const [selectedItems, setSelectedItems] = useState([]); // track selected items
+  // Default weight per item in kg (can be updated if product has weight data)
+  const AVERAGE_ITEM_WEIGHT_KG = 0.5; // 500g per item
 
   // Toggle item selection
   const handleCheck = (id) => {
     // Find the item to check if it's out of stock
     const item = cartItems.find(item => item.cartItemId === id);
+    const availableQuantity = item
+      ? (item.selectedVariation?.quantity ?? item.availableQuantity ?? item.product?.productQuantity ?? 0)
+      : 0;
     
     // Prevent selecting out of stock items
     if (item && item.isOutOfStock) {
@@ -29,8 +106,8 @@ const ShoppingCart = () => {
     }
     
     // Check if quantity exceeds available stock
-    if (item && item.availableQuantity > 0 && item.quantity > item.availableQuantity) {
-      alert(`Sorry, only ${item.availableQuantity} units of "${item.title}" are available. Please reduce the quantity before checkout.`);
+    if (item && availableQuantity > 0 && item.quantity > availableQuantity) {
+      alert(`Sorry, only ${availableQuantity} unit(s) of "${item.title}" are available. Please reduce the quantity before checkout.`);
       return;
     }
     
@@ -42,10 +119,14 @@ const ShoppingCart = () => {
   // Select all toggle
   const handleSelectAll = () => {
     // Filter out out-of-stock items and items with quantity exceeding available stock
-    const selectableItems = cartItems.filter(item => 
-      !item.isOutOfStock && 
-      item.quantity <= item.availableQuantity
-    );
+    const selectableItems = cartItems.filter((item) => {
+      const availableQuantity =
+        item.selectedVariation?.quantity ??
+        item.availableQuantity ??
+        item.product?.productQuantity ??
+        0;
+      return !item.isOutOfStock && item.quantity <= availableQuantity;
+    });
     
     const allSelectableSelected = selectableItems.every(item => 
       selectedItems.includes(item.cartItemId)
@@ -60,9 +141,10 @@ const ShoppingCart = () => {
       
       // Show info if some items were skipped
       const outOfStockCount = cartItems.filter(item => item.isOutOfStock).length;
-      const exceededStockCount = cartItems.filter(item => 
-        !item.isOutOfStock && item.quantity > item.availableQuantity
-      ).length;
+      const exceededStockCount = cartItems.filter(item => {
+        const availableQuantity = item.selectedVariation?.quantity ?? item.availableQuantity ?? item.product?.productQuantity ?? 0;
+        return !item.isOutOfStock && item.quantity > availableQuantity;
+      }).length;
       
       if (outOfStockCount > 0 || exceededStockCount > 0) {
         let message = 'Selected all available items. ';
@@ -83,12 +165,26 @@ const ShoppingCart = () => {
   );
 
   const subtotal = selectedCartItems.reduce(
-    (sum, item) => sum + parseFloat(item.price || 0) * item.quantity,
+    (sum, item) =>
+      sum +
+      parseFloat(item.unit_price ?? item.price ?? 0) * item.quantity,
     0
   );
-  const shipping = selectedCartItems.length > 0 ? 9.99 : 0;
-  const tax = subtotal * 0.08;
-  const total = subtotal + shipping + tax;
+  
+  // Calculate total weight in kg (estimate: 0.5kg per item × quantity)
+  const totalWeightKg = selectedCartItems.reduce(
+    (sum, item) => sum + (AVERAGE_ITEM_WEIGHT_KG * item.quantity),
+    0
+  );
+  
+  // Calculate J&T Express shipping
+  // Default origin: Metro Manila, destination: Luzon
+  // TODO: Get actual origin from seller location and destination from user address
+  const shipping = selectedCartItems.length > 0 
+    ? calculateJNTShipping(totalWeightKg, "Metro Manila", "Luzon")
+    : 0;
+  
+  const total = subtotal + shipping;
 
   // Proceed to checkout
   const handleProceedToCheckout = () => {
@@ -102,8 +198,8 @@ const ShoppingCart = () => {
         cartItems: selectedCartItems,
         subtotal,
         shipping,
-        tax,
         total,
+        totalWeightKg,
       },
     });
   };
@@ -157,7 +253,7 @@ const ShoppingCart = () => {
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               {cartItems.map((item) => (
-                <Card
+              <Card
                   key={item.cartItemId}
                   className={`bg-white rounded-xl shadow-sm border ${
                     item.isOutOfStock ? 'border-red-200 bg-red-50/30' : 'border-[#e5ded7]'
@@ -182,9 +278,26 @@ const ShoppingCart = () => {
                         type="checkbox"
                         checked={selectedItems.includes(item.cartItemId)}
                         onChange={() => handleCheck(item.cartItemId)}
-                        disabled={item.isOutOfStock || item.quantity > item.availableQuantity}
+                        disabled={
+                          item.isOutOfStock ||
+                          item.quantity >
+                            (item.selectedVariation?.quantity ??
+                              item.availableQuantity ??
+                              item.product?.productQuantity ??
+                              0)
+                        }
                         className="h-5 w-5 mt-2 accent-[#a36b4f] disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={item.isOutOfStock ? 'Out of stock - cannot select' : item.quantity > item.availableQuantity ? 'Insufficient stock - reduce quantity' : 'Select item'}
+                        title={
+                          item.isOutOfStock
+                            ? 'Out of stock - cannot select'
+                            : item.quantity >
+                              (item.selectedVariation?.quantity ??
+                                item.availableQuantity ??
+                                item.product?.productQuantity ??
+                                0)
+                            ? 'Insufficient stock - reduce quantity'
+                            : 'Select item'
+                        }
                       />
 
                       {/* Product Image */}
@@ -223,29 +336,68 @@ const ShoppingCart = () => {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                             </svg>
                             <span className={`text-xs font-medium ${
-                              item.product.productQuantity > 10 ? 'text-green-600' : 
-                              item.product.productQuantity > 0 ? 'text-orange-600' : 
+                              (item.selectedVariation?.quantity ??
+                                item.availableQuantity ??
+                                item.product.productQuantity ?? 0) > 10
+                                ? 'text-green-600'
+                                : (item.selectedVariation?.quantity ??
+                                    item.availableQuantity ??
+                                    item.product.productQuantity ?? 0) > 0
+                                ? 'text-orange-600'
+                                :
                               'text-red-600'
                             }`}>
-                              {item.product.productQuantity > 0 
-                                ? `${item.product.productQuantity} available` 
+                              {(item.selectedVariation?.quantity ??
+                                item.availableQuantity ??
+                                item.product.productQuantity ?? 0) > 0
+                                ? `${item.selectedVariation?.quantity ??
+                                    item.availableQuantity ??
+                                    item.product.productQuantity} available`
                                 : 'Out of stock'}
                             </span>
-                            {item.product.productQuantity > 0 && item.product.productQuantity <= 10 && (
+                            {(() => {
+                              const remaining =
+                                item.selectedVariation?.quantity ??
+                                item.availableQuantity ??
+                                item.product.productQuantity ??
+                                0;
+                              return remaining > 0 && remaining <= 10;
+                            })() && (
                               <span className="ml-2 text-xs text-orange-600 font-semibold">
                                 Low stock!
                               </span>
                             )}
                           </div>
                         )}
+                        {item.selectedVariation && (
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-[#f5f0eb] border border-[#d5bfae] rounded-full text-[#7a5c52]">
+                              Variant: {item.selectedVariation.label || (item.selectedVariation.attributes?.map(attr => attr.label || attr.value).join(', ') || 'Custom')}
+                            </span>
+                            {item.selectedVariation.attributes?.map((attribute, index) => (
+                              <span
+                                key={`${item.cartItemId}-attr-${index}`}
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-white border border-[#e5ded7] rounded-full text-[#7a5c52]"
+                              >
+                                {(attribute.label || attribute.name) && (
+                                  <span className="font-semibold">
+                                    {attribute.label || attribute.name}:
+                                  </span>
+                                )}
+                                <span>{attribute.value ?? attribute.label ?? attribute.name}</span>
+                              </span>
+                            ))}
+                            {item.selectedVariation.sku && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-white border border-[#e5ded7] rounded-full text-[#7a5c52]">
+                                SKU: {item.selectedVariation.sku}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         <div className="flex flex-col">
                           <p className="font-bold text-lg text-[#a36b4f]">
-                            ₱{parseFloat(item.price || 0).toFixed(2)}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {item.quantity} × ₱
-                            {parseFloat(item.price || 0).toFixed(2)} = ₱
-                            {(parseFloat(item.price || 0) * item.quantity).toFixed(2)}
+                            ₱{parseFloat(item.unit_price ?? item.price ?? 0).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -257,7 +409,7 @@ const ShoppingCart = () => {
                           size="icon"
                           className="h-8 w-8 rounded-full"
                           onClick={() =>
-                            updateQuantity(item.product_id, Math.max(1, item.quantity - 1))
+                            updateQuantity(item.cartItemId, Math.max(1, item.quantity - 1))
                           }
                           disabled={item.quantity <= 1}
                         >
@@ -269,15 +421,41 @@ const ShoppingCart = () => {
                           size="icon"
                           className="h-8 w-8 rounded-full"
                           onClick={() => {
-                            const availableStock = item.product?.productQuantity || 999;
+                            const availableStock =
+                              item.selectedVariation?.quantity ??
+                              item.availableQuantity ??
+                              item.product?.productQuantity ??
+                              999;
                             if (item.quantity >= availableStock) {
-                              alert(`Maximum available stock is ${availableStock} items.`);
+                              alert(`Maximum available stock is ${availableStock} item(s).`);
                               return;
                             }
-                            updateQuantity(item.product_id, item.quantity + 1);
+                            updateQuantity(item.cartItemId, item.quantity + 1);
                           }}
-                          disabled={item.product && item.quantity >= item.product.productQuantity}
-                          title={item.product && item.quantity >= item.product.productQuantity ? 'Maximum stock reached' : 'Increase quantity'}
+                          disabled={
+                            (item.selectedVariation?.quantity ??
+                              item.availableQuantity ??
+                              item.product?.productQuantity ??
+                              Infinity) !== Infinity &&
+                            item.quantity >=
+                              (item.selectedVariation?.quantity ??
+                                item.availableQuantity ??
+                                item.product?.productQuantity ??
+                                0)
+                          }
+                          title={
+                            (item.selectedVariation?.quantity ??
+                              item.availableQuantity ??
+                              item.product?.productQuantity ??
+                              Infinity) !== Infinity &&
+                            item.quantity >=
+                              (item.selectedVariation?.quantity ??
+                                item.availableQuantity ??
+                                item.product?.productQuantity ??
+                                0)
+                              ? 'Maximum stock reached'
+                              : 'Increase quantity'
+                          }
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -322,10 +500,6 @@ const ShoppingCart = () => {
                   <div className="flex justify-between">
                     <span>Shipping</span>
                     <span>{shipping > 0 ? `₱${shipping.toFixed(2)}` : "Free"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Tax (8%)</span>
-                    <span>₱{tax.toFixed(2)}</span>
                   </div>
 
                   <div className="border-t pt-4" style={{ borderColor: PALETTE.sand }}>

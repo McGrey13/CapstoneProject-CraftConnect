@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   DollarSign,
+  RotateCcw,
 } from "lucide-react";
 import AdminNavbar from "./AdminNavbar";
 import { cn } from "../lib/utils";
@@ -30,6 +31,7 @@ import {
 } from "../ui/tooltip";
 import { useUser } from "../Context/UserContext";
 import { useNavigate } from "react-router-dom";
+import { ToastProvider } from "../Context/ToastContext";
 
 // Import Admin Pages
 import Dashboard from "./AdminDashboard";
@@ -42,6 +44,8 @@ import CommissionDashboard from "./CommissionDashboard";
 import AdminSettings from "./AdminSettings";
 import AcceptPendingProduct from "./AcceptPendingProduct";
 import StoreVerification from "./StoreVerification";
+import ReturnRefundRequests from "./ReturnRefundRequests";
+import AdminReviews from "./AdminReviews";
 import api from "../../api";
 import "./AdminLayout.css";
 
@@ -104,6 +108,20 @@ const AdminLayout = () => {
   const [stats, setStats] = useState({});
   const [sidebarLoading, setSidebarLoading] = useState(true);
 
+  // Listen for navigation events from child components
+  useEffect(() => {
+    const handleNavigation = (event) => {
+      if (event.detail && event.detail.tab) {
+        setActiveTab(event.detail.tab);
+      }
+    };
+
+    window.addEventListener('admin-navigate', handleNavigation);
+    return () => {
+      window.removeEventListener('admin-navigate', handleNavigation);
+    };
+  }, []);
+
   // Check authentication and admin role
   useEffect(() => {
     if (!loading) {
@@ -137,6 +155,15 @@ const AdminLayout = () => {
           } catch (error) {
             lastError = error;
             console.error(`Error fetching verification stats (${4-retries}/3):`, error);
+            if (error.response?.status === 401) {
+              // Not authorized yet; keep stats empty but stop retrying
+              setStats({
+                total_customers: 0,
+                total_artisans: 0,
+                pending_stores: 0
+              });
+              return;
+            }
             
             if (error.code === 'ECONNABORTED' && retries > 1) {
               // Timeout error, wait and retry
@@ -198,6 +225,10 @@ const AdminLayout = () => {
         return <StoreVerification />;
       case "orders":
         return <OrdersOverview />;
+      case "returnRefund":
+        return <ReturnRefundRequests />;
+      case "reviews":
+        return <AdminReviews />;
       case "analytics":
         return <AnalyticsDashboard />;
       case "commission":
@@ -210,9 +241,10 @@ const AdminLayout = () => {
   };
 
   return (
-    <TooltipProvider>
-      <div className="min-h-screen bg-gray-50">
-        <AdminNavbar userName={user?.userName || 'Admin'} />
+    <ToastProvider>
+      <TooltipProvider>
+        <div className="min-h-screen bg-gray-50">
+          <AdminNavbar userName={user?.userName || 'Admin'} />
       <div className="flex h-[calc(100vh-4rem)]">
         {/* Mobile Menu Button */}
         <div className="lg:hidden fixed top-4 left-4 z-50">
@@ -320,6 +352,24 @@ const AdminLayout = () => {
             />
 
             <SidebarItem
+              icon={<RotateCcw className="h-5 w-5" />}
+              label="Return & Refund"
+              tabKey="returnRefund"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              onItemClick={() => setSidebarOpen(false)}
+            />
+
+            <SidebarItem
+              icon={<MessageSquare className="h-5 w-5" />}
+              label="Reviews & Ratings"
+              tabKey="reviews"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              onItemClick={() => setSidebarOpen(false)}
+            />
+
+            <SidebarItem
               icon={<BarChart3 className="h-5 w-5" />}
               label="Analytics"
               tabKey="analytics"
@@ -380,8 +430,9 @@ const AdminLayout = () => {
           </div>
         </main>
       </div>
-    </div>
-    </TooltipProvider>
+        </div>
+      </TooltipProvider>
+    </ToastProvider>
   );
 };
 

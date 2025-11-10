@@ -25,6 +25,8 @@ use App\Http\Controllers\Work_and_EventsController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\AfterSaleController;
 use App\Http\Controllers\Social\FacebookController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\RecommendationController;
 
 // Public Routes
 Route::middleware([])->group(function () {
@@ -221,6 +223,13 @@ Route::middleware([])->group(function () {
     Route::get('/products/approved', [ProductController::class, 'approvedProducts']);
     Route::get('/products/featured', [ProductController::class, 'featuredProducts']);
     Route::get('/products/{id}', [ProductController::class, 'getProductDetails'])->whereNumber('id');
+    Route::get('/products/{id}/related', [ProductController::class, 'getRelatedProducts'])->whereNumber('id');
+    
+    // AI-Powered Recommendations (Public - works for both authenticated and guest users)
+    Route::get('/recommendations', [RecommendationController::class, 'getRecommendations']);
+    Route::get('/recommendations/stores', [RecommendationController::class, 'getRecommendedStores']);
+    Route::get('/recommendations/purchase-history', [RecommendationController::class, 'getPurchaseHistory'])->middleware('auth:sanctum');
+    Route::post('/products/{id}/track-view', [RecommendationController::class, 'trackView'])->whereNumber('id');
     
     // Contact form route
     Route::post('/contact', [ContactController::class, 'submit']);
@@ -540,6 +549,17 @@ Route::get('/api/test-simple', function() {
 
 // Protected routes 
 Route::middleware(['auth:sanctum'])->group(function () {
+    // Notification routes
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::get('/{id}', [NotificationController::class, 'show']);
+        Route::post('/{id}/mark-read', [NotificationController::class, 'markAsRead']);
+        Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+        Route::delete('/{id}', [NotificationController::class, 'destroy']);
+        Route::delete('/read/delete-all', [NotificationController::class, 'deleteAllRead']);
+    });
+
     //Customer Chat Routes (protected)
     Route::get('/chat/conversations', [ChatController::class, 'getCustomerConversations']);
     Route::post('/conversations', [ChatController::class, 'createConversation']);
@@ -573,6 +593,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/seller', [OrderController::class, 'sellerOrders']);
         Route::get('/{id}', [OrderController::class, 'show']);
         Route::post('/', [OrderController::class, 'store']);
+        Route::post('/{order}/pay', [PaymentController::class, 'reinitiatePayment']);
         Route::post('/{orderId}/mark-received', [OrderController::class, 'markAsReceived']);
         Route::put('/{orderId}/status', [OrderController::class, 'updateStatus']);
     });
@@ -666,6 +687,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/sellers/{sellerId}/deactivate', [AdminController::class, 'deactivateSeller']);
             Route::post('/sellers/{sellerId}/reactivate', [AdminController::class, 'reactivateSeller']);
             Route::post('/sellers/{sellerId}/reset-password', [AdminController::class, 'resetSellerPassword']);
+            
+            // Reviews management routes
+            Route::get('/reviews', [AdminController::class, 'getAllReviews']);
+            Route::post('/reviews/{reviewId}/flag', [AdminController::class, 'flagReview']);
+            Route::post('/reviews/{reviewId}/unflag', [AdminController::class, 'unflagReview']);
         });
         
         // Analytics routes (admin only - but endpoints are public for easier access)
@@ -712,28 +738,49 @@ Route::prefix('analytics/revenue')->group(function () {
 });
 
 // Seller analytics endpoints
-Route::get('/analytics/seller/{seller_id}', function($seller_id) {
+Route::get('/analytics/seller/{seller_id}', function($seller_id, Illuminate\Http\Request $request) {
     try {
         // Check if seller exists
-        $seller = App\Models\Seller::where('sellerID', $seller_id)->first();
+        $seller = App\Models\Seller::with('user')->where('sellerID', $seller_id)->first();
         if (!$seller) {
             return response()->json(['error' => 'Seller not found'], 404);
         }
 
+        // Get time range parameter (for product performance filtering)
+        $productPeriod = $request->get('product_period', 'monthly'); // monthly, quarterly, yearly
+        
+        // Calculate date range based on period
+        $endDate = \Carbon\Carbon::now();
+        $startDate = \Carbon\Carbon::now();
+        
+        if ($productPeriod === 'yearly') {
+            $startDate = \Carbon\Carbon::now()->subYears(3)->startOfYear();
+        } elseif ($productPeriod === 'quarterly') {
+            $startDate = \Carbon\Carbon::now()->subMonths(12)->startOfQuarter();
+        } else { // monthly
+            $startDate = \Carbon\Carbon::now()->subMonths(12)->startOfMonth();
+        }
+
         // Get seller's products with relationships
         $products = App\Models\Product::where('seller_id', $seller_id)
-            ->with(['orders' => function($query) {
-                $query->orderBy('created_at', 'desc');
-            }, 'reviews'])
+            ->with(['reviews'])
             ->get();
 
-        // Get seller's orders
+        // Get seller's orders (for product performance, filter by date range)
+        $productOrders = App\Models\Order::whereHas('products', function($query) use ($seller_id) {
+            $query->where('seller_id', $seller_id);
+        })->whereBetween('created_at', [$startDate, $endDate])->with('products')->get();
+        
+        // Get all orders (for overall metrics - not filtered)
         $orders = App\Models\Order::whereHas('products', function($query) use ($seller_id) {
             $query->where('seller_id', $seller_id);
         })->with('products')->get();
 
         // Get seller's discount codes
-        $discountCodes = App\Models\DiscountCode::where('created_by', $seller->user->userID)->get();
+        $discountCodes = collect();
+        if ($seller->user && $seller->user->userID) {
+            $discountCodes = App\Models\DiscountCode::where('created_by', $seller->user->userID)->get();
+        }
 
         // Calculate total revenue
             $totalRevenue = $orders->sum(function($order) {
@@ -752,13 +799,28 @@ Route::get('/analytics/seller/{seller_id}', function($seller_id) {
                 : 0
         ];
 
-        // Calculate revenue by product
-        $revenueByProduct = $products->map(function($product) {
-            $totalRevenue = $product->orders->sum(function($order) use ($product) {
-                $productOrder = $order->products->firstWhere('product_id', $product->product_id);
-                return $productOrder ? $productOrder->pivot->quantity * $productOrder->pivot->price : 0;
+        // Calculate revenue by product (using filtered orders for product performance)
+        $revenueByProduct = $products->map(function($product) use ($productOrders) {
+            // Filter orders that are within the date range and contain this product
+            $filteredOrders = $productOrders->filter(function($order) use ($product) {
+                if (!$order->products || $order->products->isEmpty()) {
+                    return false;
+                }
+                return $order->products->contains(function($orderProduct) use ($product) {
+                    return $orderProduct && isset($orderProduct->product_id) && $orderProduct->product_id === $product->product_id;
+                });
             });
-            $totalUnits = $product->orders->sum('pivot.quantity');
+            
+            $totalRevenue = $filteredOrders->sum(function($order) use ($product) {
+                if (!$order->products) return 0;
+                $productOrder = $order->products->firstWhere('product_id', $product->product_id);
+                return $productOrder && isset($productOrder->pivot) ? ($productOrder->pivot->quantity ?? 0) * ($productOrder->pivot->price ?? 0) : 0;
+            });
+            $totalUnits = $filteredOrders->sum(function($order) use ($product) {
+                if (!$order->products) return 0;
+                $productOrder = $order->products->firstWhere('product_id', $product->product_id);
+                return $productOrder && isset($productOrder->pivot) ? ($productOrder->pivot->quantity ?? 0) : 0;
+            });
             $viewCount = $product->view_count ?? rand(50, 200); // Using random view count for now
             $conversionRate = $viewCount > 0 ? ($totalUnits / $viewCount) * 100 : 0;
             $inventoryTurnover = $product->productQuantity > 0 ? $totalUnits / $product->productQuantity : 0;
@@ -770,21 +832,43 @@ Route::get('/analytics/seller/{seller_id}', function($seller_id) {
                 'units_sold' => $totalUnits,
                 'views' => $viewCount,
                 'conversion_rate' => $conversionRate,
-                'inventory_turnover' => $inventoryTurnover
+                'inventory_turnover' => $inventoryTurnover,
+                'category' => $product->category ?? 'Uncategorized'
             ];
         });
 
-        // Calculate revenue by category
-        $revenueByCategory = $products->groupBy('category')->map(function($products) {
+        // Calculate revenue by category (using filtered orders)
+        $revenueByCategory = $products->groupBy('category')->map(function($categoryProducts) use ($productOrders) {
             return [
-                'revenue' => $products->sum(function($product) {
-                    return $product->orders->sum(function($order) use ($product) {
+                'revenue' => $categoryProducts->sum(function($product) use ($productOrders) {
+                    $filteredOrders = $productOrders->filter(function($order) use ($product) {
+                        if (!$order->products || $order->products->isEmpty()) {
+                            return false;
+                        }
+                        return $order->products->contains(function($orderProduct) use ($product) {
+                            return $orderProduct && isset($orderProduct->product_id) && $orderProduct->product_id === $product->product_id;
+                        });
+                    });
+                    return $filteredOrders->sum(function($order) use ($product) {
+                        if (!$order->products) return 0;
                         $productOrder = $order->products->firstWhere('product_id', $product->product_id);
-                        return $productOrder ? $productOrder->pivot->quantity * $productOrder->pivot->price : 0;
+                        return $productOrder && isset($productOrder->pivot) ? ($productOrder->pivot->quantity ?? 0) * ($productOrder->pivot->price ?? 0) : 0;
                     });
                 }),
-                'units_sold' => $products->sum(function($product) {
-                    return $product->orders->sum('pivot.quantity');
+                'units_sold' => $categoryProducts->sum(function($product) use ($productOrders) {
+                    $filteredOrders = $productOrders->filter(function($order) use ($product) {
+                        if (!$order->products || $order->products->isEmpty()) {
+                            return false;
+                        }
+                        return $order->products->contains(function($orderProduct) use ($product) {
+                            return $orderProduct && isset($orderProduct->product_id) && $orderProduct->product_id === $product->product_id;
+                        });
+                    });
+                    return $filteredOrders->sum(function($order) use ($product) {
+                        if (!$order->products) return 0;
+                        $productOrder = $order->products->firstWhere('product_id', $product->product_id);
+                        return $productOrder && isset($productOrder->pivot) ? ($productOrder->pivot->quantity ?? 0) : 0;
+                    });
                 })
             ];
         });
@@ -867,7 +951,17 @@ Route::get('/analytics/seller/{seller_id}', function($seller_id) {
             'peak_periods' => $peakPeriods
         ]);
     } catch (\Exception $e) {
-        return response()->json(['error' => $e->getMessage()], 500);
+        \Log::error('Seller analytics error', [
+            'seller_id' => $seller_id ?? null,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
+        return response()->json([
+            'error' => 'Failed to fetch analytics',
+            'message' => $e->getMessage()
+        ], 500);
     }
 });
 
@@ -896,12 +990,7 @@ Route::middleware(['auth:sanctum'])->get('/admin/products', [ProductController::
 
     // New revenue sharing payment routes
     Route::post('/payments/create-intent', [PaymentController::class, 'createPaymentIntent']);
-
-     //Products Routes in Admin Side
-     Route::post('/products/{id}/approve', [ProductController::class, 'approve']);
-     Route::post('/products/{id}/reject', [ProductController::class, 'reject']);
-     Route::put('/products/{id}/update', [ProductController::class, 'update']);
-     
+    
     
     // Admin reporting routes
     Route::prefix('admin/reports')->group(function () {
@@ -985,11 +1074,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Shipping Routes
     Route::prefix('shipping')->group(function () {
-        Route::post('/assign', [App\Http\Controllers\ShippingController::class, 'assignRider']);
-        Route::put('/{id}/status', [App\Http\Controllers\ShippingController::class, 'updateStatus']);
+        // Public route for tracking (customers can track without auth)
         Route::get('/tracking/{trackingNumber}', [App\Http\Controllers\ShippingController::class, 'getByTrackingNumber']);
-        Route::get('/seller', [App\Http\Controllers\ShippingController::class, 'getSellerShippings']);
-        Route::get('/generate-tracking', [App\Http\Controllers\ShippingController::class, 'generateTrackingNumber']);
+        
+        // Authenticated routes (sellers)
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::post('/assign', [App\Http\Controllers\ShippingController::class, 'assignRider']);
+            Route::put('/{id}/status', [App\Http\Controllers\ShippingController::class, 'updateStatus']);
+            Route::get('/seller', [App\Http\Controllers\ShippingController::class, 'getSellerShippings']);
+            Route::get('/generate-tracking', [App\Http\Controllers\ShippingController::class, 'generateTrackingNumber']);
+            Route::get('/riders', [App\Http\Controllers\ShippingController::class, 'getSavedRiders']);
+            Route::delete('/riders/{riderId}', [App\Http\Controllers\ShippingController::class, 'deleteRider']);
+        });
     });
 });
 

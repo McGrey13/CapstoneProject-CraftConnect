@@ -1,19 +1,246 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Heart, ShoppingCart, Star, Minus, Plus, ArrowLeft, Play, MessageCircle, ChevronLeft, ChevronRight, Users, Award, X } from "lucide-react";
+import { Heart, ShoppingCart, Star, Minus, Plus, ArrowLeft, Play, MessageCircle, ChevronLeft, ChevronRight, Users, Award, X, Image as ImageIcon, Video as VideoIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { Badge } from "../ui/badge";
 import { useCart } from "../Cart/CartContext";
 import { useFavorites } from "../favorites/FavoritesContext";
+import { useProductViewTracker } from "../../hooks/useProductViewTracker";
+import MessengerPopup from "../Messenger/MessengerPopup";
 import api from "../../api";
+import "./ProductDetails.css";
+import { useToast } from "../Context/ToastContext";
+
+// Related Products Section Component
+const RelatedProductsSection = ({ productId }) => {
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const { favorites, toggleFavorite } = useFavorites();
+
+  useEffect(() => {
+    const fetchRelatedProducts = async () => {
+      try {
+        setLoading(true);
+        // Try related products endpoint first, fallback to recommendations
+        try {
+          const response = await api.get(`/products/${productId}/related`);
+          if (response.data && response.data.success && response.data.products && response.data.products.length > 0) {
+            setRelatedProducts(response.data.products);
+            return;
+          }
+        } catch (err) {
+          console.log('Related products endpoint not available, trying recommendations...');
+        }
+        
+        // Fallback: Use recommendations API if related products endpoint doesn't exist
+        const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+        if (token) {
+          try {
+            const recResponse = await api.get('/recommendations', {
+              params: { limit: 6 },
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            if (recResponse.data.success && recResponse.data.recommendations) {
+              // Filter out the current product
+              const filtered = recResponse.data.recommendations.filter(
+                p => (p.id || p.product_id) != productId
+              );
+              setRelatedProducts(filtered.slice(0, 6));
+              return;
+            }
+          } catch (err) {
+            console.log('Recommendations not available');
+          }
+        }
+        
+        // Final fallback: Get products from same category
+        try {
+          const productResponse = await api.get(`/products/${productId}`);
+          if (productResponse.data && productResponse.data.category) {
+            const categoryResponse = await api.get('/products/approved');
+            const allProducts = Array.isArray(categoryResponse.data) 
+              ? categoryResponse.data 
+              : (categoryResponse.data?.data || []);
+            const sameCategory = allProducts.filter(
+              p => p.category === productResponse.data.category && 
+                   (p.id || p.product_id) != productId
+            );
+            setRelatedProducts(sameCategory.slice(0, 6));
+            return;
+          }
+        } catch (err) {
+          console.log('Category fallback failed');
+        }
+        
+        setRelatedProducts([]);
+      } catch (err) {
+        console.error('Error fetching related products:', err);
+        setRelatedProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (productId) {
+      fetchRelatedProducts();
+    }
+  }, [productId]);
+
+  const fixImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) {
+      return url;
+    }
+    if (url.startsWith('/storage/') || url.startsWith('/images/')) {
+      return `http://localhost:8000${url}`;
+    }
+    return `http://localhost:8000/storage/${url}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="mt-12 px-4 md:px-8 lg:px-16">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#5c3d28] mb-2">You May Also Like</h2>
+            <p className="text-[#7b5a3b]">Loading related products...</p>
+          </div>
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#a4785a]"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (relatedProducts.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-12 px-4 md:px-8 lg:px-16">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold text-[#5c3d28] mb-2">You May Also Like</h2>
+          <p className="text-[#7b5a3b]">Products you might be interested in</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {relatedProducts.slice(0, 6).map((product) => {
+            const productId = product.id || product.product_id;
+            return (
+              <div
+                key={productId}
+                onClick={() => navigate(`/product/${productId}`)}
+                className="cursor-pointer bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative"
+              >
+                <div className="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden group shadow-sm">
+                  {product.productImage ? (
+                    <img 
+                      src={fixImageUrl(product.productImage)} 
+                      alt={product.productName} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  
+                  {/* Placeholder when no images */}
+                  <div 
+                    className="w-full h-full flex items-center justify-center text-gray-400"
+                    style={{ display: product.productImage ? 'none' : 'flex' }}
+                  >
+                    <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+                
+                {/* Product Info */}
+                <div className="mt-4 space-y-2">
+                  <h2 className="font-semibold text-gray-900 text-2xl leading-tight overflow-hidden" style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical'
+                  }}>
+                    {product.productName}
+                  </h2>
+                  
+                  {/* Store Name and Seller Name */}
+                  <div className="space-y-1">
+                    <p className="text-sm text-[#9F2936] font-medium">
+                      {product.seller?.store?.store_name || product.seller?.businessName || "Unknown Store"}
+                    </p>
+                    {product.seller?.user?.userName && (
+                      <p className="text-xs text-gray-500">
+                        by {product.seller.user.userName}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Price with Category Badge */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-2xl font-bold text-[#9F2936]">
+                      ₱{Number(product.productPrice || 0).toFixed(2)}
+                    </p>
+                    {product.category && (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                        {product.category}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Rating Display */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-0.5">
+                      {[...Array(5)].map((_, index) => {
+                        const rating = product.average_rating || 0;
+                        const filled = index + 1 <= Math.floor(rating);
+                        const halfFilled = index + 1 === Math.ceil(rating) && rating % 1 !== 0;
+                        return (
+                          <Star
+                            key={index}
+                            className={`w-4 h-4 ${
+                              filled 
+                                ? 'text-yellow-400 fill-yellow-400' 
+                                : halfFilled
+                                ? 'text-yellow-400 fill-yellow-400 opacity-50'
+                                : 'text-gray-300 fill-gray-300'
+                            }`}
+                          />
+                        );
+                      })}
+                    </div>
+                    <span className="text-sm font-bold text-[#5c3d28]">
+                      {(product.average_rating || 0).toFixed(1)}
+                    </span>
+                    {product.reviews_count !== undefined && (
+                      <span className="text-xs text-gray-500">({product.reviews_count || 0})</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { favorites, addFavorite, removeFavorite } = useFavorites();
+  const { showToast } = useToast();
 
   const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState(null);
@@ -29,24 +256,67 @@ const ProductDetails = () => {
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showFavoriteModal, setShowFavoriteModal] = useState(false);
+  const [showMessageSeller, setShowMessageSeller] = useState(false);
+  const [variationOptions, setVariationOptions] = useState([]);
+  const [selectedVariationId, setSelectedVariationId] = useState(null);
+  const selectedVariation = useMemo(
+    () => variationOptions.find((variation) => variation.id === selectedVariationId) || null,
+    [variationOptions, selectedVariationId]
+  );
+  const availableQuantity = useMemo(() => {
+    if (selectedVariation && selectedVariation.quantity !== undefined && selectedVariation.quantity !== null) {
+      const parsed = Number(selectedVariation.quantity);
+      if (Number.isFinite(parsed)) {
+        return Math.max(parsed, 0);
+      }
+    }
+    if (product && product.productQuantity !== undefined && product.productQuantity !== null) {
+      const parsed = Number(product.productQuantity);
+      if (Number.isFinite(parsed)) {
+        return Math.max(parsed, 0);
+      }
+    }
+    return 0;
+  }, [selectedVariation, product]);
+  const effectivePrice = useMemo(() => {
+    const rawPrice =
+      (selectedVariation && selectedVariation.price !== undefined
+        ? selectedVariation.price
+        : product?.productPrice) ?? 0;
+    const numericPrice = Number(rawPrice);
+    return Number.isFinite(numericPrice) ? numericPrice : 0;
+  }, [selectedVariation, product]);
+  const selectedVariationPayload = useMemo(() => {
+    if (!selectedVariation) return null;
+    const { id, label, price, quantity, sku, attributes } = selectedVariation;
+    return {
+      id,
+      label,
+      price,
+      quantity,
+      sku,
+      attributes,
+    };
+  }, [selectedVariation]);
 
   // Helper function to convert image URLs to use correct backend
   const fixImageUrl = (url) => {
     if (!url) return url;
-    // If it's already a full URL with localhost, convert to relative path
+    // If it's already a full URL with localhost:8000, use it directly
     if (url.includes('localhost:8000')) {
-      // Extract the path from the URL
-      const path = new URL(url).pathname;
-      return path;
+      return url;
     }
+    // If it's a full URL with localhost:8080, convert to 8000
     if (url.includes('localhost:8080')) {
-      // Extract the path from the URL
-      const path = new URL(url).pathname;
-      return path;
+      return url.replace('localhost:8080', 'localhost:8000');
     }
-    // If it's already a relative path, return as is
+    // If it's already a relative path starting with /storage/, use it
     if (url.startsWith('/storage/') || url.startsWith('/images/')) {
       return url;
+    }
+    // If it's a path without leading slash, add /storage/
+    if (url && !url.startsWith('http') && !url.startsWith('/')) {
+      return `/storage/${url}`;
     }
     return url;
   };
@@ -58,7 +328,71 @@ const ProductDetails = () => {
 
       const response = await api.get(`/products/${id}`);
       const productData = response.data;
-      setProduct(productData);
+
+      const mappedVariations = Array.isArray(productData.variations)
+        ? productData.variations.map((variation, idx) => {
+            const rawQuantity =
+              variation.quantity ??
+              variation.productQuantity ??
+              variation.stock ??
+              variation.inventory ??
+              0;
+            const parsedQuantity = Number(rawQuantity);
+            const quantity = Number.isFinite(parsedQuantity) ? Math.max(parsedQuantity, 0) : 0;
+            const rawPrice =
+              variation.price ??
+              variation.productPrice ??
+              variation.amount ??
+              variation.cost ??
+              productData.productPrice ??
+              0;
+            const price = Number(rawPrice);
+            const attributes = (() => {
+              if (Array.isArray(variation.attributes)) {
+                return variation.attributes;
+              }
+              if (variation.attributes && typeof variation.attributes === "object") {
+                return Object.entries(variation.attributes).map(([name, value]) => ({
+                  name,
+                  value,
+                }));
+              }
+              if (Array.isArray(variation.values)) {
+                return variation.values.map((value, valueIdx) => ({
+                  name: `Option ${valueIdx + 1}`,
+                  value,
+                }));
+              }
+              return [];
+            })();
+
+            const label =
+              variation.label ||
+              variation.size ||
+              variation.name ||
+              variation.sku ||
+              `Variation ${idx + 1}`;
+
+            return {
+              id: variation.variation_id || variation.id || `variation-${idx}`,
+              variation_id: variation.variation_id || variation.id,
+              label,
+              size: variation.size || null,
+              price: Number.isFinite(price) ? price : Number(productData.productPrice ?? 0),
+              quantity,
+              sku: variation.sku || null,
+              attributes,
+              raw: variation,
+            };
+          })
+        : [];
+
+      setVariationOptions(mappedVariations);
+      const initialVariation =
+        mappedVariations.find((variation) => (variation.quantity ?? 0) > 0) ||
+        mappedVariations[0] ||
+        null;
+      setSelectedVariationId(initialVariation?.id ?? null);
       
       // Process all images (main + additional) with fixed URLs
       const images = [];
@@ -106,6 +440,8 @@ const ProductDetails = () => {
       } else {
         setAverageRating(0);
       }
+
+      setProduct({ ...productData, variations: mappedVariations });
     } catch (err) {
       setError(err.message);
       console.error('❌ Error fetching product/reviews:', err);
@@ -117,6 +453,53 @@ const ProductDetails = () => {
   useEffect(() => {
     if (id) fetchProductAndReviews();
   }, [id]);
+
+  useEffect(() => {
+    if (selectedVariation) {
+      const maxQty = selectedVariation.quantity ?? 0;
+      if (maxQty > 0) {
+        setQuantity((prev) => Math.min(Math.max(prev, 1), maxQty));
+      } else {
+        setQuantity(1);
+      }
+    } else if (product && typeof product.productQuantity === "number" && product.productQuantity > 0) {
+      setQuantity((prev) => Math.min(Math.max(prev, 1), product.productQuantity));
+    }
+  }, [selectedVariation, product]);
+
+  // Inject styles to ensure button hover text is visible
+  useEffect(() => {
+    const styleId = 'product-action-button-hover-styles';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        button.product-action-button:hover,
+        button.product-action-button:hover *,
+        button.product-action-button:hover > *,
+        button.product-action-button:hover span,
+        button.product-action-button:hover > span {
+          color: #ffffff !important;
+        }
+        button.product-action-button:hover svg,
+        button.product-action-button:hover > svg {
+          color: #ffffff !important;
+          stroke: #ffffff !important;
+          fill: #ffffff !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    return () => {
+      const existingStyle = document.getElementById(styleId);
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, []);
+
+  // Track product view for AI recommendations
+  useProductViewTracker(id);
 
   if (loading) return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f0eb] to-[#ede5dc] flex items-center justify-center">
@@ -171,7 +554,27 @@ const ProductDetails = () => {
 
   const isFavorited = favorites.some((p) => p.id === product.id);
 
-  const handleQuantityChange = (change) => setQuantity(Math.max(1, quantity + change));
+  const handleVariationSelect = (variationId) => {
+    setSelectedVariationId(variationId);
+    const variation = variationOptions.find((option) => option.id === variationId);
+    if (variation) {
+      const maxQty = variation.quantity ?? 0;
+      if (maxQty > 0) {
+        setQuantity((prev) => Math.min(Math.max(prev, 1), maxQty));
+      } else {
+        setQuantity(1);
+      }
+    }
+  };
+
+  const handleQuantityChange = (change) => {
+    const nextValue = Math.max(1, quantity + change);
+    if (availableQuantity > 0) {
+      setQuantity(Math.min(nextValue, availableQuantity));
+    } else {
+      setQuantity(nextValue);
+    }
+  };
 
   const handleAddToCart = async () => {
     const token = sessionStorage.getItem("auth_token");
@@ -180,21 +583,81 @@ const ProductDetails = () => {
       return;
     }
 
+    if (variationOptions.length > 0 && !selectedVariation) {
+      showToast("Please select a product variation before adding to cart.", "error");
+      return;
+    }
+
+    if (availableQuantity <= 0) {
+      showToast("This product is currently out of stock.", "error");
+      return;
+    }
+
+    if (quantity > availableQuantity) {
+      setQuantity(availableQuantity);
+      showToast(`Only ${availableQuantity} item(s) are available for this selection.`, "warning");
+      return;
+    }
+
     try {
       setAddingToCart(true);
-      const result = await addToCart(product, quantity);
+      const productForCart = {
+        ...product,
+        productPrice: selectedVariation?.price ?? product.productPrice,
+        selectedVariation: selectedVariationPayload,
+      };
+
+      const result = await addToCart(productForCart, quantity);
       if (result.success) {
-        alert("Item added to cart successfully!");
+        showToast("Item added to cart successfully!", "success");
         navigate("/cart");
       } else {
-        alert(result.error || "Failed to add item to cart");
+        showToast(result.error || "Failed to add item to cart.", "error");
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
-      alert("Failed to add item to cart. Please try again.");
+      showToast("Failed to add item to cart. Please try again.", "error");
     } finally {
       setAddingToCart(false);
     }
+  };
+
+  const handleBuyNow = () => {
+    const token = sessionStorage.getItem("auth_token");
+    if (!token) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    if (variationOptions.length > 0 && !selectedVariation) {
+      showToast("Please select a product variation before continuing.", "error");
+      return;
+    }
+
+    if (availableQuantity <= 0) {
+      showToast("This product is currently out of stock.", "error");
+      return;
+    }
+
+    if (quantity > availableQuantity) {
+      setQuantity(availableQuantity);
+      showToast(`Only ${availableQuantity} item(s) are available for this selection.`, "warning");
+      return;
+    }
+
+    const checkoutProduct = {
+      ...product,
+      productPrice: selectedVariation?.price ?? product.productPrice,
+      selectedVariation: selectedVariationPayload,
+    };
+
+    navigate("/checkout", {
+      state: {
+        product: checkoutProduct,
+        quantity,
+        selectedVariation: selectedVariationPayload,
+      },
+    });
   };
 
   const handleFavoriteClick = () => {
@@ -407,7 +870,7 @@ const ProductDetails = () => {
               </div>
 
               <div className="text-3xl font-bold text-[#5c3d28] mb-4">
-                ₱{Number(product.productPrice).toFixed(2)}
+                ₱{effectivePrice.toFixed(2)}
               </div>
             </CardContent>
           </Card>
@@ -415,6 +878,77 @@ const ProductDetails = () => {
           {/* Quantity and Actions */}
           <Card className="bg-white border-2 border-[#d5bfae] shadow-xl">
             <CardContent className="p-3">
+              {variationOptions.length > 0 && (
+                <div className="mb-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <span className="text-lg font-semibold text-[#5c3d28]">Select Variation</span>
+                    {selectedVariation && (
+                      <span className="text-sm text-[#7b5a3b]">
+                        {selectedVariation.quantity > 0
+                          ? `${selectedVariation.quantity} item(s) available`
+                          : "Out of stock"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {variationOptions.map((variation) => {
+                      const isSelected = selectedVariationId === variation.id;
+                      const isOutOfStock = (variation.quantity ?? 0) <= 0;
+                      const priceValue =
+                        variation.price !== undefined && variation.price !== null
+                          ? Number(variation.price)
+                          : effectivePrice;
+                      const displayPrice = Number.isFinite(priceValue)
+                        ? priceValue.toFixed(2)
+                        : effectivePrice.toFixed(2);
+                      const attributesSummary =
+                        Array.isArray(variation.attributes) && variation.attributes.length > 0
+                          ? variation.attributes
+                              .map((attribute) => {
+                                if (typeof attribute === "string") {
+                                  return attribute;
+                                }
+                                if (attribute && typeof attribute === "object") {
+                                  const parts = [attribute.name, attribute.value].filter(Boolean);
+                                  return parts.join(": ");
+                                }
+                                return null;
+                              })
+                              .filter(Boolean)
+                              .join(" • ")
+                          : null;
+
+                      return (
+                        <Button
+                          key={variation.id}
+                          type="button"
+                          variant="outline"
+                          disabled={isOutOfStock}
+                          onClick={() => handleVariationSelect(variation.id)}
+                          className={`min-w-[140px] flex-1 sm:flex-none text-left px-4 py-3 border-2 transition-all duration-200 ${
+                            isSelected && !isOutOfStock
+                              ? "bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white border-transparent shadow-md"
+                              : "border-[#d5bfae] text-[#5c3d28] hover:border-[#a4785a]"
+                          } ${isOutOfStock ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          <span className="font-semibold block">{variation.label}</span>
+                          <span className={`text-sm ${isSelected ? "text-white/90" : "text-[#7b5a3b]"}`}>
+                            ₱{displayPrice}
+                          </span>
+                          <span className={`text-xs ${isSelected ? "text-white/80" : "text-[#7b5a3b]/80"}`}>
+                            {variation.quantity > 0 ? `${variation.quantity} in stock` : "Out of stock"}
+                          </span>
+                          {attributesSummary && (
+                            <span className={`mt-1 text-xs ${isSelected ? "text-white/80" : "text-[#7b5a3b]/80"}`}>
+                              {attributesSummary}
+                            </span>
+                          )}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-4">
                   <span className="text-lg font-semibold text-[#5c3d28]">Quantity:</span>
@@ -430,10 +964,23 @@ const ProductDetails = () => {
                     <Button 
                       onClick={() => handleQuantityChange(1)}
                       className="w-10 h-10 rounded-full border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200"
+                      disabled={availableQuantity > 0 && quantity >= availableQuantity}
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
+                </div>
+                <div className="mt-2">
+                  {availableQuantity > 0 ? (
+                    <span className="text-sm text-[#7b5a3b]">
+                      {availableQuantity} item(s) available
+                      {selectedVariation?.sku && (
+                        <span className="ml-2 text-xs text-[#5c3d28]/80">SKU: {selectedVariation.sku}</span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-red-600">Currently out of stock</span>
+                  )}
                 </div>
               </div>
 
@@ -442,23 +989,32 @@ const ProductDetails = () => {
                 <Button 
                   variant="outline" 
                   onClick={handleFavoriteClick}
-                  className="flex-1 border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200 py-2 text-sm"
+                  className="flex-1 border-2 border-[#d5bfae] bg-white text-[#5c3d28] hover:border-[#a4785a] hover:bg-[#f5f0eb] hover:shadow-md transition-all duration-200 py-2 text-sm"
                 >
                   <Heart
-                    className={`w-4 h-4 mr-2 ${
-                      isFavorited ? "text-red-500 fill-current" : ""
+                    className={`w-4 h-4 mr-2 transition-colors duration-200 ${
+                      isFavorited 
+                        ? "text-red-500 fill-current" 
+                        : "text-[#5c3d28]"
                     }`}
                   />
-                  {isFavorited ? "Favorited" : "Add to Favorites"}
+                  <span className="text-[#5c3d28]">{isFavorited ? "Favorited" : "Add to Favorites"}</span>
                 </Button>
                 
                 <Button
                   variant="outline"
-                  onClick={() => navigate("/messages")}
-                  className="flex-1 border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200 py-2 text-sm"
+                  onClick={() => {
+                    const token = sessionStorage.getItem("auth_token");
+                    if (!token) {
+                      setShowLoginModal(true);
+                      return;
+                    }
+                    setShowMessageSeller(true);
+                  }}
+                  className="flex-1 border-2 border-[#d5bfae] bg-white text-[#5c3d28] hover:border-[#a4785a] hover:bg-[#f5f0eb] hover:shadow-md transition-all duration-200 py-2 text-sm"
                 >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Message Seller
+                  <MessageCircle className="w-4 h-4 mr-2 text-[#5c3d28] transition-colors duration-200" />
+                  <span className="text-[#5c3d28]">Message Seller</span>
                 </Button>
               </div>
 
@@ -466,18 +1022,15 @@ const ProductDetails = () => {
               <div className="flex gap-3 mt-3">
                 <Button
                   onClick={handleAddToCart}
-                  className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-bold py-8 text-2xl shadow-lg hover:shadow-xl transition-all duration-200"
-                  disabled={addingToCart}
+                  className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-bold py-8 text-2xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={addingToCart || availableQuantity <= 0}
                 >
                   <ShoppingCart className="w-8 h-8 mr-4" />
-                  Add to Cart
+                  {availableQuantity <= 0 ? "Out of Stock" : "Add to Cart"}
                 </Button>
                 
                 <Button
-                  onClick={() => {
-                    // Buy now logic - navigate to checkout
-                    navigate("/checkout", { state: { product, quantity } });
-                  }}
+                  onClick={handleBuyNow}
                   style={{ backgroundColor: '#E27D60', color: 'white' }}
                   className="flex-1 hover:bg-[#d16a4f] font-bold py-8 text-2xl shadow-lg hover:shadow-xl transition-all duration-200"
                 >
@@ -547,9 +1100,54 @@ const ProductDetails = () => {
                             </Badge>
                           </div>
                           {review.comment && (
-                            <p className="text-[#7b5a3b] text-sm leading-relaxed">
+                            <p className="text-[#7b5a3b] text-sm leading-relaxed mb-3">
                               "{review.comment}"
                             </p>
+                          )}
+                          
+                          {/* Review Images */}
+                          {review.images && Array.isArray(review.images) && review.images.length > 0 && (
+                            <div className="mt-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <ImageIcon className="h-4 w-4 text-[#7b5a3b]" />
+                                <span className="text-xs font-semibold text-[#7b5a3b]">
+                                  {review.images.length} {review.images.length === 1 ? 'Image' : 'Images'}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                {review.images.map((img, idx) => (
+                                  <div key={idx} className="relative group">
+                                    <img
+                                      src={fixImageUrl(img)}
+                                      alt={`Review image ${idx + 1}`}
+                                      className="w-full h-24 object-cover rounded-lg border-2 border-[#d5bfae] cursor-pointer hover:border-[#a4785a] transition-all"
+                                      onClick={() => {
+                                        setSelectedMedia({ type: "image", src: fixImageUrl(img) });
+                                        setCurrentImageIndex(idx);
+                                        setAllImages(review.images.map(i => fixImageUrl(i)));
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Review Video */}
+                          {review.video_path && (
+                            <div className="mt-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <VideoIcon className="h-4 w-4 text-[#7b5a3b]" />
+                                <span className="text-xs font-semibold text-[#7b5a3b]">Video</span>
+                              </div>
+                              <video
+                                src={fixImageUrl(review.video_path)}
+                                controls
+                                className="w-full max-w-md rounded-lg border-2 border-[#d5bfae]"
+                              >
+                                Your browser does not support the video tag.
+                              </video>
+                            </div>
                           )}
                         </CardContent>
                       </Card>
@@ -674,6 +1272,35 @@ const ProductDetails = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Related Products Section */}
+      <RelatedProductsSection productId={id} />
+
+      {/* Message Seller Popup */}
+      {showMessageSeller && product && (
+        <MessengerPopup
+          isOpen={showMessageSeller}
+          onClose={() => setShowMessageSeller(false)}
+          sellerId={product.seller?.sellerID || product.seller?.id || product.seller_id}
+          sellerUserId={product.seller?.user_id || product.seller?.user?.userID}
+          sellerName={product.seller?.store?.store_name || product.seller?.businessName || product.seller?.user?.userName || 'Seller'}
+          sellerAvatar={product.seller?.store?.logo_url || product.seller?.logo_url}
+          productInfo={{
+            productName: product.productName,
+            productPrice: product.productPrice,
+            productImage: fixImageUrl(product.productImage),
+            productId: product.id
+          }}
+          initialMessage={
+            product
+              ? `Hello! I'm interested in customizing the product "${product.productName}${
+                  selectedVariationPayload ? ` - ${selectedVariationPayload.label}` : ""
+                }". Could you please provide more details about customization options?`
+              : null
+          }
+          defaultMessageType="product_customize"
+        />
       )}
     </div>
   );

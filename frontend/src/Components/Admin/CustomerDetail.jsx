@@ -59,83 +59,61 @@ const CustomerDetail = ({ customerId, isOpen, onClose, onEdit }) => {
     }
   };
 
-  if (loading) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-[120vw] bg-white border-2 border-[#d5bfae] rounded-xl shadow-2xl">
-          <DialogHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-t-xl p-6 border-b border-[#e5ddd4]">
-            <DialogTitle className="text-2xl font-bold text-[#5c3d28] flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
-                <User className="h-4 w-4 text-white" />
-              </div>
-              Customer Details
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#a4785a] mx-auto"></div>
-              <p className="mt-4 text-[#7b5a3b] text-lg">Loading customer details...</p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const renderLoadingState = () => (
+    <div className="flex flex-1 items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#a4785a] mx-auto"></div>
+        <p className="mt-4 text-[#7b5a3b] text-lg">Loading customer details...</p>
+      </div>
+    </div>
+  );
 
-  if (error) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-[120vw] bg-white border-2 border-[#d5bfae] rounded-xl shadow-2xl">
-          <DialogHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-t-xl p-6 border-b border-[#e5ddd4]">
-            <DialogTitle className="text-2xl font-bold text-[#5c3d28] flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
-                <User className="h-4 w-4 text-white" />
-              </div>
-              Customer Details
-            </DialogTitle>
-          </DialogHeader>
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <X className="h-8 w-8 text-red-600" />
-            </div>
-            <p className="text-red-600 text-lg mb-6">Error loading customer details: {error}</p>
-            <Button 
-              onClick={fetchCustomerDetails} 
-              className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white px-6 py-3 rounded-lg shadow-md transition-all"
-            >
-              Try Again
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const renderErrorState = () => (
+    <div className="flex flex-1 items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <X className="h-8 w-8 text-red-600" />
+        </div>
+        <p className="text-red-600 text-lg mb-6">Error loading customer details: {error}</p>
+        <Button 
+          onClick={fetchCustomerDetails} 
+          className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white px-6 py-3 rounded-lg shadow-md transition-all"
+        >
+          Try Again
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[120vw] max-h-[90vh] overflow-y-auto bg-white border-2 border-[#d5bfae] rounded-xl shadow-2xl mt-10">
-        <DialogHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-t-xl p-6 border-b border-[#e5ddd4]">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl font-bold text-[#5c3d28] flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
-                <User className="h-4 w-4 text-white" />
-              </div>
-              Customer Details
-            </DialogTitle>
-            <div className="flex gap-3">
-              <Button 
-                onClick={() => onEdit(customer)} 
-                className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white px-4 py-2 rounded-lg shadow-md transition-all"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Customer
-              </Button>
+      <DialogContent className="w-screen h-screen max-w-none max-h-none left-0 top-0 translate-x-0 translate-y-0 rounded-none border-none p-0 bg-white">
+        <div className="flex flex-col h-full">
+          <DialogHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] px-8 py-6 border-b border-[#e5ddd4]">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-3xl font-bold text-[#5c3d28] flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                Customer Details
+              </DialogTitle>
+              {customer && (
+                <Button 
+                  onClick={() => onEdit(customer)} 
+                  className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white px-4 py-2 rounded-lg shadow-md transition-all"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Customer
+                </Button>
+              )}
             </div>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
-        {customer && (
-          <div className="p-6 space-y-8">
+          <div className="flex-1 overflow-y-auto px-8 py-8 bg-white">
+            {loading && renderLoadingState()}
+            {error && !loading && renderErrorState()}
+            {customer && !loading && !error && (
+              <div className="space-y-8">
             {/* Profile Header */}
             <div className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] rounded-xl p-6 border border-[#e5ddd4]">
               <div className="flex items-center gap-6">
@@ -249,8 +227,10 @@ const CustomerDetail = ({ customerId, isOpen, onClose, onEdit }) => {
                 </div>
               </CardContent>
             </Card>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </DialogContent>
     </Dialog>
   );

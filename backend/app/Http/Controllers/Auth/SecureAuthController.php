@@ -31,6 +31,8 @@ class SecureAuthController extends Controller
 
     /**
      * Enhanced login with httpOnly cookies and token refresh
+     * Includes brute force protection: 5 failed attempts = lockout
+     * Lockout durations: 1st = 5 min, 2nd = 15 min, 3rd+ = 30 min
      */
     public function login(Request $request)
     {
@@ -39,13 +41,83 @@ class SecureAuthController extends Controller
             'userPassword' => ['required'],
         ]);
 
-        // Check if user exists and password is correct
+        // Check if user exists
         $user = User::where('userEmail', $credentials['userEmail'])->first();
         
-        if (!$user || !Hash::check($credentials['userPassword'], $user->userPassword)) {
+        // Check if account is locked due to brute force protection
+        if ($user && $user->locked_until && Carbon::now()->lessThan($user->locked_until)) {
+            $minutesRemaining = Carbon::now()->diffInMinutes($user->locked_until) + 1;
             return response()->json([
-                'message' => 'Invalid credentials'
+                'message' => "Account locked due to multiple failed login attempts. Please try again in {$minutesRemaining} minute(s).",
+                'locked' => true,
+                'locked_until' => $user->locked_until->toISOString(),
+                'minutes_remaining' => $minutesRemaining
+            ], 423); // 423 Locked status code
+        }
+
+        // Check if user exists and password is correct
+        if (!$user || !Hash::check($credentials['userPassword'], $user->userPassword)) {
+            // Increment failed login attempts if user exists
+            if ($user) {
+                $lockoutThresholds = [5, 5, 5];
+                $lockoutDurations = [5, 15, 30]; // minutes corresponding to thresholds
+
+                $currentLockCount = (int) ($user->lockout_count ?? 0);
+                $thresholdIndex = min($currentLockCount, count($lockoutThresholds) - 1);
+                $currentThreshold = $lockoutThresholds[$thresholdIndex];
+
+                $user->failed_login_attempts = ($user->failed_login_attempts ?? 0) + 1;
+
+                if ($user->failed_login_attempts >= $currentThreshold) {
+                    $nextLockCount = $currentLockCount + 1;
+                    $nextLockIndex = min($nextLockCount, count($lockoutDurations) - 1);
+                    $lockoutMinutes = $lockoutDurations[$thresholdIndex];
+
+                    $user->locked_until = Carbon::now()->addMinutes($lockoutMinutes);
+                    $user->lockout_count = $nextLockCount;
+                    // Reset failed attempts after applying lock so the next stage relies on fresh consecutive attempts
+                    $user->failed_login_attempts = 0;
+                    $user->save();
+
+                    Log::warning('Account locked due to brute force', [
+                        'user_id' => $user->userID,
+                        'email' => $user->userEmail,
+                        'lockout_count' => $user->lockout_count,
+                        'locked_until' => $user->locked_until,
+                        'failed_attempts' => $user->failed_login_attempts,
+                    ]);
+
+                    return response()->json([
+                        'message' => "Account locked due to multiple failed login attempts. Please try again in {$lockoutMinutes} minute(s).",
+                        'locked' => true,
+                        'locked_until' => $user->locked_until->toISOString(),
+                        'minutes_remaining' => $lockoutMinutes,
+                        'attempts_remaining' => 0
+                    ], 423);
+                } else {
+                    $user->save();
+                    $attemptsRemaining = max($currentThreshold - $user->failed_login_attempts, 0);
+
+                    return response()->json([
+                        'message' => 'Invalid credentials',
+                        'attempts_remaining' => $attemptsRemaining,
+                        'locked' => false
+                    ], 401);
+                }
+            }
+
+            return response()->json([
+                'message' => 'Invalid credentials',
+                'locked' => false
             ], 401);
+        }
+
+        // Successful login - reset failed attempts and unlock account
+        if ($user->failed_login_attempts > 0 || $user->locked_until) {
+            $user->failed_login_attempts = 0;
+            $user->locked_until = null;
+            // Don't reset lockout_count - keep it for tracking
+            $user->save();
         }
 
         if (!$user->is_verified) {

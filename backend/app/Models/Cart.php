@@ -15,7 +15,17 @@ class Cart extends Model
     protected $fillable = [
         'userID',
         'product_id',
+        'variation_id',
+        'variation_label',
+        'variation_attributes',
+        'sku',
         'quantity',
+        'unit_price',
+    ];
+
+    protected $casts = [
+        'variation_attributes' => 'array',
+        'unit_price' => 'decimal:2',
     ];
 
     public function user()

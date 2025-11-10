@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { X, Plus, Upload, Video as VideoIcon, Image as ImageIcon, Check } from 'lucide-react';
 import api from '../../api';
 
@@ -11,11 +11,22 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
   const [apiCategories, setApiCategories] = useState([]);
   const [mainImage, setMainImage] = useState({ file: null, preview: null });
   const [additionalImages, setAdditionalImages] = useState(Array(5).fill({ file: null, preview: null }));
+  const [mainImageIndex, setMainImageIndex] = useState(0); // Track which image is main (0 = main image, -1 = none set)
   const [video, setVideo] = useState({ file: null, preview: null });
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
   // const [shippingClass, setShippingClass] = useState('standard');
   const [publishStatus, setPublishStatus] = useState('draft');
+  const [hasVariations, setHasVariations] = useState(false);
+  const [variations, setVariations] = useState([]); // Array of {label: '', quantity: '', price: ''}
+
+  const totalVariationQuantity = useMemo(() => {
+    if (!hasVariations || variations.length === 0) return 0;
+    return variations.reduce((sum, variation) => {
+      const qty = parseInt(variation.quantity, 10);
+      return sum + (isNaN(qty) ? 0 : qty);
+    }, 0);
+  }, [hasVariations, variations]);
 
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
@@ -33,10 +44,27 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
     setTags([]);
     setTagInput('');
     setPublishStatus('draft');
+    setMainImageIndex(0);
+    setHasVariations(false);
+    setVariations([]);
     // Clear file inputs if any were opened
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (videoInputRef.current) videoInputRef.current.value = '';
     additionalImageRefs.current.forEach(ref => { if (ref.current) ref.current.value = ''; });
+  };
+  
+  const handleAddVariation = () => {
+    setVariations([...variations, { label: '', quantity: '', price: '' }]);
+  };
+  
+  const handleRemoveVariation = (index) => {
+    setVariations(variations.filter((_, i) => i !== index));
+  };
+  
+  const handleVariationChange = (index, field, value) => {
+    const newVariations = [...variations];
+    newVariations[index][field] = value;
+    setVariations(newVariations);
   };
 
   useEffect(() => {
@@ -110,7 +138,16 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
       const newImages = [...additionalImages];
       newImages[index] = { file: file, preview: URL.createObjectURL(file) };
       setAdditionalImages(newImages);
+      // If main image is not set, set this as main
+      if (mainImageIndex === -1 && !mainImage.file) {
+        setMainImageIndex(index + 1); // index + 1 because 0 is reserved for mainImage
+      }
     }
+  };
+
+  const setAsMainImage = (index) => {
+    // index: -1 means mainImage, 0-4 means additionalImages index
+    setMainImageIndex(index);
   };
 
   const handleVideoChange = (e) => {
@@ -149,26 +186,87 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
       return;
     }
     
+    const normalizedBasePrice =
+      hasVariations && totalVariationQuantity > 0
+        ? (variations.reduce((acc, variation) => {
+            if (acc !== null) return acc;
+            const numeric = parseFloat(variation.price);
+            return isNaN(numeric) ? null : numeric;
+          }, null) ?? 0)
+        : parseFloat(price || '0');
+    const normalizedBasePriceValue = Number.isFinite(normalizedBasePrice) ? normalizedBasePrice : 0;
+
     const formData = new FormData();
     formData.append('productName', title);
     formData.append('productDescription', description);
-    formData.append('productPrice', price);
-    formData.append('productQuantity', stock);
+    formData.append('productPrice', normalizedBasePriceValue.toString());
+    
+    // If product has sizes, set quantity to 0 (will be calculated from variations)
+    // Otherwise use the stock input
+    if (hasVariations && totalVariationQuantity > 0) {
+      formData.append('productQuantity', totalVariationQuantity.toString());
+    } else {
+      formData.append('productQuantity', stock);
+    }
+    
     formData.append('category', mainCategory);
     formData.append('status', 'in stock'); // Stock status
     formData.append('publish_status', publishStatus); // Publish status
-
-    // Add main image if exists
-    if (mainImage.file) {
-      formData.append('productImage', mainImage.file);
-    }
     
-    // Add additional images if they exist
-    additionalImages.forEach((image, index) => {
-      if (image.file) {
-        formData.append(`productImages[${index}]`, image.file);
+    // Add size variations if enabled
+    if (hasVariations && variations.length > 0) {
+      variations.forEach((variation, index) => {
+        if (variation.label && variation.quantity) {
+          formData.append(`variations[${index}][label]`, variation.label);
+          formData.append(`variations[${index}][size]`, variation.label);
+          formData.append(`variations[${index}][quantity]`, variation.quantity);
+          if (variation.price) {
+            formData.append(`variations[${index}][price]`, variation.price);
+          }
+        }
+      });
+    }
+
+    // Determine which image is main based on mainImageIndex
+    // -1 = no main set, 0 = mainImage is main, 1-5 = additionalImages[index] is main
+    
+    if (mainImageIndex === 0 && mainImage.file) {
+      // Main image is the main product image
+      formData.append('productImage', mainImage.file);
+      // Add additional images
+      additionalImages.forEach((image, index) => {
+        if (image.file) {
+          formData.append(`productImages[${index}]`, image.file);
+        }
+      });
+    } else if (mainImageIndex > 0 && mainImageIndex <= 5) {
+      // One of the additional images is main
+      const mainIdx = mainImageIndex - 1;
+      if (additionalImages[mainIdx]?.file) {
+        formData.append('productImage', additionalImages[mainIdx].file);
       }
-    });
+      // Add main image as additional if it exists
+      if (mainImage.file) {
+        formData.append(`productImages[0]`, mainImage.file);
+      }
+      // Add other additional images
+      additionalImages.forEach((image, index) => {
+        if (image.file && index !== mainIdx) {
+          formData.append(`productImages[${index}]`, image.file);
+        }
+      });
+    } else {
+      // Fallback: use mainImage if it exists
+      if (mainImage.file) {
+        formData.append('productImage', mainImage.file);
+      }
+      // Add additional images if they exist
+      additionalImages.forEach((image, index) => {
+        if (image.file) {
+          formData.append(`productImages[${index}]`, image.file);
+        }
+      });
+    }
     
     // Add video if exists
     if (video.file) {
@@ -183,11 +281,6 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
     }
   };
 
-  const getSubmitButtonText = () => {
-    if (publishStatus === 'published') return 'Publish Product';
-    if (publishStatus === 'draft') return 'Save as Draft';
-    return 'Add Product';
-  };
 
   // Merge API categories with required static categories for reliability
   const staticCategoryNames = [
@@ -200,7 +293,7 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
     "Shoe & Sandals Making",
     "Leather Crafts",
     "Candle Making",
-    "Wood Carving",
+    "Wood Carving & WoodCraft Artisans",
     "House Garments",
     "Beadwork",
     "Crochet",
@@ -237,13 +330,13 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                 <p className="text-white/80 text-xs sm:text-sm mt-1">Create your handcrafted masterpiece listing</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={onClose}
-              className="bg-white text-[#7b5a3b] hover:text-[#5c3d28] rounded-lg sm:rounded-xl p-1.5 sm:p-2 shadow-md hover:shadow-lg transition-all duration-200"
+              className="bg-white text-black rounded-lg sm:rounded-xl p-1.5 sm:p-2 shadow-md transition-all duration-200"
               aria-label="Close modal"
               type="button"
             >
-              <X size={24} className="sm:w-7 sm:h-7" />
+              <X className="sm:w-7 sm:h-7" strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -324,7 +417,7 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                     <div>
                       <label className="block text-xs sm:text-sm font-bold text-[#5c3d28] mb-2">
-                        Price (₱) <span className="text-red-500">*</span>
+                        Base Price (₱) {hasVariations && totalVariationQuantity > 0 ? '' : <span className="text-red-500">*</span>}
                       </label>
                       <div className="relative">
                         <span className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-[#a4785a] font-bold text-base sm:text-lg">₱</span>
@@ -332,14 +425,19 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                           type="number"
                           min="0"
                           step="0.01"
-                          className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 text-sm sm:text-base md:text-lg border-2 border-[#e5ded7] rounded-lg sm:rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-semibold"
+                          className={`w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 text-sm sm:text-base md:text-lg border-2 border-[#e5ded7] rounded-lg sm:rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 text-[#5c3d28] font-semibold ${hasVariations && variations.length > 0 ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
                           placeholder="0.00"
                           value={price}
                           onChange={(e) => setPrice(e.target.value)}
-                          required
+                          disabled={hasVariations && totalVariationQuantity > 0}
+                          required={!hasVariations || totalVariationQuantity === 0}
                         />
                       </div>
-                      <p className="text-xs text-[#7b5a3b] mt-2">💰 Set a fair price for your craft</p>
+                      <p className="text-xs text-[#7b5a3b] mt-2">
+                        {hasVariations && totalVariationQuantity > 0
+                          ? '💡 Variation-level prices will be used instead of this base price.'
+                          : '💰 Set a fair price for your craft'}
+                      </p>
                     </div>
                     <div>
                       <label className="block text-xs sm:text-sm font-bold text-[#5c3d28] mb-2">
@@ -348,15 +446,124 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                       <input
                         type="number"
                         min="0"
-                        className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base md:text-lg border-2 border-[#e5ded7] rounded-lg sm:rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 bg-white text-[#5c3d28] font-semibold"
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base md:text-lg border-2 border-[#e5ded7] rounded-lg sm:rounded-xl focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] transition-all duration-200 text-[#5c3d28] font-semibold ${hasVariations ? 'bg-gray-100 cursor-not-allowed text-gray-500' : 'bg-white'}`}
                         placeholder="Available units"
-                        value={stock}
-                        onChange={(e) => setStock(e.target.value)}
-                        required
+                        value={hasVariations ? (totalVariationQuantity || '') : stock}
+                        onChange={(e) => {
+                          if (!hasVariations) {
+                            setStock(e.target.value);
+                          }
+                        }}
+                        required={!hasVariations || totalVariationQuantity === 0}
+                        disabled={hasVariations}
                       />
-                      <p className="text-xs text-[#7b5a3b] mt-2">📦 How many items do you have?</p>
+                      <p className="text-xs text-[#7b5a3b] mt-2">
+                {hasVariations && totalVariationQuantity > 0
+                  ? `📦 Total stock from variations: ${totalVariationQuantity}`
+                  : hasVariations
+                  ? '📦 Stock managed by options below'
+                  : '📦 How many items do you have?'}
+                      </p>
                     </div>
                   </div>
+                  
+                  {/* Size Variations Toggle */}
+                  <div className="mb-4 sm:mb-6">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={hasVariations}
+                        onChange={(e) => {
+                          setHasVariations(e.target.checked);
+                          if (!e.target.checked) {
+                            setVariations([]);
+                          } else if (variations.length === 0) {
+                            setVariations([{ label: '', quantity: '', price: '' }]);
+                          }
+                        }}
+                        className="w-5 h-5 text-[#a4785a] border-2 border-[#e5ded7] rounded focus:ring-2 focus:ring-[#a4785a]"
+                      />
+                      <span className="text-sm sm:text-base font-semibold text-[#5c3d28]">
+                        This product has different options (e.g., size, color, style)
+                      </span>
+                    </label>
+                  </div>
+                  
+                  {/* Size Variations */}
+                  {hasVariations && (
+                    <div className="mb-4 sm:mb-6 bg-gradient-to-br from-[#faf9f8] to-white rounded-lg sm:rounded-xl border-2 border-[#e5ded7] p-4 sm:p-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-base sm:text-lg font-bold text-[#5c3d28]">Variation Options</h4>
+                        <button
+                          type="button"
+                          onClick={handleAddVariation}
+                          className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-xs sm:text-sm font-semibold rounded-lg hover:from-[#8f674a] hover:to-[#6a4c34] transition-all duration-200 flex items-center gap-2"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add Size
+                        </button>
+                      </div>
+                      
+                      {variations.length === 0 ? (
+                        <p className="text-sm text-[#7b5a3b] text-center py-4">No options added. Click "Add Option" to create variations.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {variations.map((variation, index) => (
+                            <div key={index} className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 items-end bg-white p-3 rounded-lg border border-[#e5ded7]">
+                              <div className="sm:col-span-3">
+                                <label className="block text-xs font-semibold text-[#5c3d28] mb-1">Option Label</label>
+                                <input
+                                  type="text"
+                                  className="w-full px-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] bg-white text-[#5c3d28]"
+                                  placeholder="e.g., Large, Red, Men's"
+                                  value={variation.label}
+                                  onChange={(e) => handleVariationChange(index, 'label', e.target.value)}
+                                  required
+                                />
+                              </div>
+                              <div className="sm:col-span-3">
+                                <label className="block text-xs font-semibold text-[#5c3d28] mb-1">Quantity</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  className="w-full px-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] bg-white text-[#5c3d28]"
+                                  placeholder="Qty"
+                                  value={variation.quantity}
+                                  onChange={(e) => handleVariationChange(index, 'quantity', e.target.value)}
+                                  required
+                                />
+                              </div>
+                              <div className="sm:col-span-4">
+                                <label className="block text-xs font-semibold text-[#5c3d28] mb-1">Price (Optional)</label>
+                                <div className="relative">
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[#a4785a] text-xs">₱</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className="w-full pl-6 pr-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] bg-white text-[#5c3d28]"
+                                    placeholder="Same as base"
+                                    value={variation.price}
+                                    onChange={(e) => handleVariationChange(index, 'price', e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                              <div className="sm:col-span-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveVariation(index)}
+                                  className="w-full px-3 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition-all duration-200 flex items-center justify-center gap-1"
+                                >
+                                  <X className="h-4 w-4" />
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                 </div>
                 
@@ -385,9 +592,26 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                             alt="Main product display" 
                             className="mx-auto mb-3 sm:mb-4 rounded-lg sm:rounded-xl max-h-48 sm:max-h-56 md:max-h-64 object-cover shadow-lg border-4 border-[#e5ded7]"
                           />
-                          <div className="absolute top-2 right-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white px-2 sm:px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                            MAIN IMAGE
-                          </div>
+                          {mainImageIndex === 0 && (
+                            <div className="absolute top-2 left-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white px-2 sm:px-3 py-1 rounded-full text-xs font-bold shadow-lg z-10">
+                              MAIN IMAGE
+                            </div>
+                          )}
+                          {mainImageIndex !== 0 && (
+                            <div className="absolute top-2 right-2 z-10">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setAsMainImage(0);
+                                }}
+                                className="rounded-full p-1.5 sm:p-2 text-base sm:text-lg font-bold shadow-xl transition-all duration-200 hover:scale-110 bg-white/95 text-[#a4785a] opacity-100 hover:bg-white hover:text-[#7b5a3b] border-2 border-[#a4785a]"
+                                title="Set as main image"
+                              >
+                                ☆
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <>
@@ -427,18 +651,45 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                                 alt={`Additional view ${index + 1}`}
                                 className="w-full h-full object-cover rounded-md sm:rounded-lg shadow-md"
                               />
-                              <button
-                                type="button"
-                                className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs sm:text-sm shadow-lg hover:scale-110 transition-transform duration-200"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const newImages = [...additionalImages];
-                                  newImages[index] = { file: null, preview: null };
-                                  setAdditionalImages(newImages);
-                                }}
-                              >
-                                ×
-                              </button>
+                              {mainImageIndex === index + 1 && (
+                                <div className="absolute top-1 left-1 sm:top-2 sm:left-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-bold shadow-lg z-10">
+                                  MAIN
+                                </div>
+                              )}
+                              <div className="absolute top-1 right-1 sm:top-2 sm:right-2 flex gap-1 z-10">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAsMainImage(index + 1);
+                                  }}
+                                  className={`rounded-full p-1.5 sm:p-2 text-base sm:text-lg font-bold shadow-xl transition-all duration-200 hover:scale-110 ${
+                                    mainImageIndex === index + 1
+                                      ? 'bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white opacity-100 scale-110' 
+                                      : 'bg-white/95 text-[#a4785a] opacity-100 hover:bg-white hover:text-[#7b5a3b] border-2 border-[#a4785a]'
+                                  }`}
+                                  title="Set as main image"
+                                >
+                                  {mainImageIndex === index + 1 ? '★' : '☆'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full p-1 sm:p-1.5 hover:scale-110 opacity-100 transition-all duration-200 shadow-xl"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const newImages = [...additionalImages];
+                                    newImages[index] = { file: null, preview: null };
+                                    setAdditionalImages(newImages);
+                                    // If this was the main image, reset main image index
+                                    if (mainImageIndex === index + 1) {
+                                      setMainImageIndex(-1);
+                                    }
+                                  }}
+                                  title="Remove image"
+                                >
+                                  <X className="h-3 w-3 sm:h-4 sm:w-4" />
+                                </button>
+                              </div>
                             </>
                           ) : (
                             <div className="text-[#a4785a] group-hover:scale-110 transition-transform duration-300">
@@ -456,7 +707,7 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                         </div>
                       ))}
                     </div>
-                    <p className="text-xs text-[#7b5a3b] mt-2 sm:mt-3">📸 Show your product from different angles</p>
+                    <p className="text-xs text-[#7b5a3b] mt-2 sm:mt-3">📸 Click ★ to set main image • Click × to remove</p>
                   </div>
                 </div>
 
@@ -563,11 +814,11 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                           {tag}
                           <button
                             type="button"
-                            className="bg-white text-[#7b5a3b] rounded-full p-0.5 transition-colors duration-200 hover:bg-[#fff4ea] shadow"
+                            className="bg-white/30 hover:bg-white/50 rounded-full p-0.5 sm:p-1 transition-colors duration-200 ml-0.5 flex items-center justify-center"
                             onClick={() => removeTag(tag)}
                             aria-label={`Remove tag ${tag}`}
                           >
-                            <X size={12} className="sm:w-3.5 sm:h-3.5" />
+                            <X size={14} className="sm:w-4 sm:h-4 text-white" />
                           </button>
                         </span>
                       )) : (

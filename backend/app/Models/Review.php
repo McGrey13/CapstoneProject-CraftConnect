@@ -16,12 +16,18 @@ class Review extends Model
         'product_id',
         'rating',
         'comment',
-        'review_date'
+        'review_date',
+        'images',
+        'video_path',
+        'is_flagged',
+        'flag_reason'
     ];
 
     protected $casts = [
         'review_date' => 'datetime',
-        'rating' => 'integer'
+        'rating' => 'integer',
+        'images' => 'array',
+        'is_flagged' => 'boolean'
     ];
 
     /**

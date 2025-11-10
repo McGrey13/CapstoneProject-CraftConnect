@@ -1,19 +1,153 @@
 import React, { useState } from "react";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
+import { Badge } from "../ui/badge";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "./CartContext";
 import { useUser } from "../Context/UserContext";
-import { Loader2, ShoppingBag, MapPin, User, X } from "lucide-react";
+import {
+  Loader2,
+  ShoppingBag,
+  MapPin,
+  User,
+  X,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+} from "lucide-react";
 import api from "../../api";
+
+// J&T Express Shipping Rates (Reference: https://philnews.ph/2023/09/04/jt-express-rates-list-shipping-fees-package-weight/)
+const JNT_RATES = {
+  "Metro Manila": {
+    "Metro Manila": [85, 115, 155, 225, 305, 455],
+    "Luzon": [95, 165, 190, 280, 370, 465],
+    "Visayas": [100, 180, 200, 300, 400, 500],
+    "Mindanao": [105, 195, 220, 330, 440, 550],
+    "Island": [115, 205, 230, 340, 450, 560],
+  },
+  "Luzon": {
+    "Luzon": [85, 155, 180, 270, 360, 455],
+    "Metro Manila": [95, 165, 190, 280, 370, 465],
+    "Visayas": [100, 180, 200, 300, 400, 500],
+    "Mindanao": [105, 195, 220, 330, 440, 550],
+    "Island": [115, 205, 230, 340, 450, 560],
+  },
+  "Visayas": {
+    "Visayas": [85, 155, 180, 270, 360, 455],
+    "Metro Manila": [100, 180, 200, 300, 400, 500],
+    "Luzon": [100, 180, 200, 300, 400, 500],
+    "Mindanao": [105, 175, 200, 290, 380, 475],
+    "Island": [115, 185, 210, 300, 390, 485],
+  },
+  "Mindanao": {
+    "Mindanao": [85, 155, 180, 270, 360, 455],
+    "Luzon": [105, 195, 215, 325, 435, 545],
+    "Metro Manila": [105, 195, 215, 325, 435, 545],
+    "Visayas": [105, 175, 195, 285, 375, 470],
+    "Island": [115, 205, 230, 340, 450, 560],
+  },
+  "Island": {
+    "Island": [115, 205, 230, 340, 450, 560],
+    "Metro Manila": [115, 205, 230, 340, 450, 560],
+    "Luzon": [115, 205, 230, 340, 450, 560],
+    "Visayas": [115, 185, 210, 300, 390, 485],
+    "Mindanao": [115, 205, 230, 340, 450, 560],
+  },
+};
+
+// Weight brackets: [500g and below, 500g-1kg, 1kg-3kg, 3kg-4kg, 4kg-5kg, 5kg-6kg]
+const WEIGHT_BRACKETS = [0.5, 1, 3, 4, 5, 6];
+
+// Calculate J&T Express shipping fee
+const calculateJNTShipping = (totalWeightKg, origin = "Metro Manila", destination = "Luzon") => {
+  if (totalWeightKg <= 0) return 0;
+  
+  // Get the appropriate rate table
+  const rateTable = JNT_RATES[origin] || JNT_RATES["Metro Manila"];
+  const rates = rateTable[destination] || rateTable["Luzon"];
+  
+  // Determine weight bracket index
+  let bracketIndex = 0;
+  for (let i = 0; i < WEIGHT_BRACKETS.length; i++) {
+    if (totalWeightKg <= WEIGHT_BRACKETS[i]) {
+      bracketIndex = i;
+      break;
+    }
+  }
+  
+  // If weight exceeds 6kg, use the highest rate (6kg rate) as base and add extra
+  if (totalWeightKg > 6) {
+    const baseRate = rates[rates.length - 1];
+    const extraWeight = totalWeightKg - 6;
+    const extraKilos = Math.ceil(extraWeight);
+    // Add approximately 100-150 per extra kg beyond 6kg
+    return baseRate + (extraKilos * 120);
+  }
+  
+  return rates[bracketIndex] || rates[0];
+};
+
+// Default weight per item in kg
+const AVERAGE_ITEM_WEIGHT_KG = 0.5; // 500g per item
+
+const normalizeVariationAttributes = (attributes) => {
+  if (!attributes) return [];
+  let resolved = attributes;
+  if (typeof resolved === "string") {
+    try {
+      resolved = JSON.parse(resolved);
+    } catch {
+      return [];
+    }
+  }
+  if (Array.isArray(resolved)) {
+    return resolved
+      .map((attr, index) => {
+        if (typeof attr === "string") {
+          return { id: `attr-${index}`, label: attr, value: attr };
+        }
+        if (attr && typeof attr === "object") {
+          return {
+            id: attr.id ?? `attr-${index}`,
+            label: attr.label ?? attr.name ?? `Option ${index + 1}`,
+            value: attr.value ?? attr.label ?? attr.name ?? "",
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }
+  if (resolved && typeof resolved === "object") {
+    return Object.entries(resolved).map(([key, value], index) => ({
+      id: `attr-${index}`,
+      label: key,
+      value,
+    }));
+  }
+  return [];
+};
 
 const Checkout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { checkout } = useCart();
   const { user } = useUser();
-  const { cartItems = [], subtotal = 0, shipping = 0, tax = 0 } =
+  const { cartItems = [], subtotal = 0, shipping: initialShipping = 0, totalWeightKg: initialTotalWeightKg } =
     location.state || {};
+
+  // Calculate total weight in kg (estimate: 0.5kg per item × quantity)
+  const totalWeightKg = cartItems.reduce(
+    (sum, item) => sum + (AVERAGE_ITEM_WEIGHT_KG * item.quantity),
+    0
+  ) || initialTotalWeightKg || 0;
+
+  // Calculate J&T Express shipping (use calculated if no initial shipping, otherwise use initial)
+  // Default origin: Metro Manila, destination: Luzon
+  // TODO: Get actual origin from seller location and destination from user address
+  const shipping = cartItems.length > 0 
+    ? (initialShipping > 0 ? initialShipping : calculateJNTShipping(totalWeightKg, "Metro Manila", "Luzon"))
+    : 0;
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,6 +158,12 @@ const Checkout = () => {
   const [applyingDiscount, setApplyingDiscount] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState(null);
   const [discountError, setDiscountError] = useState('');
+  const [redirectNotice, setRedirectNotice] = useState({
+    show: false,
+    title: '',
+    message: '',
+    status: 'info',
+  });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -124,13 +264,25 @@ const Checkout = () => {
     setDiscountError('');
   };
 
-  // Calculate totals with discount
+  const showRedirectNotice = (title, message, status = 'info') => {
+    setRedirectNotice({ show: true, title, message, status });
+  };
+
+  const hideRedirectNotice = () => {
+    setRedirectNotice((prev) => ({ ...prev, show: false }));
+  };
+
+  // Calculate totals with discount (no tax)
   const finalSubtotal = subtotal - (appliedDiscount ? appliedDiscount.amount : 0);
-  const finalTotal = finalSubtotal + shipping + tax;
+  const finalTotal = finalSubtotal + shipping;
 
   const handlePlaceOrder = async () => {
     if (!user?.userName || !user?.userAddress || !user?.userCity || !user?.userPostalCode) {
-      alert('Please complete your profile information (name, address, city, and postal code) before placing an order.');
+      showRedirectNotice(
+        'Profile Incomplete',
+        'Please update your profile with your name, address, city, and postal code before placing an order.',
+        'warning'
+      );
       navigate('/profile');
       return;
     }
@@ -152,30 +304,44 @@ const Checkout = () => {
       // For online payments (GCash/PayMaya), the CartContext handles PayMongo redirect
       if (formData.paymentMethod === "gcash" || formData.paymentMethod === "paymaya") {
         if (result.redirect) {
-          // Show user that they're being redirected to PayMongo
           console.log(`Redirecting to ${formData.paymentMethod.toUpperCase()} payment via PayMongo...`);
           console.log('Checkout URL:', result.checkout_url);
-          
-          // Show a more informative message
-          alert(`Order created successfully! Redirecting to ${formData.paymentMethod.toUpperCase()} payment via PayMongo. Please complete your payment to confirm your order.`);
-          
-          // The redirect is handled by CartContext
+
+          showRedirectNotice(
+            `Redirecting to ${formData.paymentMethod.toUpperCase()}`,
+            'Please complete your payment in the secure window that will open next.',
+            'info'
+          );
+
+          setTimeout(() => {
+            window.location.href = result.checkout_url;
+          }, 1200);
+
           return;
-        } else {
-          console.error('Payment redirect failed:', result);
-          throw new Error(result.error || "Failed to initiate payment");
         }
+
+        console.error('Payment redirect failed:', result);
+        throw new Error(result.error || "Failed to initiate payment");
       }
 
       // For COD payments
       if (formData.paymentMethod === "cod") {
-        alert('Order created successfully! You will pay cash on delivery. Please wait for our delivery confirmation.');
+        showRedirectNotice(
+          'Order Placed Successfully',
+          'Cash on Delivery selected. Please await confirmation from the seller.',
+          'success'
+        );
+        setTimeout(() => hideRedirectNotice(), 4000);
         navigate('/orders');
         return;
       }
     } catch (error) {
       console.error("Checkout failed:", error);
-      alert(error.message || 'Failed to place order. Please try again.');
+      showRedirectNotice(
+        'Checkout Failed',
+        error.message || 'Failed to place order. Please try again.',
+        'error'
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -183,51 +349,59 @@ const Checkout = () => {
 
   if (!cartItems || cartItems.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col bg-white py-8 px-4">
-        <div className="container mx-auto max-w-3xl text-center">
-          <ShoppingBag className="mx-auto h-24 w-24 text-[#d5bfae] mb-4" />
-          <h1 className="text-2xl font-semibold text-[#5c3d28] mb-2">
-            Your cart is empty
-          </h1>
-          <p className="text-[#7b5a3b] mb-6">
-            Please add items to your cart before proceeding to checkout.
-          </p>
-          <Button 
-            onClick={() => navigate('/cart')}
-            className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white"
-          >
-            Go to Cart
-          </Button>
+      <>
+        <RedirectNotice notice={redirectNotice} onClose={hideRedirectNotice} />
+        <div className="min-h-screen flex flex-col bg-white py-8 px-4">
+          <div className="container mx-auto max-w-3xl text-center">
+            <ShoppingBag className="mx-auto h-24 w-24 text-[#d5bfae] mb-4" />
+            <h1 className="text-2xl font-semibold text-[#5c3d28] mb-2">
+              Your cart is empty
+            </h1>
+            <p className="text-[#7b5a3b] mb-6">
+              Please add items to your cart before proceeding to checkout.
+            </p>
+            <Button 
+              onClick={() => navigate('/cart')}
+              className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white"
+            >
+              Go to Cart
+            </Button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col bg-white py-8 px-4">
-        <div className="container mx-auto max-w-3xl text-center">
-          <User className="mx-auto h-24 w-24 text-[#d5bfae] mb-4" />
-          <h1 className="text-2xl font-semibold text-[#5c3d28] mb-2">
-            Please log in to continue
-          </h1>
-          <p className="text-[#7b5a3b] mb-6">
-            You need to be logged in to complete your checkout.
-          </p>
-          <Button 
-            onClick={() => navigate('/login')}
-            className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white"
-          >
-            Go to Login
-          </Button>
+      <>
+        <RedirectNotice notice={redirectNotice} onClose={hideRedirectNotice} />
+        <div className="min-h-screen flex flex-col bg-white py-8 px-4">
+          <div className="container mx-auto max-w-3xl text-center">
+            <User className="mx-auto h-24 w-24 text-[#d5bfae] mb-4" />
+            <h1 className="text-2xl font-semibold text-[#5c3d28] mb-2">
+              Please log in to continue
+            </h1>
+            <p className="text-[#7b5a3b] mb-6">
+              You need to be logged in to complete your checkout.
+            </p>
+            <Button 
+              onClick={() => navigate('/login')}
+              className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white"
+            >
+              Go to Login
+            </Button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white py-8 px-4">
-      <div className="container mx-auto max-w-3xl">
+    <>
+      <RedirectNotice notice={redirectNotice} onClose={hideRedirectNotice} />
+      <div className="min-h-screen flex flex-col bg-white py-8 px-4">
+        <div className="container mx-auto max-w-3xl">
         <h1 className="text-3xl font-bold text-[#5c3d28] mb-2">Checkout</h1>
         <p className="text-[#7b5a3b] mb-6">Review your order and proceed to payment</p>
 
@@ -265,13 +439,52 @@ const Checkout = () => {
                       Seller: {item.seller_name}
                     </p>
                   )}
-                  <p className="text-sm text-[#a4785a]">
-                    Quantity: {item.quantity} × ₱{parseFloat(item.price || 0).toFixed(2)}
-                  </p>
+                  {(() => {
+                    const variation =
+                      item.selectedVariation ||
+                      (item.variation_id ||
+                      item.variation_label ||
+                      item.variation_attributes ||
+                      item.sku
+                        ? {
+                            id: item.variation_id ?? null,
+                            label: item.variation_label ?? null,
+                            attributes: normalizeVariationAttributes(item.variation_attributes),
+                            sku: item.sku ?? null,
+                          }
+                        : null);
+                    if (!variation) return null;
+                    const attributes = normalizeVariationAttributes(
+                      variation.attributes || item.variation_attributes
+                    );
+                    return (
+                      <div className="flex flex-wrap gap-2 mb-1">
+                        {variation.label && (
+                          <Badge className="bg-white text-[#7b5a3b] border border-[#d5bfae]">
+                            {variation.label}
+                          </Badge>
+                        )}
+                        {attributes.map((attr) => (
+                          <Badge
+                            key={`${item.product_id || index}-checkout-attr-${attr.id}`}
+                            className="bg-[#f5f0eb] text-[#5c3d28] border border-[#d5bfae]"
+                          >
+                            {(attr.label || attr.name) ? `${attr.label || attr.name}: ` : ''}
+                            {attr.value}
+                          </Badge>
+                        ))}
+                        {variation.sku && (
+                          <Badge className="bg-white text-[#7b5a3b] border border-[#d5bfae]">
+                            SKU: {variation.sku}
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-[#5c3d28]">
-                    ₱{(parseFloat(item.price || 0) * item.quantity).toFixed(2)}
+                    ₱{(parseFloat(item.unit_price ?? item.price ?? 0) * item.quantity).toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -292,10 +505,6 @@ const Checkout = () => {
               <div className="flex justify-between text-sm py-1">
                 <span className="text-[#7b5a3b]">Shipping</span>
                 <span className="font-semibold text-[#5c3d28]">₱{shipping.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm py-1">
-                <span className="text-[#7b5a3b]">Tax</span>
-                <span className="font-semibold text-[#5c3d28]">₱{tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-bold text-lg pt-3 mt-3 border-t-2 border-[#a4785a]">
                 <span className="text-[#5c3d28]">Total</span>
@@ -481,6 +690,64 @@ const Checkout = () => {
             </>
           )}
         </Button>
+      </div>
+    </div>
+    </>
+  );
+};
+
+const noticeStyles = {
+  info: {
+    icon: <Loader2 className="h-5 w-5 animate-spin text-blue-500" />,
+    border: 'border-blue-200',
+    bg: 'bg-blue-50',
+    text: 'text-blue-700',
+  },
+  success: {
+    icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
+    border: 'border-green-200',
+    bg: 'bg-green-50',
+    text: 'text-green-700',
+  },
+  warning: {
+    icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
+    border: 'border-amber-200',
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+  },
+  error: {
+    icon: <XCircle className="h-5 w-5 text-red-500" />,
+    border: 'border-red-200',
+    bg: 'bg-red-50',
+    text: 'text-red-700',
+  },
+};
+
+const RedirectNotice = ({ notice, onClose }) => {
+  if (!notice.show) return null;
+  const style = noticeStyles[notice.status] || noticeStyles.info;
+
+  return (
+    <div className="fixed top-24 right-6 z-50">
+      <div
+        className={`w-80 rounded-xl shadow-xl border ${style.border} ${style.bg} p-4 animate-in slide-in-from-top-5 duration-300`}
+      >
+        <div className="flex justify-between items-start gap-3">
+          <div className="flex gap-3">
+            {style.icon}
+            <div>
+              <h3 className={`font-semibold ${style.text}`}>{notice.title}</h3>
+              <p className="text-sm text-[#5c3d28] mt-1">{notice.message}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-[#7b5a3b]/70 hover:text-[#7b5a3b]"
+            aria-label="Dismiss notice"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
