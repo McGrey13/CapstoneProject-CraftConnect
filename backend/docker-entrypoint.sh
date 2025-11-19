@@ -40,10 +40,13 @@ if [ ! -f .env ]; then
     echo "Creating .env from environment variables..."
     
     # Create .env from Render environment variables
+    # Remove quotes from APP_KEY if present
+    CLEAN_APP_KEY=$(echo "$APP_KEY" | sed 's/^"//;s/"$//')
+    
     cat > .env <<EOF
 APP_NAME=${APP_NAME:-CraftConnect}
 APP_ENV=${APP_ENV:-production}
-APP_KEY=${APP_KEY}
+APP_KEY=${CLEAN_APP_KEY}
 APP_DEBUG=${APP_DEBUG:-true}
 APP_URL=${APP_URL}
 
