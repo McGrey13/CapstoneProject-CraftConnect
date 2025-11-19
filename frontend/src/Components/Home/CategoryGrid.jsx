@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
-import axios from "axios";
+import api from "../../api";
 import "./CategoryGrid.css"; // Add this import
 
 const CategoryGrid = () => {
@@ -57,18 +57,17 @@ const CategoryGrid = () => {
       console.log('📂 Selected Category:', selectedCategory);
       console.log('📂 Category Data:', selectedCategoryData);
 
-      const url = (() => {
-        if (searchTerm) {
-          return `/api/stores?search=${encodeURIComponent(searchTerm)}`;
-        }
-        if (selectedCategoryData?.queryParam) {
-          return `/api/stores?category=${encodeURIComponent(selectedCategoryData.queryParam)}`;
-        }
-        return "/api/stores?includeEmpty=false";
-      })();
+      const params = {};
+      if (searchTerm) {
+        params.search = searchTerm;
+      } else if (selectedCategoryData?.queryParam) {
+        params.category = selectedCategoryData.queryParam;
+      } else {
+        params.includeEmpty = false;
+      }
 
-      console.log('🔗 Fetching URL:', url);
-      const response = await axios.get(url);
+      console.log('🔗 Fetching stores with params:', params);
+      const response = await api.get('/stores', { params });
       
       console.log('📦 Response Data:', response.data);
       

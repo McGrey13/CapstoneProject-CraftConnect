@@ -128,3 +128,4 @@ If you encounter issues:
 4. Verify CORS and Sanctum configurations
 
 
+

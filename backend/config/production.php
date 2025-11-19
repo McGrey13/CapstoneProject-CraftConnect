@@ -41,11 +41,21 @@ return [
     ],
 
     'cors' => [
-        'allowed_origins' => [
-            env('APP_URL'),
-            'https://' . parse_url(env('APP_URL'), PHP_URL_HOST),
-            'https://www.' . parse_url(env('APP_URL'), PHP_URL_HOST),
-        ],
+        'allowed_origins' => array_filter(array_merge(
+            [env('APP_URL')],
+            (function() {
+                $url = env('APP_URL', '');
+                $origins = [];
+                if (!empty($url)) {
+                    $host = parse_url($url, PHP_URL_HOST);
+                    if ($host) {
+                        $origins[] = 'https://' . $host;
+                        $origins[] = 'https://www.' . $host;
+                    }
+                }
+                return $origins;
+            })()
+        )),
         'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         'allowed_headers' => ['*'],
         'exposed_headers' => [],
