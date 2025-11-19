@@ -35,24 +35,8 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 
 EXPOSE 80
 
-# Create entrypoint script to handle config caching
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-# Wait for .env to be available (Render sets it at runtime)\n\
-if [ -f .env ]; then\n\
-    echo "Clearing old config cache..."\n\
-    php artisan config:clear || true\n\
-    php artisan cache:clear || true\n\
-    php artisan route:clear || true\n\
-    \n\
-    echo "Caching config for production..."\n\
-    php artisan config:cache || true\n\
-    php artisan route:cache || true\n\
-fi\n\
-\n\
-echo "Starting Apache..."\n\
-exec apache2-foreground' > /usr/local/bin/docker-entrypoint.sh \
-    && chmod +x /usr/local/bin/docker-entrypoint.sh
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 CMD ["/usr/local/bin/docker-entrypoint.sh"]

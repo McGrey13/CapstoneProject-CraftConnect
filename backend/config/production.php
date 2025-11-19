@@ -64,7 +64,7 @@ return [
     ],
 
     'session' => [
-        'driver' => env('SESSION_DRIVER', 'database'),
+        'driver' => env('SESSION_DRIVER', 'cookie'),
         'lifetime' => env('SESSION_LIFETIME', 60),
         'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
         'encrypt' => env('SESSION_ENCRYPT', true),
@@ -98,14 +98,14 @@ return [
     ],
 
     'cache' => [
-        'driver' => env('CACHE_STORE', 'redis'),
+        'driver' => env('CACHE_STORE', 'file'),
         'prefix' => env('CACHE_PREFIX', 'craftconnect_prod'),
         'ttl' => env('CACHE_TTL', 3600),
         'session_cache' => env('SESSION_CACHE', true),
     ],
 
     'queue' => [
-        'connection' => env('QUEUE_CONNECTION', 'redis'),
+        'connection' => env('QUEUE_CONNECTION', 'sync'),
         'retry_after' => env('QUEUE_RETRY_AFTER', 90),
         'timeout' => env('QUEUE_TIMEOUT', 60),
         'max_tries' => env('QUEUE_MAX_TRIES', 3),
