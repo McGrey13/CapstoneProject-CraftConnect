@@ -8,6 +8,9 @@ export default defineConfig({
     tailwindcss(),
     react()
   ],
+  build: {
+    chunkSizeWarningLimit: 1000, // increase limit from 500kb → 1000kb
+  },
   server: {
     port: 5173,
     strictPort: true,
@@ -32,6 +35,11 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+      },
+      '/sanctum': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
       }
     }
   },
@@ -39,4 +47,5 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   }
+  
 })

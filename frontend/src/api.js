@@ -5,10 +5,31 @@ const API_BASE_URL = '/api';
 
 const TOKEN_STORAGE_KEY = 'auth_token';
 
+// Normalize backend URL: if the provided VITE_BACKEND_URL ends with '/api',
+// strip the '/api' so we can handle both root endpoints (like CSRF cookie) and API routes
+const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || '';
+const normalizedBackendUrl = rawBackendUrl.replace(/\/api\/?$/i, '').replace(/\/$/, '');
+
+// Base URL for API routes (always includes /api)
+// In production (Render), use the full backend URL with /api
+// In local development, use relative path /api (which will be proxied by Vite)
+const apiBaseUrl = normalizedBackendUrl 
+  ? `${normalizedBackendUrl}/api` 
+  : API_BASE_URL;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || API_BASE_URL,
+  baseURL: apiBaseUrl,
   timeout: 30000, // 30 second timeout
   withCredentials: true, // Enable cookies for authentication
+});
+
+// Separate axios instance for root-level endpoints like CSRF cookie
+// In production, use the full backend URL without /api
+// In local development, use the backend URL directly
+const rootApi = axios.create({
+  baseURL: normalizedBackendUrl || (import.meta.env.DEV ? 'http://localhost:8000' : ''),
+  timeout: 30000,
+  withCredentials: true,
 });
 
 // Token management functions
@@ -189,5 +210,8 @@ api.interceptors.response.use(
 
 export const fetchUsers = () => api.get('/users');
 export const loginUser = (credentials) => api.post('/auth/login', credentials); // Use secure endpoint
+
+// Export rootApi for root-level endpoints like CSRF cookie
+export { rootApi };
 
 export default api;

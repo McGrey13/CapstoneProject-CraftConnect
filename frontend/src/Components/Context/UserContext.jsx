@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
-import api, { setToken, getToken } from '../../api';
+import api, { setToken, getToken, rootApi } from '../../api';
 import { Clock, LogIn } from 'lucide-react';
 
 const UserContext = createContext();
@@ -298,14 +298,14 @@ export const UserProvider = ({ children }) => {
         // Only initialize CSRF once per session
         if (!csrfInitialized) {
           console.log('🔐 Initializing CSRF token...');
-          const response = await api.get('/sanctum/csrf-cookie', {
+          // Use rootApi for CSRF cookie endpoint (it's at root, not under /api)
+          const response = await rootApi.get('/sanctum/csrf-cookie', {
             withCredentials: true
           });
           
-          if (response.data.csrf_token) {
-            sessionStorage.setItem('csrf_token', response.data.csrf_token);
-            console.log('✅ CSRF token initialized:', response.data.csrf_token);
-          }
+          // CSRF cookie endpoint returns 204 No Content, so no data to check
+          // The cookie is set automatically by the browser
+          console.log('✅ CSRF cookie set successfully');
           
           csrfInitialized = true;
           console.log('✅ CSRF initialization complete');
