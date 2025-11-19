@@ -9,6 +9,9 @@ export default defineConfig({
     react()
   ],
   server: {
+        build: {
+      chunkSizeWarningLimit: 1000, // increase limit from 500kb → 1000kb
+    },
     port: 5173,
     strictPort: true,
     host: true, // Allow external connections
