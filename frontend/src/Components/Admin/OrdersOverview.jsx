@@ -778,7 +778,6 @@ function OrdersOverview() {
                         : "bg-red-100 text-red-800 border-red-200"
                     }
                     variant="outline"
-                    className="text-sm"
                   >
                     {selectedOrder.status}
                   </Badge>
