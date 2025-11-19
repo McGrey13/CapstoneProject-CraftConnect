@@ -12,7 +12,6 @@ import {
   ChevronRight,
   Menu,
   X,
-  DollarSign,
   RotateCcw,
 } from "lucide-react";
 import AdminNavbar from "./AdminNavbar";
@@ -379,7 +378,7 @@ const AdminLayout = () => {
             />
 
             <SidebarItem
-              icon={<DollarSign className="h-5 w-5" />}
+              icon={"₱" }
               label="Commission Dashboard"
               tabKey="commission"
               activeTab={activeTab}

@@ -8,13 +8,10 @@ export default defineConfig({
     tailwindcss(),
     react()
   ],
-  build: {
-    chunkSizeWarningLimit: 1000, // increase limit from 500kb → 1000kb
-  },
-  server: {
-        build: {
+    build: {
       chunkSizeWarningLimit: 1000, // increase limit from 500kb → 1000kb
     },
+  server: {
     port: 5173,
     strictPort: true,
     host: true, // Allow external connections

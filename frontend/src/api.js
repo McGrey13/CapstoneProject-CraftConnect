@@ -5,17 +5,47 @@ const API_BASE_URL = '/api';
 
 const TOKEN_STORAGE_KEY = 'auth_token';
 
-// Normalize backend URL: if the provided VITE_BACKEND_URL ends with '/api',
-// strip the '/api' so we can handle both root endpoints (like CSRF cookie) and API routes
+// Normalize backend URL: clean and validate the URL
+const normalizeBackendUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  
+  // Remove any whitespace, commas, and split by comma to get first valid URL
+  let cleaned = url.trim().split(',')[0].trim();
+  
+  // Remove any trailing slashes
+  cleaned = cleaned.replace(/\/+$/, '');
+  
+  // If it's a full URL (starts with http:// or https://), use it as is
+  if (cleaned.match(/^https?:\/\//i)) {
+    // Remove /api suffix if present
+    return cleaned.replace(/\/api\/?$/i, '');
+  }
+  
+  // If it's just a domain (like capstoneproject-craftconnect.onrender.com)
+  // Add https:// protocol
+  if (cleaned && cleaned.includes('.')) {
+    return `https://${cleaned.replace(/^https?:\/\//i, '')}`;
+  }
+  
+  // If empty or invalid, return empty string
+  return '';
+};
+
+// Detect if we're running locally (development)
+const isLocalDevelopment = typeof window !== 'undefined' && 
+  (window.location.hostname === 'localhost' || 
+   window.location.hostname === '127.0.0.1' ||
+   window.location.hostname === '::1');
+
 const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || '';
-const normalizedBackendUrl = rawBackendUrl.replace(/\/api\/?$/i, '').replace(/\/$/, '');
+const normalizedBackendUrl = normalizeBackendUrl(rawBackendUrl);
 
 // Base URL for API routes (always includes /api)
-// In production (Render), use the full backend URL with /api
-// In local development, use relative path /api (which will be proxied by Vite)
-const apiBaseUrl = normalizedBackendUrl 
-  ? `${normalizedBackendUrl}/api` 
-  : API_BASE_URL;
+// In local development: use relative path /api (Vite proxy handles it)
+// In production: use the full backend URL with /api
+const apiBaseUrl = isLocalDevelopment 
+  ? API_BASE_URL  // Use relative path, Vite proxy will forward to localhost:8000
+  : (normalizedBackendUrl ? `${normalizedBackendUrl}/api` : API_BASE_URL);
 
 const api = axios.create({
   baseURL: apiBaseUrl,
@@ -24,12 +54,28 @@ const api = axios.create({
 });
 
 // Separate axios instance for root-level endpoints like CSRF cookie
-// In production, use the full backend URL without /api
-// In local development, use the backend URL directly
+// In local development: use relative path /sanctum (Vite proxy handles it)
+// In production: use the full backend URL without /api
+const rootApiBaseUrl = isLocalDevelopment
+  ? ''  // Use relative path, Vite proxy will forward to localhost:8000
+  : (normalizedBackendUrl || 'https://capstoneproject-craftconnect.onrender.com');
+
 const rootApi = axios.create({
-  baseURL: normalizedBackendUrl || (import.meta.env.DEV ? 'http://localhost:8000' : ''),
+  baseURL: rootApiBaseUrl,
   timeout: 30000,
   withCredentials: true,
+});
+
+// Debug logging (always log to help debug)
+console.log('🔧 API Configuration:', {
+  isLocalDevelopment,
+  hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A',
+  rawBackendUrl,
+  normalizedBackendUrl,
+  apiBaseUrl,
+  rootApiBaseUrl,
+  isDev: import.meta.env.DEV,
+  envVITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL
 });
 
 // Token management functions
