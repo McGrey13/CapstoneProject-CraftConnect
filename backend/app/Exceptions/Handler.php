@@ -26,8 +26,14 @@ class Handler extends ExceptionHandler
      */
     public function register(): void
     {
+        // Log all exceptions for debugging
         $this->reportable(function (Throwable $e) {
-            //
+            \Log::error('Exception occurred', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
         });
     }
 
@@ -82,10 +88,25 @@ class Handler extends ExceptionHandler
             // Handle other exceptions
             $statusCode = method_exists($exception, 'getStatusCode') ? $exception->getStatusCode() : 500;
             
+            // Always log the exception for debugging
+            \Log::error('API Exception', [
+                'message' => $exception->getMessage(),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+                'trace' => $exception->getTraceAsString(),
+                'url' => $request->fullUrl(),
+                'method' => $request->method(),
+            ]);
+            
+            // Return detailed error in debug mode, generic in production
+            $isDebug = config('app.debug', false);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Server Error',
-                'error' => config('app.debug') ? $exception->getMessage() : 'Internal Server Error'
+                'error' => $isDebug ? $exception->getMessage() : 'Internal Server Error',
+                'file' => $isDebug ? $exception->getFile() : null,
+                'line' => $isDebug ? $exception->getLine() : null,
             ], $statusCode);
         }
 

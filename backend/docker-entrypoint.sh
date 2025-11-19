@@ -9,6 +9,31 @@ echo "=========================================="
 # Wait a moment for .env to be available
 sleep 2
 
+# Fix environment variables before creating .env
+# Use MySQL (Dockerfile has pdo_mysql)
+ORIG_DB_CONNECTION=${DB_CONNECTION:-mysql}
+DB_CONNECTION=${ORIG_DB_CONNECTION:-mysql}
+
+# Use file-based cache to avoid database table requirements
+ORIG_CACHE_STORE=${CACHE_STORE:-file}
+if [ "$ORIG_CACHE_STORE" = "database" ]; then
+    echo "⚠️  WARNING: CACHE_STORE=database detected, changing to file"
+    echo "This avoids requiring a cache table in the database"
+    CACHE_STORE=file
+else
+    CACHE_STORE=${ORIG_CACHE_STORE:-file}
+fi
+
+# Use cookie sessions to avoid database table requirements
+ORIG_SESSION_DRIVER=${SESSION_DRIVER:-cookie}
+if [ "$ORIG_SESSION_DRIVER" = "database" ]; then
+    echo "⚠️  WARNING: SESSION_DRIVER=database detected, changing to cookie"
+    echo "This avoids requiring a sessions table in the database"
+    SESSION_DRIVER=cookie
+else
+    SESSION_DRIVER=${ORIG_SESSION_DRIVER:-cookie}
+fi
+
 # Check if .env exists
 if [ ! -f .env ]; then
     echo "⚠️  WARNING: .env file not found!"
@@ -22,15 +47,15 @@ APP_KEY=${APP_KEY}
 APP_DEBUG=${APP_DEBUG:-true}
 APP_URL=${APP_URL}
 
-DB_CONNECTION=${DB_CONNECTION:-pgsql}
+DB_CONNECTION=${DB_CONNECTION}
 DB_HOST=${DB_HOST}
-DB_PORT=${DB_PORT:-5432}
+DB_PORT=${DB_PORT:-3306}
 DB_DATABASE=${DB_DATABASE}
 DB_USERNAME=${DB_USERNAME}
 DB_PASSWORD=${DB_PASSWORD}
 
-CACHE_STORE=${CACHE_STORE:-file}
-SESSION_DRIVER=${SESSION_DRIVER:-cookie}
+CACHE_STORE=${CACHE_STORE}
+SESSION_DRIVER=${SESSION_DRIVER}
 SESSION_LIFETIME=${SESSION_LIFETIME:-720}
 SESSION_DOMAIN=${SESSION_DOMAIN}
 SESSION_SECURE_COOKIE=${SESSION_SECURE_COOKIE:-true}
@@ -44,6 +69,14 @@ EOF
     echo "✅ .env file created"
 else
     echo "✅ .env file exists"
+    # Update existing .env with corrected values (if needed)
+    # No need to change mysql to pgsql anymore
+    if [ "$ORIG_CACHE_STORE" = "database" ]; then
+        sed -i 's/^CACHE_STORE=database/CACHE_STORE=file/' .env
+    fi
+    if [ "$ORIG_SESSION_DRIVER" = "database" ]; then
+        sed -i 's/^SESSION_DRIVER=database/SESSION_DRIVER=cookie/' .env
+    fi
 fi
 
 echo ""
@@ -53,7 +86,7 @@ echo "APP_URL: ${APP_URL:-not set}"
 echo "DB_CONNECTION: ${DB_CONNECTION:-not set}"
 echo "APP_KEY: ${APP_KEY:+SET (hidden)}${APP_KEY:-NOT SET - CRITICAL!}"
 
-# CRITICAL: Check if APP_KEY is set - Laravel won't work without it
+# CRITICAL: Check if APP_KEY is set and in correct format
 if [ -z "$APP_KEY" ]; then
     echo ""
     echo "❌ CRITICAL: APP_KEY is not set!"
@@ -70,6 +103,30 @@ if [ -z "$APP_KEY" ]; then
     else
         echo "❌ Failed to generate APP_KEY - Laravel will crash!"
         echo "This is a critical error. Check Laravel logs."
+    fi
+else
+    # Check if APP_KEY is in correct format (should start with "base64:")
+    if [[ ! "$APP_KEY" =~ ^base64: ]]; then
+        echo ""
+        echo "⚠️  WARNING: APP_KEY is not in correct format!"
+        echo "Current format: ${APP_KEY:0:20}..."
+        echo "Laravel requires format: base64:..."
+        echo "Converting APP_KEY to correct format..."
+        
+        # If it's a hex string, we need to generate a new one
+        # Laravel's key:generate creates base64 encoded keys
+        php artisan key:generate --force 2>&1
+        if [ $? -eq 0 ]; then
+            NEW_KEY=$(grep APP_KEY .env | cut -d '=' -f2)
+            if [ -n "$NEW_KEY" ]; then
+                export APP_KEY="$NEW_KEY"
+                echo "✅ APP_KEY converted to correct format"
+            fi
+        else
+            echo "❌ Failed to regenerate APP_KEY - Laravel may crash!"
+        fi
+    else
+        echo "✅ APP_KEY format is correct"
     fi
 fi
 

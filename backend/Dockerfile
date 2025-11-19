@@ -1,12 +1,12 @@
 # Use official PHP + Apache
 FROM php:8.2-apache
 
-# Install PHP extensions (PostgreSQL for Render)
+# Install PHP extensions (MySQL)
 RUN apt-get update && apt-get install -y \
     git unzip libpng-dev libjpeg-dev libfreetype6-dev \
-    libpq-dev \
+    default-mysql-client \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_pgsql
+    && docker-php-ext-install gd pdo pdo_mysql
 
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite

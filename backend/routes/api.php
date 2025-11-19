@@ -31,6 +31,28 @@ use App\Http\Controllers\Api\AdminReviewController;
 
 // Public Routes
 Route::middleware([])->group(function () {
+    // Ultra-simple test endpoint - no dependencies
+    Route::get('/test', function () {
+        try {
+            return response()->json([
+                'message' => 'API is working',
+                'timestamp' => date('Y-m-d H:i:s'),
+                'php_version' => PHP_VERSION,
+                'laravel_version' => app()->version(),
+                'app_env' => config('app.env', 'not set'),
+                'app_debug' => config('app.debug', false),
+                'app_key_set' => !empty(config('app.key')),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => true,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+    });
+    
     // Test endpoint for debugging
     Route::get('/test-stores', function () {
         return response()->json(['message' => 'API is working', 'timestamp' => now()]);

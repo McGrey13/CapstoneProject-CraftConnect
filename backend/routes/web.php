@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProductController;
 
 // Sanctum CSRF Cookie Route (required for SPA authentication)
-Route::middleware(['web', 'throttle:csrf'])->group(function () {
+// Using throttle:60,1 (60 requests per minute) instead of invalid throttle:csrf
+Route::middleware(['web', 'throttle:60,1'])->group(function () {
     Route::get('/sanctum/csrf-cookie', function () {
         return response()->json([
             'message' => 'CSRF cookie set successfully'
