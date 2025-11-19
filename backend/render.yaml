@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: craftconnect-backend
+    env: docker
+    region: singapore
+    plan: free

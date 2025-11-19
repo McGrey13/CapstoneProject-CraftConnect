@@ -106,3 +106,4 @@
 - **Backend API**: https://capstoneproject-craftconnect.onrender.com/api
 - **CSRF Cookie**: https://capstoneproject-craftconnect.onrender.com/sanctum/csrf-cookie
 
+

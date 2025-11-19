@@ -127,3 +127,4 @@ If you encounter issues:
 3. Check Render logs for errors
 4. Verify CORS and Sanctum configurations
 
+
