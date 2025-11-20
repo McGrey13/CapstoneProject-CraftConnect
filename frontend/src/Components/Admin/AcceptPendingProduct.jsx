@@ -697,7 +697,7 @@ function AcceptPendingProduct() {
           }
         }}
       >
-        <DialogContent className="max-w-4xl border-[#d5bfae]/30 bg-gradient-to-br from-white to-[#f9f4ef]">
+        <DialogContent className="max-w-6xl w-[95vw] border-[#d5bfae]/30 bg-gradient-to-br from-white to-[#f9f4ef] !top-[calc(4rem+2rem)] !translate-y-0 max-h-[calc(100vh-12rem)] overflow-y-auto mb-8">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 text-[#5c3d28] text-2xl">
               <div className="h-10 w-10 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-lg flex items-center justify-center">
@@ -964,7 +964,7 @@ function AcceptPendingProduct() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="max-w-md border-[#d5bfae]/30 bg-gradient-to-br from-[#f9f4ef] via-[#eadfd2] to-[#d3bfa8]">
+        <DialogContent className="max-w-lg w-[90vw] sm:w-[500px] border-[#d5bfae]/30 bg-gradient-to-br from-[#f9f4ef] via-[#eadfd2] to-[#d3bfa8] !top-[calc(4rem+2rem)] !translate-y-0 mb-8">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 text-[#5c3d28]">
               <AlertTriangle className="h-6 w-6 text-[#a4785a]" />
@@ -1014,7 +1014,7 @@ function AcceptPendingProduct() {
 
       {/* Reject Confirmation Modal */}
       <Dialog open={showRejectConfirm} onOpenChange={setShowRejectConfirm}>
-        <DialogContent className="max-w-md border-[#d5bfae]/30 bg-gradient-to-br from-[#f9f4ef] via-[#eadfd2] to-[#d3bfa8]">
+        <DialogContent className="max-w-lg w-[90vw] sm:w-[500px] border-[#d5bfae]/30 bg-gradient-to-br from-[#f9f4ef] via-[#eadfd2] to-[#d3bfa8] !top-[calc(4rem+2rem)] !translate-y-0 mb-8">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 text-[#5c3d28]">
               <XCircle className="h-6 w-6 text-[#a4785a]" />
@@ -1064,7 +1064,7 @@ function AcceptPendingProduct() {
 
       {/* Approve Confirmation Modal */}
       <Dialog open={showApproveConfirm} onOpenChange={setShowApproveConfirm}>
-        <DialogContent className="max-w-md border-[#d5bfae]/30 bg-gradient-to-br from-[#f9f4ef] via-[#eadfd2] to-[#d3bfa8]">
+        <DialogContent className="max-w-lg w-[90vw] sm:w-[500px] border-[#d5bfae]/30 bg-gradient-to-br from-[#f9f4ef] via-[#eadfd2] to-[#d3bfa8] !top-[calc(4rem+2rem)] !translate-y-0 mb-8">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 text-[#5c3d28]">
               <CheckCircle className="h-6 w-6 text-green-600" />

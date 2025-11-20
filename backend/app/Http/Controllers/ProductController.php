@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Models\ProductVariation;
 use app\Models\Seller;
 use App\Services\ProductValidationService;
 use App\Services\NotificationService;
@@ -199,6 +200,26 @@ class ProductController extends Controller
             return $seller;
         }
         
+        // Parse variations before validation (FormData may not parse nested arrays correctly)
+        $rawVariations = $request->input('variations');
+        if (!is_array($rawVariations)) {
+            $allInputs = $request->all();
+            $parsedVariations = [];
+            foreach ($allInputs as $key => $value) {
+                if (preg_match('/^variations\[(\d+)\]\[(.+)\]$/', $key, $matches)) {
+                    $index = (int)$matches[1];
+                    $field = $matches[2];
+                    if (!isset($parsedVariations[$index])) {
+                        $parsedVariations[$index] = [];
+                    }
+                    $parsedVariations[$index][$field] = $value;
+                }
+            }
+            if (!empty($parsedVariations)) {
+                $request->merge(['variations' => $parsedVariations]);
+            }
+        }
+        
         $data = $request->validate([
             'productName' => 'required|string|max:255',
             'productDescription' => 'nullable|string',
@@ -212,8 +233,9 @@ class ProductController extends Controller
             'productImages.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120',
             'productVideo' => 'nullable|mimes:mp4,avi,mov|max:20480',
             'variations' => 'nullable|array', // Array of size variations
-            'variations.*.size' => 'required_with:variations|string|max:50',
-            'variations.*.quantity' => 'required_with:variations|integer|min:0',
+            'variations.*.size' => 'nullable|string|max:50',
+            'variations.*.label' => 'nullable|string|max:50',
+            'variations.*.quantity' => 'nullable|integer|min:0',
             'variations.*.price' => 'nullable|numeric|min:0',
             'variations.*.sku' => 'nullable|string|max:100',
         ]);
@@ -234,8 +256,23 @@ class ProductController extends Controller
             $data['publish_status'] = 'draft';
         }
 
-        // Validate product using validation service
-        $validation = ProductValidationService::validateProduct($data);
+        // Get seller location information for location-based auto-approval
+        $sellerLocation = null;
+        try {
+            $sellerWithUser = \App\Models\Seller::with('user')->find($sellerId);
+            if ($sellerWithUser && $sellerWithUser->user) {
+                $sellerLocation = [
+                    'city' => $sellerWithUser->user->userCity ?? null,
+                    'province' => $sellerWithUser->user->userProvince ?? null,
+                    'region' => $sellerWithUser->user->userRegion ?? null,
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to get seller location for auto-approval check: ' . $e->getMessage());
+        }
+
+        // Validate product using validation service (with seller location for auto-approval)
+        $validation = ProductValidationService::validateProduct($data, $sellerLocation);
         
         // Set approval status based on validation
         if (!$validation['valid']) {
@@ -304,24 +341,51 @@ class ProductController extends Controller
             ]);
             
             // Handle product size variations
-            if ($request->has('variations') && is_array($request->variations)) {
-                foreach ($request->variations as $variation) {
-                    if (!empty($variation['size']) && isset($variation['quantity'])) {
-                        \App\Models\ProductVariation::create([
-                            'product_id' => $product->product_id,
-                            'size' => $variation['size'],
-                            'quantity' => $variation['quantity'],
-                            'price' => $variation['price'] ?? null, // Use variation price or null (will use product price)
-                            'sku' => $variation['sku'] ?? null,
-                        ]);
+            try {
+                // Get variations array - try both methods
+                $variations = $request->input('variations');
+                if (!is_array($variations) || empty($variations)) {
+                    // Manual parsing if Laravel didn't parse it correctly
+                    $allInputs = $request->all();
+                    $variations = [];
+                    foreach ($allInputs as $key => $value) {
+                        if (preg_match('/^variations\[(\d+)\]\[(.+)\]$/', $key, $matches)) {
+                            $index = (int)$matches[1];
+                            $field = $matches[2];
+                            if (!isset($variations[$index])) {
+                                $variations[$index] = [];
+                            }
+                            $variations[$index][$field] = $value;
+                        }
                     }
                 }
                 
-                // If variations exist, update product quantity to sum of all variations
-                $totalQuantity = \App\Models\ProductVariation::where('product_id', $product->product_id)
-                    ->sum('quantity');
-                $product->productQuantity = $totalQuantity;
-                $product->save();
+                if (!empty($variations) && is_array($variations)) {
+                    foreach ($variations as $variation) {
+                        $size = $variation['size'] ?? $variation['label'] ?? '';
+                        if (!empty($size) && isset($variation['quantity'])) {
+                            ProductVariation::create([
+                                'product_id' => $product->product_id,
+                                'size' => $size,
+                                'quantity' => $variation['quantity'],
+                                'price' => isset($variation['price']) && $variation['price'] !== '' ? $variation['price'] : null,
+                                'sku' => isset($variation['sku']) && !empty($variation['sku']) ? $variation['sku'] : null,
+                            ]);
+                        }
+                    }
+                    
+                    // If variations exist, update product quantity to sum of all variations
+                    $totalQuantity = ProductVariation::where('product_id', $product->product_id)
+                        ->sum('quantity');
+                    $product->productQuantity = $totalQuantity;
+                    $product->save();
+                }
+            } catch (\Exception $e) {
+                Log::warning('Error handling variations during product creation:', [
+                    'product_id' => $product->product_id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail product creation if variations fail
             }
             
             // Notify admins if product is pending approval
@@ -377,9 +441,27 @@ class ProductController extends Controller
                 'product' => $productData,
                 'validation_warnings' => $validation['warnings'] ?? []
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation error creating product:', [
+                'errors' => $e->errors(),
+                'message' => $e->getMessage()
+            ]);
+            return response()->json([
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
-            Log::error('Error creating product:', ['error' => $e->getMessage()]);
-            return response()->json(['message' => 'Error creating product: ' . $e->getMessage()], 500);
+            Log::error('Error creating product:', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'Error creating product: ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
     }
 
@@ -399,7 +481,28 @@ class ProductController extends Controller
 
             // If you are sending a POST with _method=PUT, Laravel automatically handles it.
             // You don't need a custom check here.
-        $data = $request->validate([
+            
+            // Parse variations before validation (FormData may not parse nested arrays correctly)
+            $rawVariations = $request->input('variations');
+            if (!is_array($rawVariations) || empty($rawVariations)) {
+                $allInputs = $request->all();
+                $parsedVariations = [];
+                foreach ($allInputs as $key => $value) {
+                    if (preg_match('/^variations\[(\d+)\]\[(.+)\]$/', $key, $matches)) {
+                        $index = (int)$matches[1];
+                        $field = $matches[2];
+                        if (!isset($parsedVariations[$index])) {
+                            $parsedVariations[$index] = [];
+                        }
+                        $parsedVariations[$index][$field] = $value;
+                    }
+                }
+                if (!empty($parsedVariations)) {
+                    $request->merge(['variations' => $parsedVariations]);
+                }
+            }
+            
+            $data = $request->validate([
             'productName' => 'required|string|max:255',
             'productDescription' => 'nullable|string',
             'productPrice' => 'required|numeric',
@@ -417,83 +520,204 @@ class ProductController extends Controller
             'mainImageIndex' => 'nullable|integer',
             'mainExistingImageIndex' => 'nullable|integer',
             'productVideo' => 'nullable|mimes:mp4,avi,mov|max:20480',
-            'sku' => 'nullable|string|max:255'
+            'sku' => 'nullable|string|max:255',
+            'has_variations' => 'nullable|in:0,1,true,false',
+            'variations' => 'nullable|array', // Array of size variations
+            'variations.*.label' => 'nullable|string|max:50',
+            'variations.*.size' => 'nullable|string|max:50',
+            'variations.*.quantity' => 'nullable|integer|min:0',
+            'variations.*.price' => 'nullable|numeric|min:0',
+            'variations.*.sku' => 'nullable|string|max:100',
+            'variations.*.variation_id' => 'nullable|integer',
         ]);
-        
-        // Handle tags - convert to JSON if present
-        if (isset($data['tags']) && is_array($data['tags'])) {
-            $data['tags'] = json_encode($data['tags']);
-        }
-        
-        // Preserve approval status - sellers cannot change it
-        $data['approval_status'] = $product->approval_status;
-
-        if ($request->hasFile('productImage')) {
-            $data['productImage'] = $request->file('productImage')->store('images', 'public');
-        }
-
-        // Handle multiple additional images
-        $allImages = [];
-        $mainImagePath = null;
-        
-        // Get existing images from the request
-        if ($request->has('existingImages')) {
-            $existingImages = $request->input('existingImages', []);
-            $mainExistingImageIndex = $request->input('mainExistingImageIndex');
             
-            foreach ($existingImages as $index => $imageUrl) {
-                if ($imageUrl) {
-                    // Extract the relative path from the full URL
-                    $relativePath = str_replace(url('storage/'), '', $imageUrl);
-                    $relativePath = ltrim($relativePath, '/');
-                    if (!empty($relativePath)) {
-                        $allImages[] = $relativePath;
-                        
-                        // Check if this is the main image
-                        if ($mainExistingImageIndex !== null && $index == $mainExistingImageIndex) {
-                            $mainImagePath = $relativePath;
+            // Handle tags - convert to JSON if present
+            if (isset($data['tags']) && is_array($data['tags'])) {
+                $data['tags'] = json_encode($data['tags']);
+            }
+            
+            // Preserve approval status - sellers cannot change it
+            $data['approval_status'] = $product->approval_status;
+
+            if ($request->hasFile('productImage')) {
+                $data['productImage'] = $request->file('productImage')->store('images', 'public');
+            }
+
+            // Handle multiple additional images
+            $allImages = [];
+            $mainImagePath = null;
+            
+            // Get existing images from the request
+            if ($request->has('existingImages')) {
+                $existingImages = $request->input('existingImages', []);
+                $mainExistingImageIndex = $request->input('mainExistingImageIndex');
+                
+                foreach ($existingImages as $index => $imageUrl) {
+                    if ($imageUrl) {
+                        // Extract the relative path from the full URL
+                        $relativePath = str_replace(url('storage/'), '', $imageUrl);
+                        $relativePath = ltrim($relativePath, '/');
+                        if (!empty($relativePath)) {
+                            $allImages[] = $relativePath;
+                            
+                            // Check if this is the main image
+                            if ($mainExistingImageIndex !== null && $index == $mainExistingImageIndex) {
+                                $mainImagePath = $relativePath;
+                            }
                         }
                     }
                 }
             }
-        }
-        
-        // Add new uploaded images
-        if ($request->hasFile('productImages')) {
-            $mainImageIndex = $request->input('mainImageIndex');
-            $newImagePaths = [];
             
-            foreach ($request->file('productImages') as $index => $file) {
-                if ($file && $file->isValid()) {
-                    $path = $file->store('images', 'public');
-                    $newImagePaths[] = $path;
-                    
-                    // Check if this is the main image
-                    if ($mainImageIndex !== null && $index == $mainImageIndex) {
-                        $mainImagePath = $path;
+            // Add new uploaded images
+            if ($request->hasFile('productImages')) {
+                $mainImageIndex = $request->input('mainImageIndex');
+                $newImagePaths = [];
+                
+                foreach ($request->file('productImages') as $index => $file) {
+                    if ($file && $file->isValid()) {
+                        $path = $file->store('images', 'public');
+                        $newImagePaths[] = $path;
+                        
+                        // Check if this is the main image
+                        if ($mainImageIndex !== null && $index == $mainImageIndex) {
+                            $mainImagePath = $path;
+                        }
                     }
                 }
+                
+                // Merge new images with existing ones
+                $allImages = array_merge($allImages, $newImagePaths);
             }
             
-            // Merge new images with existing ones
-            $allImages = array_merge($allImages, $newImagePaths);
-        }
-        
-        // Update productImages if we have any images
-        if (!empty($allImages)) {
-            $data['productImages'] = json_encode($allImages);
-        }
-        
-        // Set main image if specified
-        if ($mainImagePath) {
-            $data['productImage'] = $mainImagePath;
-        }
+            // Update productImages if we have any images
+            if (!empty($allImages)) {
+                $data['productImages'] = json_encode($allImages);
+            }
+            
+            // Set main image if specified
+            if ($mainImagePath) {
+                $data['productImage'] = $mainImagePath;
+            }
 
-        if ($request->hasFile('productVideo')) {
-            $data['productVideo'] = $request->file('productVideo')->store('videos', 'public');
-        }
+            if ($request->hasFile('productVideo')) {
+                $data['productVideo'] = $request->file('productVideo')->store('videos', 'public');
+            }
 
             $product->update($data);
+            Log::info('Product base data updated successfully:', ['product_id' => $product->product_id]);
+            
+            // Handle product size variations
+            try {
+                $hasVariationsFlag = $request->input('has_variations');
+                $hasVariations = in_array($hasVariationsFlag, ['1', 1, 'true', true], true);
+                
+                // Get variations array (should already be parsed before validation)
+                $variations = $request->input('variations');
+                if (!is_array($variations) || empty($variations)) {
+                    $variations = [];
+                }
+                
+                Log::info('Variation handling:', [
+                    'product_id' => $product->product_id,
+                    'has_variations_flag' => $hasVariationsFlag,
+                    'has_variations' => $hasVariations,
+                    'variations_present' => !empty($variations),
+                    'variations_count' => count($variations)
+                ]);
+                
+                if ($hasVariations && !empty($variations)) {
+                    // Get existing variation IDs for this product
+                    $existingVariationIds = ProductVariation::where('product_id', $product->product_id)
+                        ->pluck('variation_id')
+                        ->toArray();
+                    
+                    $updatedVariationIds = [];
+                    
+                    // Process each variation from request
+                    foreach ($variations as $variation) {
+                        if (empty($variation['size']) && empty($variation['label'])) {
+                            continue; // Skip invalid variations
+                        }
+                        
+                        $size = $variation['size'] ?? $variation['label'] ?? '';
+                        if (empty($size) || !isset($variation['quantity'])) {
+                            continue; // Skip invalid variations
+                        }
+                        
+                        $variationData = [
+                            'product_id' => $product->product_id,
+                            'size' => $size,
+                            'quantity' => $variation['quantity'],
+                            'price' => isset($variation['price']) && $variation['price'] !== '' ? $variation['price'] : null,
+                            'sku' => isset($variation['sku']) && !empty($variation['sku']) ? $variation['sku'] : null,
+                        ];
+                        
+                        // If variation_id exists, update existing variation
+                        if (isset($variation['variation_id']) && !empty($variation['variation_id'])) {
+                            try {
+                                $variationModel = ProductVariation::find($variation['variation_id']);
+                                if ($variationModel && $variationModel->product_id == $product->product_id) {
+                                    $variationModel->update($variationData);
+                                    $updatedVariationIds[] = $variation['variation_id'];
+                                } else {
+                                    // Variation not found or doesn't belong to this product, create new
+                                    $newVariation = ProductVariation::create($variationData);
+                                    $updatedVariationIds[] = $newVariation->variation_id;
+                                }
+                            } catch (\Exception $e) {
+                                Log::warning('Error updating variation, creating new one:', [
+                                    'variation_id' => $variation['variation_id'],
+                                    'error' => $e->getMessage()
+                                ]);
+                                // If update fails, create new variation
+                                $newVariation = ProductVariation::create($variationData);
+                                $updatedVariationIds[] = $newVariation->variation_id;
+                            }
+                        } else {
+                            // Create new variation
+                            $newVariation = ProductVariation::create($variationData);
+                            $updatedVariationIds[] = $newVariation->variation_id;
+                        }
+                    }
+                    
+                    // Delete variations that were removed (exist in DB but not in request)
+                    $variationsToDelete = array_diff($existingVariationIds, $updatedVariationIds);
+                    if (!empty($variationsToDelete)) {
+                        ProductVariation::whereIn('variation_id', $variationsToDelete)
+                            ->where('product_id', $product->product_id)
+                            ->delete();
+                    }
+                    
+                    // Update product quantity to sum of all variations
+                    $totalQuantity = ProductVariation::where('product_id', $product->product_id)
+                        ->sum('quantity');
+                    $product->productQuantity = $totalQuantity;
+                    $product->save();
+                    Log::info('Variations updated successfully:', [
+                        'product_id' => $product->product_id,
+                        'total_quantity' => $totalQuantity,
+                        'variations_count' => count($updatedVariationIds)
+                    ]);
+                } elseif (!$hasVariations) {
+                    // If has_variations is false/0, delete all existing variations
+                    $deletedCount = ProductVariation::where('product_id', $product->product_id)->delete();
+                    Log::info('Variations disabled, deleted existing variations:', [
+                        'product_id' => $product->product_id,
+                        'deleted_count' => $deletedCount
+                    ]);
+                    // Product quantity should already be set correctly from the form data
+                }
+            } catch (\Exception $e) {
+                Log::error('Error handling variations (non-critical):', [
+                    'product_id' => $product->product_id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                // Don't fail the entire update if variation handling fails
+                // The product was already updated successfully
+            }
+            
             Log::info('Product updated successfully:', ['product_id' => $product->product_id]);
             
             // Transform product to include full image URL
@@ -520,9 +744,29 @@ class ProductController extends Controller
             ];
             
             return response()->json(['message' => 'Product updated successfully!', 'product' => $productData]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation error updating product:', [
+                'product_id' => isset($product) ? $product->product_id : null,
+                'errors' => $e->errors(),
+                'message' => $e->getMessage()
+            ]);
+            return response()->json([
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
-            Log::error('Error updating product:', ['error' => $e->getMessage()]);
-            return response()->json(['message' => 'Error updating product: ' . $e->getMessage()], 500);
+            Log::error('Error updating product:', [
+                'product_id' => isset($product) ? $product->product_id : null,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'Error updating product: ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
     }
 

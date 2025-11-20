@@ -146,6 +146,51 @@ const StorefrontCustomizer = () => {
     fetchStoreData();
   }, []);
 
+  // Track user activity to update online status and refresh store data
+  useEffect(() => {
+    const updateActivity = async () => {
+      try {
+        const token = sessionStorage.getItem("auth_token") || localStorage.getItem("token");
+        if (!token) return;
+
+        // Ping the API to update last_activity_at and refresh store data
+        await fetchStoreData();
+      } catch (error) {
+        console.error("Error updating activity:", error);
+      }
+    };
+
+    // Update activity immediately
+    updateActivity();
+
+    // Update activity every 2 minutes to keep status as "online"
+    const activityInterval = setInterval(updateActivity, 2 * 60 * 1000);
+
+    // Also update on user interactions (throttled to avoid too many requests)
+    let activityTimeout;
+    const handleUserActivity = () => {
+      clearTimeout(activityTimeout);
+      activityTimeout = setTimeout(() => {
+        updateActivity();
+      }, 30000); // Throttle to once every 30 seconds
+    };
+
+    // Listen to various user activities
+    window.addEventListener('mousemove', handleUserActivity);
+    window.addEventListener('keypress', handleUserActivity);
+    window.addEventListener('click', handleUserActivity);
+    window.addEventListener('scroll', handleUserActivity);
+
+    return () => {
+      clearInterval(activityInterval);
+      clearTimeout(activityTimeout);
+      window.removeEventListener('mousemove', handleUserActivity);
+      window.removeEventListener('keypress', handleUserActivity);
+      window.removeEventListener('click', handleUserActivity);
+      window.removeEventListener('scroll', handleUserActivity);
+    };
+  }, []);
+
   // Fetch discount codes once store data (and seller ID) is available
   useEffect(() => {
     const fetchDiscounts = async () => {
@@ -951,8 +996,8 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
     name: storeData?.store?.store_name || "Your Store",
     logo: storeData?.logo_url || imagePreviews.logo || null, // Use saved logo URL first, then preview
     banner: storeData?.background_url || imagePreviews.background || "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80",
-    rating: storeData?.seller?.average_rating || 4.8, // Real rating from database
-    followers: storeData?.seller?.followers_count || 1250,
+    rating: storeData?.seller?.average_rating || 0, // Real rating from database
+    followers: storeData?.seller?.followers_count || 0, // Real followers count from database
     location: [
       storeData?.store?.owner_address,
       storeData?.seller?.user?.userCity, 
@@ -960,7 +1005,7 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
     ].filter(Boolean).join(', ') || 
     storeData?.store?.owner_address || 
     "Location not specified",
-    yearsActive: storeData?.seller?.created_at ? Math.floor((new Date() - new Date(storeData.seller.created_at)) / (1000 * 60 * 60 * 24 * 365)) : 2,
+    isOnline: storeData?.seller?.user?.is_online || false, // Online/offline status
     description: storeData?.store?.store_description || "Add a description to tell your customers about your store and what makes it special...",
     categories: storeData?.store?.category ? [storeData.store.category] : ["Handcrafted", "Artisan", "Unique"],
   };
@@ -1238,7 +1283,8 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
                 className="flex items-center gap-1 font-semibold px-3 py-1 rounded-full text-base shadow"
                 style={{ backgroundColor: customization.background_color, color: customization.primary_color }}
               >
-                <Calendar className="w-5 h-5" /> {store.yearsActive} years active
+                <div className={`w-2 h-2 rounded-full ${store.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                {store.isOnline ? 'Online' : 'Offline'}
               </span>
             </div>
             <div className="flex sm:hidden items-center gap-2 text-white text-sm">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -41,7 +42,7 @@ class ReviewController extends Controller
     }
 
     /**
-     * Check for offensive language in text
+     * Check for offensive language in text (English and Tagalog)
      */
     private function containsOffensiveLanguage($text)
     {
@@ -49,23 +50,116 @@ class ReviewController extends Controller
             return false;
         }
 
-        // List of offensive words/phrases (basic implementation)
-        // In production, consider using a more sophisticated profanity filter library
-        $offensiveWords = [
+        // List of offensive words/phrases in English
+        $offensiveWordsEnglish = [
             'damn', 'hell', 'crap', 'stupid', 'idiot', 'moron', 'fool',
             'hate', 'kill', 'die', 'death', 'murder', 'violence',
+            'fuck', 'shit', 'bitch', 'asshole', 'bastard', 'piss',
+            'crap', 'damn', 'hell', 'stupid', 'idiot', 'moron',
             // Add more offensive terms as needed
+        ];
+
+        // List of offensive words/phrases in Tagalog
+        $offensiveWordsTagalog = [
+            'putang ina', 'putangina', 'puta', 'tang ina', 'tangina',
+            'gago', 'gaga', 'bobo', 'tanga', 'ulol', 'ulol ka',
+            'walang hiya', 'walanghiya', 'hayop', 'hayop ka',
+            'tarantado', 'tarantada', 'lintik', 'lintik ka',
+            'leche', 'lechugas', 'pakshet', 'pakyu', 'pak yu',
+            'sira ulo', 'siraulo', 'baliw', 'baliw ka',
+            'kupal', 'kupal ka', 'buwisit', 'buwisit ka',
+            // Add more Tagalog offensive terms as needed
         ];
 
         $textLower = strtolower($text);
         
-        foreach ($offensiveWords as $word) {
+        // Check English offensive words
+        foreach ($offensiveWordsEnglish as $word) {
+            if (strpos($textLower, $word) !== false) {
+                return true;
+            }
+        }
+
+        // Check Tagalog offensive words
+        foreach ($offensiveWordsTagalog as $word) {
             if (strpos($textLower, $word) !== false) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * Redact offensive content from text
+     */
+    private function redactOffensiveContent($text)
+    {
+        if (empty($text)) {
+            return $text;
+        }
+
+        // List of offensive words (same as detection)
+        $offensiveWordsEnglish = [
+            'damn', 'hell', 'crap', 'stupid', 'idiot', 'moron', 'fool',
+            'hate', 'kill', 'die', 'death', 'murder', 'violence',
+            'fuck', 'shit', 'bitch', 'asshole', 'bastard', 'piss',
+        ];
+
+        $offensiveWordsTagalog = [
+            'putang ina', 'putangina', 'puta', 'tang ina', 'tangina',
+            'gago', 'gaga', 'bobo', 'tanga', 'ulol', 'ulol ka',
+            'walang hiya', 'walanghiya', 'hayop', 'hayop ka',
+            'tarantado', 'tarantada', 'lintik', 'lintik ka',
+            'leche', 'lechugas', 'pakshet', 'pakyu', 'pak yu',
+            'sira ulo', 'siraulo', 'baliw', 'baliw ka',
+            'kupal', 'kupal ka', 'buwisit', 'buwisit ka',
+        ];
+
+        $textLower = strtolower($text);
+        $redactedText = $text;
+        $allOffensiveWords = array_merge($offensiveWordsEnglish, $offensiveWordsTagalog);
+
+        // Sort by length (longest first) to handle multi-word phrases correctly
+        usort($allOffensiveWords, function($a, $b) {
+            return strlen($b) - strlen($a);
+        });
+
+        foreach ($allOffensiveWords as $word) {
+            // Case-insensitive replacement with asterisks
+            $pattern = '/\b' . preg_quote($word, '/') . '\b/i';
+            $replacement = str_repeat('*', strlen($word));
+            $redactedText = preg_replace($pattern, $replacement, $redactedText);
+        }
+
+        return $redactedText;
+    }
+
+    /**
+     * Check if user should be auto-suspended based on violation points
+     */
+    private function checkAndSuspendUser($user)
+    {
+        $VIOLATION_THRESHOLD_PERMANENT = 10;
+        $VIOLATION_THRESHOLD_TEMPORARY = 5;
+
+        if ($user->violation_points >= $VIOLATION_THRESHOLD_PERMANENT) {
+            // Auto-suspend permanently
+            $user->is_suspended = true;
+            $user->suspension_type = 'permanent';
+            $user->suspension_reason = 'Auto-suspended: Reached permanent suspension threshold due to offensive language violations';
+            $user->suspension_until = null;
+            
+            Log::warning("User {$user->userID} auto-suspended permanently due to violation points ({$user->violation_points})");
+        } elseif ($user->violation_points >= $VIOLATION_THRESHOLD_TEMPORARY && !$user->is_suspended) {
+            // Auto-suspend temporarily for 14 days
+            $user->is_suspended = true;
+            $user->suspension_type = 'temporary';
+            $user->suspension_reason = 'Auto-suspended: Reached temporary suspension threshold due to offensive language violations';
+            $user->suspension_until = now()->addDays(14);
+            
+            Log::warning("User {$user->userID} auto-suspended temporarily due to violation points ({$user->violation_points})");
+        }
     }
 
     /**
@@ -111,9 +205,16 @@ class ReviewController extends Controller
 
             // Choose comment content from either 'comment' or 'review'
             $commentText = $request->input('comment', $request->input('review'));
+            $originalCommentText = $commentText;
+            $hasOffensiveLanguage = false;
+            $redactedCommentText = $commentText;
 
             // Check for offensive language
             if ($commentText && $this->containsOffensiveLanguage($commentText)) {
+                $hasOffensiveLanguage = true;
+                // Redact offensive content
+                $redactedCommentText = $this->redactOffensiveContent($commentText);
+                
                 // Notify admins about the offensive language attempt
                 try {
                     $product = \App\Models\Product::find($productId);
@@ -121,20 +222,14 @@ class ReviewController extends Controller
                     $productName = $product ? $product->productName : 'Unknown Product';
                     
                     \App\Services\NotificationService::notifyAdminsFlaggedReview(
-                        null, // Review ID is null since review is not saved
+                        null, // Review ID is null since review is not saved yet
                         $productName,
                         $customerName,
-                        $commentText
+                        $originalCommentText
                     );
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::warning('Failed to send admin notification for offensive review: ' . $e->getMessage());
                 }
-                
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Your review contains inappropriate language. Please revise your review and avoid using offensive words.',
-                    'error' => 'offensive_language'
-                ], 400);
             }
 
             // Handle image uploads
@@ -164,6 +259,15 @@ class ReviewController extends Controller
                 ->where('product_id', $productId)
                 ->first();
 
+            // If offensive language detected, flag and redact the review
+            if ($hasOffensiveLanguage) {
+                // Apply violation points and check for suspension
+                $user->violation_points += 2; // 2 points for offensive language
+                $user->last_violation_date = now();
+                $this->checkAndSuspendUser($user);
+                $user->save();
+            }
+
             if ($existingReview) {
                 // Delete old images and video if updating
                 if ($existingReview->images) {
@@ -179,17 +283,32 @@ class ReviewController extends Controller
 
                 // Update existing review
                 $existingReview->rating = $request->rating;
-                $existingReview->comment = $commentText;
+                $existingReview->comment = $redactedCommentText; // Use redacted text
                 $existingReview->review_date = now();
                 $existingReview->images = !empty($imagePaths) ? $imagePaths : null;
                 $existingReview->video_path = $videoPath;
+                
+                // Auto-flag and redact if offensive language detected
+                if ($hasOffensiveLanguage) {
+                    $existingReview->is_flagged = true;
+                    $existingReview->flag_reason = 'Auto-flagged: Contains offensive language (English/Tagalog)';
+                    $existingReview->is_redacted_text = true;
+                    $existingReview->redaction_reason = 'Auto-redacted: Offensive language detected and censored';
+                    $existingReview->redacted_at = now();
+                }
+                
                 $existingReview->save();
                 $existingReview->load('user');
 
+                $message = $hasOffensiveLanguage 
+                    ? 'Review updated successfully. Offensive language has been automatically flagged and redacted. Violation points have been applied.'
+                    : 'Review updated successfully';
+
                 return response()->json([
                     'success' => true,
-                    'message' => 'Review updated successfully',
-                    'data' => $existingReview
+                    'message' => $message,
+                    'data' => $existingReview,
+                    'was_flagged' => $hasOffensiveLanguage
                 ], 200);
             }
 
@@ -197,19 +316,33 @@ class ReviewController extends Controller
                 'user_id' => $user->userID,
                 'product_id' => $productId,
                 'rating' => $request->rating,
-                'comment' => $commentText,
+                'comment' => $redactedCommentText, // Use redacted text
                 'review_date' => now(),
                 'images' => !empty($imagePaths) ? $imagePaths : null,
                 'video_path' => $videoPath,
             ]);
 
+            // Auto-flag and redact if offensive language detected
+            if ($hasOffensiveLanguage) {
+                $review->is_flagged = true;
+                $review->flag_reason = 'Auto-flagged: Contains offensive language (English/Tagalog)';
+                $review->is_redacted_text = true;
+                $review->redaction_reason = 'Auto-redacted: Offensive language detected and censored';
+                $review->redacted_at = now();
+            }
+
             $review->save();
             $review->load('user');
 
+            $message = $hasOffensiveLanguage 
+                ? 'Review submitted successfully. Offensive language has been automatically flagged and redacted. Violation points have been applied.'
+                : 'Review submitted successfully';
+
             return response()->json([
                 'success' => true,
-                'message' => 'Review submitted successfully',
-                'data' => $review
+                'message' => $message,
+                'data' => $review,
+                'was_flagged' => $hasOffensiveLanguage
             ], 201);
 
         } catch (\Exception $e) {

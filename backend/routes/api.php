@@ -377,6 +377,7 @@ Route::middleware([])->group(function () {
                     'customer' => $customerName,
                     'date' => $order->created_at->format('Y-m-d'),
                     'dateFormatted' => $order->created_at->format('M d, Y'),
+                    'updated_at' => $order->updated_at ? $order->updated_at->format('Y-m-d H:i:s') : $order->created_at->format('Y-m-d H:i:s'),
                     'amount' => '₱' . number_format($order->totalAmount, 2),
                     'totalAmount' => $order->totalAmount,
                     'status' => ucfirst($order->status),

@@ -2,6 +2,9 @@
 # Don't exit on error - we need to see what's happening and continue
 set +e
 
+# Redirect all output to stderr so it shows in Render logs
+exec 1>&2
+
 echo "=========================================="
 echo "Starting Laravel Application"
 echo "=========================================="

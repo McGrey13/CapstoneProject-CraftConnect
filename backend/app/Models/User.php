@@ -38,6 +38,7 @@ class User extends Authenticatable
         'suspension_reason',
         'violation_points',
         'last_violation_date',
+        'last_activity_at',
     ];
 
     protected $hidden = [
@@ -55,6 +56,7 @@ class User extends Authenticatable
         'is_suspended' => 'boolean',
         'suspension_until' => 'datetime',
         'last_violation_date' => 'datetime',
+        'last_activity_at' => 'datetime',
     ];
 
     /**

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, MessageCircle, Clock, User, Package } from 'lucide-react';
 import api from '../../api';
 import { useUser } from '../Context/UserContext';
+import { getStorageUrl, getBackendUrl } from '../../utils/backendUrl';
 
 const MessengerPopup = ({ 
   isOpen, 
@@ -239,7 +240,7 @@ const MessengerPopup = ({
       // Try 3: Use backend URL directly (if different from frontend)
       if (!fetchSuccess) {
         try {
-          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+          const backendUrl = getBackendUrl();
           const backendImageUrl = imageUrl.replace(window.location.origin, backendUrl);
           const response = await fetch(backendImageUrl, {
             credentials: 'include',
@@ -679,7 +680,7 @@ const MessengerPopup = ({
                               />
                             ) : (
                               <a 
-                                href={`http://localhost:8000/storage/${a.messageAttachment}`}
+                                href={getStorageUrl(a.messageAttachment)}
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-2 text-blue-400 hover:underline"

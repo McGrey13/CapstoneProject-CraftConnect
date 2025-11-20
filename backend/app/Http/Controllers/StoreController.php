@@ -11,50 +11,151 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use app\models\User;
 
 class StoreController extends Controller
 {
     public function me(Request $request)
     {
-        $user = Auth::user();
-        
-        Log::info('StoreController@me called', [
-            'user_id' => $user ? $user->userID : 'No user',
-            'user_role' => $user ? $user->role : 'No role'
-        ]);
-        
-        if (!$user) {
-            Log::warning('No authenticated user found');
-            return response()->json(['message' => 'User not authenticated'], 401);
-        }
-        
-        $store = Store::where('user_id', $user->userID)
-            ->with(['seller.user'])
-            ->latest()
-            ->first();
+        try {
+            $user = Auth::user();
             
-        Log::info('Store query result', [
-            'store_found' => $store ? 'Yes' : 'No',
-            'store_id' => $store ? $store->storeID : null,
-            'store_name' => $store ? $store->store_name : null,
-            'logo_path' => $store ? $store->logo_path : null
-        ]);
+            Log::info('StoreController@me called', [
+                'user_id' => $user ? $user->userID : 'No user',
+                'user_role' => $user ? $user->role : 'No role'
+            ]);
             
-        if (!$store) {
-            return response()->json(['message' => 'No store found'], 404);
+            if (!$user) {
+                Log::warning('No authenticated user found');
+                return response()->json(['message' => 'User not authenticated'], 401);
+            }
+            
+            // Update user's last activity timestamp (with error handling)
+            try {
+                if (Schema::hasColumn('users', 'last_activity_at')) {
+                    $user->last_activity_at = now();
+                    $user->save();
+                }
+            } catch (\Exception $e) {
+                Log::warning('Error updating last_activity_at', ['error' => $e->getMessage()]);
+            }
+            
+            $store = Store::where('user_id', $user->userID)
+                ->with(['seller.user', 'seller.products', 'seller.followers'])
+                ->latest()
+                ->first();
+                
+            Log::info('Store query result', [
+                'store_found' => $store ? 'Yes' : 'No',
+                'store_id' => $store ? $store->storeID : null,
+                'store_name' => $store ? $store->store_name : null,
+                'logo_path' => $store ? $store->logo_path : null
+            ]);
+                
+            if (!$store) {
+                return response()->json(['message' => 'No store found'], 404);
+            }
+            
+            // Calculate average rating from products
+            $averageRating = 0;
+            $totalRatings = 0;
+            
+            try {
+                if ($store->seller && $store->seller->products && $store->seller->products->count() > 0) {
+                    $totalRatingSum = 0;
+                    $ratingCount = 0;
+                    
+                    foreach ($store->seller->products as $product) {
+                        try {
+                            $productRatings = \App\Models\Ratings::where('product_id', $product->product_id)->get();
+                            foreach ($productRatings as $rating) {
+                                $totalRatingSum += $rating->stars;
+                                $ratingCount++;
+                            }
+                        } catch (\Exception $e) {
+                            Log::warning('Error getting ratings for product', [
+                                'product_id' => $product->product_id,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                    }
+                    
+                    if ($ratingCount > 0) {
+                        $averageRating = round($totalRatingSum / $ratingCount, 1);
+                        $totalRatings = $ratingCount;
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('Error calculating average rating', ['error' => $e->getMessage()]);
+            }
+            
+            // Get followers count
+            $followersCount = 0;
+            if ($store->seller) {
+                try {
+                    $followersCount = $store->seller->followers()->count();
+                } catch (\Exception $e) {
+                    Log::warning('Error getting followers count', ['error' => $e->getMessage()]);
+                    $followersCount = 0;
+                }
+            }
+            
+            // Determine online/offline status (online if last activity was within last 5 minutes)
+            $isOnline = false;
+            try {
+                if ($user->last_activity_at) {
+                    $lastActivity = \Carbon\Carbon::parse($user->last_activity_at);
+                    $isOnline = $lastActivity->diffInMinutes(now()) <= 5;
+                } else {
+                    // If no last_activity_at, consider online if user just logged in recently
+                    $isOnline = true;
+                }
+            } catch (\Exception $e) {
+                Log::warning('Error determining online status', ['error' => $e->getMessage()]);
+                $isOnline = true; // Default to online if error
+            }
+            
+            $response = [
+                'store' => $store,
+                'seller' => [
+                    'sellerID' => $store->seller ? $store->seller->sellerID : null,
+                    'average_rating' => $averageRating,
+                    'total_ratings' => $totalRatings,
+                    'followers_count' => $followersCount,
+                    'user' => [
+                        'userID' => $store->seller && $store->seller->user ? $store->seller->user->userID : null,
+                        'userName' => $store->seller && $store->seller->user ? $store->seller->user->userName : null,
+                        'userEmail' => $store->seller && $store->seller->user ? $store->seller->user->userEmail : null,
+                        'userCity' => $store->seller && $store->seller->user ? $store->seller->user->userCity : null,
+                        'userProvince' => $store->seller && $store->seller->user ? $store->seller->user->userProvince : null,
+                        'last_activity_at' => $user->last_activity_at ? $user->last_activity_at->toIso8601String() : null,
+                        'is_online' => $isOnline,
+                    ]
+                ],
+                'logo_url' => $store->logo_path ? url('storage/' . $store->logo_path) : null,
+                'background_url' => $store->background_image_path ? url('storage/' . $store->background_image_path) : null,
+                'bir_url' => $store->bir_path ? url('storage/' . $store->bir_path) : null,
+            ];
+            
+            Log::info('Store data response', [
+                'store_id' => $store->storeID,
+                'average_rating' => $averageRating,
+                'followers_count' => $followersCount,
+                'is_online' => $isOnline
+            ]);
+            
+            return response()->json($response);
+        } catch (\Exception $e) {
+            Log::error('Error in StoreController@me', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'An error occurred while fetching store data',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        
-        $response = [
-            'store' => $store,
-            'logo_url' => $store->logo_path ? url('storage/' . $store->logo_path) : null,
-            'background_url' => $store->background_image_path ? url('storage/' . $store->background_image_path) : null,
-            'bir_url' => $store->bir_path ? url('storage/' . $store->bir_path) : null,
-        ];
-        
-        Log::info('Store data response', $response);
-        
-        return response()->json($response);
     }
 
     public function store(Request $request)
@@ -65,10 +166,10 @@ class StoreController extends Controller
             'store_name' => 'required|string|max:255',
             'store_description' => 'nullable|string',
             'category' => 'nullable|string|max:255',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:4096',
-            'bir' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:8192',
-            'dti' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:8192',
-            'id_image' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:8192',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240', // 10MB for HD logo images
+            'bir' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:20480', // 20MB for HD document images
+            'dti' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:20480', // 20MB for HD document images
+            'id_image' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:20480', // 20MB for HD document images
             'id_type' => 'nullable|string|in:UMID,SSS,GSIS,LTO,Postal,Passport,PhilHealth,PhilID,PRC,Alien,Foreign_Passport',
             'tin_number' => 'nullable|string|max:20',
             'owner_name' => 'required|string|max:255',
@@ -147,8 +248,8 @@ class StoreController extends Controller
             'store_name' => 'sometimes|string|max:255',
             'store_description' => 'nullable|string',
             'category' => 'nullable|string|max:255',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:4096',
-            'bir' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:8192',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240', // 10MB for HD logo images
+            'bir' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:20480', // 20MB for HD document images
             'owner_name' => 'sometimes|string|max:255',
             'owner_email' => 'sometimes|email|max:255',
             'owner_phone' => 'nullable|string|max:50',
@@ -591,8 +692,8 @@ class StoreController extends Controller
                 'desktop_columns' => 'sometimes|integer|min:2|max:6',
                 'mobile_columns' => 'sometimes|integer|min:1|max:3',
                 'product_card_style' => 'sometimes|string|in:minimal,detailed,compact,elegant',
-                'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:4096',
-                'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:8192',
+                'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240', // 10MB for HD logo images
+                'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:20480', // 20MB for HD background images
             ]);
 
             // Handle customization data if sent as JSON string

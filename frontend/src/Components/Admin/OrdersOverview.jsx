@@ -68,30 +68,31 @@ function OrdersOverview() {
     }
   };
 
-  // Check if order should be auto-cancelled (7 days old)
-  const isOrderOlderThan7Days = (orderDate) => {
-    const orderDateObj = new Date(orderDate);
+  // Check if order should be auto-cancelled (seller hasn't updated in 7 days)
+  const isOrderNotUpdatedBySellerIn7Days = (order) => {
+    // Use updated_at if available, otherwise fall back to order date
+    const lastUpdateDate = order.updated_at ? new Date(order.updated_at) : new Date(order.date);
     const currentDate = new Date();
-    const diffTime = Math.abs(currentDate - orderDateObj);
+    const diffTime = Math.abs(currentDate - lastUpdateDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 7;
   };
 
-  // Auto-cancel orders older than 7 days
+  // Auto-cancel orders when seller hasn't made any changes in 7 days
   const checkAndAutoCancelExpiredOrders = async () => {
     try {
       const ordersToCancel = allOrders.filter(order => 
         order.status !== 'Cancelled' && 
         order.status !== 'Delivered' &&
-        isOrderOlderThan7Days(order.date)
+        isOrderNotUpdatedBySellerIn7Days(order)
       );
 
       for (const order of ordersToCancel) {
         try {
           await api.post(`/orders-test/${order.id}/cancel`, {
-            reason: 'Auto-cancelled: Order exceeded 7-day pending period'
+            reason: 'Auto-cancelled: Seller did not update order within 7 days'
           });
-          console.log(`Auto-cancelled order: ${order.id}`);
+          console.log(`Auto-cancelled order: ${order.id} - Seller did not update within 7 days`);
         } catch (error) {
           console.error(`Failed to auto-cancel order ${order.id}:`, error);
         }

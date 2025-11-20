@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, ArrowRight, Filter, X, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { getStorageUrl } from "../../utils/backendUrl";
 import {
   Select,
   SelectContent,
@@ -36,29 +37,13 @@ const FeaturedProducts = ({
   const fixImageUrl = (url) => {
     if (!url || url === '') return null;
     
-    // If it's already a full URL, return as is (but ensure it's correct)
+    // If it's already a full URL, return as is
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      // If it's a Laravel URL but wrong port, fix it
-      if (url.includes('localhost') && !url.includes(':8000')) {
-        return url.replace(/localhost(:\d+)?/, 'localhost:8000');
-      }
       return url;
     }
     
-    // Handle storage paths - Laravel storage URLs
-    if (url.includes('storage/')) {
-      // Remove leading slash if present
-      const cleanPath = url.startsWith('/') ? url.substring(1) : url;
-      return `http://localhost:8000/${cleanPath}`;
-    }
-    
-    // Handle other relative paths
-    if (url.startsWith('/')) {
-      return `http://localhost:8000${url}`;
-    }
-    
-    // Default: assume it's a storage path
-    return `http://localhost:8000/storage/${url}`;
+    // Use utility function for storage URLs
+    return getStorageUrl(url);
   };
 
   const fetchProducts = useCallback(async () => {

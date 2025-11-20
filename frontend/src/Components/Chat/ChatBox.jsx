@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import api from "../../api";
+import { getStorageUrl } from "../../utils/backendUrl";
 
 // Helper function for notifications until react-hot-toast is installed
 const showNotification = (type, message) => {
@@ -171,14 +172,14 @@ export default function ChatBox({ conversationId, user, customer }) {
                   <div key={i} className="mt-2">
                     {a.file_type === "image" ? (
                       <img 
-                        src={`http://localhost:8000/storage/${a.messageAttachment}`} 
+                        src={getStorageUrl(a.messageAttachment)} 
                         alt="attachment" 
                         className="max-w-full rounded-lg shadow max-h-64 object-contain"
                         loading="lazy"
                       />
                     ) : (
                       <a 
-                        href={`http://localhost:8000/storage/${a.messageAttachment}`}
+                        href={getStorageUrl(a.messageAttachment)}
                         target="_blank" 
                         rel="noopener noreferrer"
                         className={`flex items-center gap-2 ${

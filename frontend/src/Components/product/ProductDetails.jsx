@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { Badge } from "../ui/badge";
 import { useCart } from "../Cart/CartContext";
 import { useFavorites } from "../favorites/FavoritesContext";
+import { getStorageUrl } from "../../utils/backendUrl";
 import { useProductViewTracker } from "../../hooks/useProductViewTracker";
 import MessengerPopup from "../Messenger/MessengerPopup";
 import api from "../../api";
@@ -94,13 +95,12 @@ const RelatedProductsSection = ({ productId }) => {
 
   const fixImageUrl = (url) => {
     if (!url) return null;
-    if (url.startsWith('http')) {
+    // If already a full URL, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
-    if (url.startsWith('/storage/') || url.startsWith('/images/')) {
-      return `http://localhost:8000${url}`;
-    }
-    return `http://localhost:8000/storage/${url}`;
+    // Use utility function for storage URLs
+    return getStorageUrl(url);
   };
 
   if (loading) {
@@ -302,23 +302,12 @@ const ProductDetails = () => {
   // Helper function to convert image URLs to use correct backend
   const fixImageUrl = (url) => {
     if (!url) return url;
-    // If it's already a full URL with localhost:8000, use it directly
-    if (url.includes('localhost:8000')) {
+    // If it's already a full URL, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
-    // If it's a full URL with localhost:8080, convert to 8000
-    if (url.includes('localhost:8080')) {
-      return url.replace('localhost:8080', 'localhost:8000');
-    }
-    // If it's already a relative path starting with /storage/, use it
-    if (url.startsWith('/storage/') || url.startsWith('/images/')) {
-      return url;
-    }
-    // If it's a path without leading slash, add /storage/
-    if (url && !url.startsWith('http') && !url.startsWith('/')) {
-      return `/storage/${url}`;
-    }
-    return url;
+    // Use utility function for storage URLs
+    return getStorageUrl(url);
   };
 
   const fetchProductAndReviews = async () => {

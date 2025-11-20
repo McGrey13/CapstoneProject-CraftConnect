@@ -26,12 +26,24 @@ const StoreDetails = ({
   const [errors, setErrors] = useState({
     name: "",
     description: "",
+    logo: "",
   });
   const [logoPreview, setLogoPreview] = useState(null);
 
   const handleLogoChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Validate file size (10MB max for logo)
+      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+      if (file.size > maxSize) {
+        setErrors(prev => ({ ...prev, logo: `Logo size must be less than 10MB. Current size: ${(file.size / (1024 * 1024)).toFixed(2)}MB` }));
+        return;
+      }
+      
+      // Clear any previous errors
+      setErrors(prev => ({ ...prev, logo: null }));
+      
       updateStoreData({ logo: file });
       setLogoPreview(URL.createObjectURL(file));
     }
@@ -173,9 +185,11 @@ const StoreDetails = ({
                     onChange={handleLogoChange}
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Recommended: Square image, at least 500x500px. Max size:
-                    2MB.
+                    Recommended: Square image, at least 500x500px. Max size: 10MB (HD images supported).
                   </p>
+                  {errors.logo && (
+                    <p className="text-sm text-red-500 mt-1">{errors.logo}</p>
+                  )}
                 </div>
               </div>
             </div>

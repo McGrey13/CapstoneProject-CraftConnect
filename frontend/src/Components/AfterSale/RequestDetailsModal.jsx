@@ -1,6 +1,7 @@
 import React from "react";
 import { X, Package, User, Calendar, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "../ui/button";
+import { getStorageUrl } from "../../utils/backendUrl";
 
 const RequestDetailsModal = ({ request, onClose, onRefresh }) => {
   const getStatusColor = (status) => {
@@ -128,10 +129,10 @@ const RequestDetailsModal = ({ request, onClose, onRefresh }) => {
                 {request.images.map((image, index) => (
                   <img
                     key={index}
-                    src={`http://localhost:8080/storage/${image}`}
+                    src={getStorageUrl(image)}
                     alt={`Attachment ${index + 1}`}
                     className="w-full h-32 object-cover rounded-lg border cursor-pointer hover:opacity-80"
-                    onClick={() => window.open(`http://localhost:8080/storage/${image}`, '_blank')}
+                    onClick={() => window.open(getStorageUrl(image), '_blank')}
                   />
                 ))}
               </div>
@@ -181,7 +182,7 @@ const RequestDetailsModal = ({ request, onClose, onRefresh }) => {
               <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
                 {request.product.productImage && (
                   <img
-                    src={`http://localhost:8080/storage/${request.product.productImage}`}
+                    src={getStorageUrl(request.product.productImage)}
                     alt={request.product.productName}
                     className="w-20 h-20 object-cover rounded-lg"
                   />

@@ -16,8 +16,29 @@ Route::middleware(['web', 'throttle:60,1'])->group(function () {
 });
 // Public routes
 Route::get('/', function () {
-    return view('welcome');
+    // Simple JSON response instead of view (view might not exist)
+    return response()->json([
+        'message' => 'CraftConnect API Backend',
+        'status' => 'running',
+        'endpoints' => [
+            'api_test' => '/api/test',
+            'api_stores' => '/api/stores',
+            'api_products' => '/api/products/approved',
+            'csrf_cookie' => '/sanctum/csrf-cookie',
+        ]
+    ]);
 })->name('welcome');
+
+// Simple test route for easy access
+Route::get('/test', function () {
+    return response()->json([
+        'message' => 'Backend is working!',
+        'timestamp' => date('Y-m-d H:i:s'),
+        'php_version' => PHP_VERSION,
+        'laravel_version' => app()->version(),
+        'note' => 'For API endpoints, use /api/test instead'
+    ]);
+});
 
 // Image serving route with CORS headers
 Route::options('/images/{path}', [App\Http\Controllers\ImageController::class, 'handleOptions']);
@@ -29,9 +50,10 @@ Route::get('/images/{path}', [App\Http\Controllers\ImageController::class, 'serv
 Route::middleware('guest')->group(function () {
     // Login Routes - Return JSON instead of redirect to avoid CORS issues
     Route::get('/login', function () {
+        $frontendUrl = env('FRONTEND_URL', 'https://capstoneproject-craftconnect-1.onrender.com');
         return response()->json([
             'message' => 'Please use the frontend login page',
-            'redirect_url' => 'http://localhost:5173/login'
+            'redirect_url' => $frontendUrl . '/login'
         ], 200);
     })->name('login');
     
