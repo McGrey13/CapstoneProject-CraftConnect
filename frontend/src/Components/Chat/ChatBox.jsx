@@ -220,8 +220,12 @@ export default function ChatBox({ conversationId, user, customer }) {
             <option value="general">General</option>
             <option value="custom_request">Customization</option>
             <option value="order_update">Order Update</option>
-            <option value="damage_report">Damage Report</option>
-            <option value="after_sale">After Sale</option>
+            {user.role !== 'seller' && (
+              <>
+                <option value="damage_report">Damage Report</option>
+                <option value="after_sale">After Sale</option>
+              </>
+            )}
           </select>
 
           {file && (

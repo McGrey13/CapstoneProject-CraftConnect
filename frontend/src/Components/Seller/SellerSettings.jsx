@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import api from "../../api";
 import PaymentGatewaySetup from "./PaymentGatewaySetup";
+import { getStorageUrl } from "../../utils/backendUrl";
 
 const SellerSettings = () => {
   const [sellerID, setSellerID] = useState(null);
@@ -58,13 +59,29 @@ const SellerSettings = () => {
 
   // Helper function to get the current image URL
   const getCurrentImageUrl = () => {
+    // Priority: preview (user selected but not saved) > saved image > default
     if (profileImagePreview) {
-      console.log("Using profile image preview:", profileImagePreview);
-      return profileImagePreview;
+      // If it's a blob URL (preview), return as is
+      if (profileImagePreview.startsWith('blob:')) {
+        console.log("Using profile image preview (blob):", profileImagePreview);
+        return profileImagePreview;
+      }
+      // Otherwise, format the URL using utility function
+      const formattedUrl = getStorageUrl(profileImagePreview);
+      console.log("Using profile image preview:", formattedUrl);
+      return formattedUrl;
     }
-    if (seller?.profileImage) {
-      console.log("Using seller profile image:", seller.profileImage);
-      return seller.profileImage;
+    if (seller?.profileImage || seller?.profile_image_url) {
+      const imageUrl = seller.profileImage || seller.profile_image_url;
+      // If it's already a full URL, return as is
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        console.log("Using seller profile image (full URL):", imageUrl);
+        return imageUrl;
+      }
+      // Otherwise, format using utility function
+      const formattedUrl = getStorageUrl(imageUrl);
+      console.log("Using seller profile image:", formattedUrl);
+      return formattedUrl;
     }
     console.log("Using default avatar image");
     return "https://api.dicebear.com/7.x/avataaars/svg?seed=admin";
@@ -130,12 +147,21 @@ const SellerSettings = () => {
         setSellerID(data.sellerID);
         
         // Set the profile image preview from the fetched data
-        if (data.profileImage) {
-          console.log("Setting profile image from fetched data:", data.profileImage);
-          setProfileImagePreview(data.profileImage);
+        // Only set if there's no active file being edited (no file selected)
+        if (!profileImageFile) {
+          if (data.profileImage || data.profile_image_url) {
+            const imageUrl = data.profileImage || data.profile_image_url;
+            console.log("Setting profile image from fetched data:", imageUrl);
+            setProfileImagePreview(imageUrl);
+          } else {
+            console.log("No profile image in fetched data");
+            // Only reset preview if we don't have a saved image either
+            if (!seller?.profileImage) {
+              setProfileImagePreview("");
+            }
+          }
         } else {
-          console.log("No profile image in fetched data, resetting preview");
-          setProfileImagePreview(""); // Reset to empty if no image
+          console.log("Keeping current preview since file is being edited");
         }
         
         setStory(data.story || "");
@@ -174,9 +200,10 @@ const SellerSettings = () => {
         return;
       }
       
-      // Validate file size (2MB limit)
-      if (file.size > 2 * 1024 * 1024) {
-        alert('Image file size must be less than 2MB.');
+      // Validate file size (15MB limit)
+      if (file.size > 15 * 1024 * 1024) {
+        const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+        alert(`Image file size must be less than 15MB. Your file is ${sizeInMB}MB.`);
         return;
       }
       
@@ -271,13 +298,30 @@ const handleSave = async () => {
       // IMPORTANT: Always use the response from the backend for the profile image
       if (updatedProfile.profileImage) {
         console.log("Setting profile image from response:", updatedProfile.profileImage);
-        setProfileImagePreview(updatedProfile.profileImage);
-        
-        // Force a re-render by updating the seller state with the new image
+        // Update seller state with the new image
         setSeller(prevSeller => ({
           ...prevSeller,
-          profileImage: updatedProfile.profileImage
+          profileImage: updatedProfile.profileImage,
+          profile_picture_path: updatedProfile.profileImage
         }));
+        // Update preview with the server response (full URL from backend)
+        setProfileImagePreview(updatedProfile.profileImage);
+      } else if (updatedProfile.profile_image_url) {
+        // Also check for profile_image_url field as backup
+        console.log("Setting profile image from profile_image_url:", updatedProfile.profile_image_url);
+        setSeller(prevSeller => ({
+          ...prevSeller,
+          profileImage: updatedProfile.profile_image_url,
+          profile_picture_path: updatedProfile.profile_image_url
+        }));
+        setProfileImagePreview(updatedProfile.profile_image_url);
+      } else {
+        // If no image in response, keep current preview if it was saved
+        console.log("No profile image in response");
+        if (profileImageFile) {
+          // If we uploaded a file but got no image back, keep the preview
+          console.log("Keeping blob preview since file was uploaded");
+        }
       }
       
       setStory(updatedProfile.story || "");
@@ -285,7 +329,7 @@ const handleSave = async () => {
     // Clear the selected file only after successful update
     setProfileImageFile(null);
     
-    // Refresh the seller data to ensure everything is in sync
+    // Refresh seller data to ensure sync (but don't override preview if we just set it)
     console.log("Refreshing seller data...");
     await fetchSellerData();
       } else {
@@ -293,7 +337,17 @@ const handleSave = async () => {
       }
   } catch (err) {
     console.error("Error updating profile:", err);
-      const errorMessage = err.response?.data?.message || err.message || "Failed to update profile";
+      let errorMessage = err.response?.data?.message || err.message || "Failed to update profile";
+      
+      // Show validation errors if available
+      if (err.response?.data?.errors) {
+        const errors = err.response.data.errors;
+        const errorMessages = Object.entries(errors)
+          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('\n');
+        errorMessage = `Validation Error:\n\n${errorMessages}`;
+      }
+      
       setError(errorMessage);
       setTimeout(() => setError(""), 5000);
     
@@ -737,21 +791,23 @@ const handleSave = async () => {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline"
-              onClick={() => {
-                // Reset to original state
-                setProfileImagePreview(seller?.profileImage || "");
-                setProfileImageFile(null);
-                setStory(seller?.story || "");
-                setError(null);
-                setSuccessMessage("");
-              }}
-              disabled={isSaving}
-              className={hasUnsavedChanges() ? "bg-white/20 text-white border-white/50 hover:bg-white/30 transition-all duration-200" : "hidden"}
-            >
-              Cancel Changes
-            </Button>
+            {hasUnsavedChanges() && (
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  // Reset to original state
+                  setProfileImagePreview(seller?.profileImage || "");
+                  setProfileImageFile(null);
+                  setStory(seller?.story || "");
+                  setError(null);
+                  setSuccessMessage("");
+                }}
+                disabled={isSaving}
+                className="bg-white/20 text-white border-white/50 hover:bg-white/30 transition-all duration-200"
+              >
+                Cancel Changes
+              </Button>
+            )}
             <Button 
               type="button"
               onClick={handleSave} 
@@ -813,7 +869,7 @@ const handleSave = async () => {
         </TabsList>
 
         {/* Profile */}
-        <TabsContent value="profile" className="space-y-6 pt-6">
+        <TabsContent value="profile" className="space-y-6 pt-6 mb-10">
           <Card className="border-2 border-[#e5ded7] shadow-xl hover:shadow-2xl transition-all duration-300 rounded-lg sm:rounded-xl overflow-hidden">
             <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white p-3 sm:p-4">
               <CardTitle className="text-[#5c3d28] flex items-center text-sm sm:text-base">
@@ -829,18 +885,23 @@ const handleSave = async () => {
             <CardContent className="space-y-6 pt-6">
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex flex-col items-center space-y-2">
-                  <Avatar className="h-24 w-24" key={getCurrentImageUrl()}>
+                  <Avatar className="h-24 w-24 border-2 border-[#e5ded7]" key={`avatar-${profileImagePreview || seller?.profileImage || seller?.profile_image_url || 'default'}`}>
                     <AvatarImage
                       src={getCurrentImageUrl()}
+                      alt="Profile picture"
+                      className="object-cover"
                       onError={(e) => {
-                        console.log("Image failed to load, using fallback");
+                        console.error("Avatar image failed to load:", getCurrentImageUrl());
+                        console.log("Falling back to default avatar");
                         e.target.style.display = 'none';
                       }}
                       onLoad={() => {
-                        console.log("Image loaded successfully");
+                        console.log("Avatar image loaded successfully:", getCurrentImageUrl());
                       }}
                     />
-                    <AvatarFallback>{seller.userName?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-2xl font-bold">
+                      {seller?.userName?.slice(0, 2).toUpperCase() || 'SE'}
+                    </AvatarFallback>
                   </Avatar>
                   <input
                     type="file"

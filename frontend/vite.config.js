@@ -18,7 +18,7 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '.ngrok-free.dev',
-      'dominik-unabiding-venously.ngrok-free.dev'
+      'nonimmune-avelina-nondistinguishing.ngrok-free.dev'
     ],
     proxy: {
       '/api': {

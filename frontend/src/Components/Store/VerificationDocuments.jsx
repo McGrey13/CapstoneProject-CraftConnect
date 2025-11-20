@@ -45,16 +45,6 @@ const VerificationDocuments = ({
 
   const handleFileChange = (file, type) => {
     if (file) {
-      // Validate file size (20MB max for documents)
-      const maxSize = 20 * 1024 * 1024; // 20MB in bytes
-      if (file.size > maxSize) {
-        setErrors({ [type]: `File size must be less than 20MB. Current size: ${(file.size / (1024 * 1024)).toFixed(2)}MB` });
-        return;
-      }
-      
-      // Clear any previous errors for this field
-      setErrors(prev => ({ ...prev, [type]: null }));
-      
       updateStoreData({ [type]: file });
       
       // Set preview for images
@@ -168,7 +158,7 @@ const VerificationDocuments = ({
                     onChange={(e) => handleFileChange(e.target.files[0], 'birPermit')}
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Accepted formats: JPG, PNG, PDF. Max size: 20MB (HD images supported).
+                    Accepted formats: JPG, PNG, PDF. Max size: 8MB.
                   </p>
                 </div>
               </div>
@@ -209,7 +199,7 @@ const VerificationDocuments = ({
                     onChange={(e) => handleFileChange(e.target.files[0], 'dtiPermit')}
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Accepted formats: JPG, PNG, PDF. Max size: 20MB (HD images supported).
+                    Accepted formats: JPG, PNG, PDF. Max size: 8MB.
                   </p>
                 </div>
               </div>
@@ -250,7 +240,7 @@ const VerificationDocuments = ({
                     onChange={(e) => handleFileChange(e.target.files[0], 'idImage')}
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Accepted formats: JPG, PNG, PDF. Max size: 20MB (HD images supported).
+                    Accepted formats: JPG, PNG, PDF. Max size: 8MB.
                   </p>
                 </div>
               </div>

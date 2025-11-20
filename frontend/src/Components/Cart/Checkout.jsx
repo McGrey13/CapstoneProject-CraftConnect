@@ -292,8 +292,8 @@ const Checkout = () => {
       console.log('Starting checkout with payment method:', formData.paymentMethod);
       console.log('Selected cart items for checkout:', cartItems.length);
       
-      // Call checkout with the selected payment method AND selected items
-      const result = await checkout(formData.paymentMethod, cartItems);
+      // Call checkout with the selected payment method, selected items, and discount code
+      const result = await checkout(formData.paymentMethod, cartItems, appliedDiscount);
       
       console.log('Checkout result:', result);
       

@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import { ArrowLeft, Plus, Minus, ShoppingCart, MapPin } from "lucide-react";
 import MessengerPopup from "../Messenger/MessengerPopup";
 import { useCart } from "../Cart/CartContext";
+import api from "../../api";
 
 const ArtisanDetail = () => {
   const { id } = useParams();
@@ -210,24 +211,9 @@ const ArtisanDetail = () => {
   const performFollowAction = async (action) => {
     setIsLoading(true);
     try {
-      const token = sessionStorage.getItem('auth_token');
-      if (!token) {
-        alert('Please login to follow sellers');
-        return;
-      }
-
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000/api';
-      const response = await fetch(`${backendUrl}/sellers/${id}/${action}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      const response = await api.post(`/sellers/${id}/${action}`);
+      if (response.data) {
+        const data = response.data;
         setIsFollowing(data.is_following);
         
         // Update followers count with the actual count from backend
@@ -247,13 +233,14 @@ const ArtisanDetail = () => {
         } else {
           alert('Successfully unfollowed.');
         }
-      } else {
-        console.error('Failed to follow/unfollow seller');
-        alert('Failed to update follow status. Please try again.');
       }
     } catch (error) {
       console.error('Error following/unfollowing seller:', error);
-      alert('An error occurred. Please try again.');
+      if (error.response?.status === 401) {
+        alert('Please login to follow sellers');
+      } else {
+        alert('An error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
       setShowUnfollowWarning(false);
@@ -400,12 +387,9 @@ const ArtisanDetail = () => {
     const fetchArtisan = async () => {
       try {
         // Fetch artisan details
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000/api';
-        const res = await fetch(`${backendUrl}/sellers/${id}/details`, {
-          headers: { Accept: "application/json" },
-        });
-        if (!res.ok) throw new Error("Not found");
-        const data = await res.json();
+        const res = await api.get(`/sellers/${id}/details`);
+        if (!res.data) throw new Error("Not found");
+        const data = res.data;
         if (!data || !data.user) {
           setNotFound(true);
           setLoading(false);
@@ -426,8 +410,10 @@ const ArtisanDetail = () => {
           image: (() => {
             // Prioritize profile_picture_path from seller data
             if (data.profile_picture_path) {
-              const backendUrl = import.meta.env.VITE_BACKEND_URL?.replace('/api', '') || 'http://localhost:8000';
-              const imageUrl = `${backendUrl}/storage/${data.profile_picture_path}`;
+              // Convert storage path to images path (handled by proxy/Vite)
+              const imageUrl = data.profile_picture_path.includes('/storage/')
+                ? data.profile_picture_path.replace('/storage/', '/images/')
+                : `/images/${data.profile_picture_path.replace(/^\/+/, '')}`;
               return imageUrl;
             }
             // Fallback to user profile_photo_url
@@ -464,12 +450,9 @@ const ArtisanDetail = () => {
 
         // Fetch store data for this artisan
         try {
-          const storeRes = await fetch(`${backendUrl}/sellers/${id}/store`, {
-            headers: { Accept: "application/json" },
-          });
-          if (storeRes.ok) {
-            const storeData = await storeRes.json();
-            setStoreData(storeData);
+          const storeRes = await api.get(`/sellers/${id}/store`);
+          if (storeRes.data) {
+            setStoreData(storeRes.data);
           }
         } catch (storeError) {
           console.log("Error fetching store data:", storeError);
@@ -491,10 +474,9 @@ const ArtisanDetail = () => {
     const fetchDiscountStats = async () => {
       try {
         if (!id) return;
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000/api';
-        const res = await fetch(`${backendUrl}/analytics/seller/${id}`);
-        if (res.ok) {
-          const data = await res.json();
+        const res = await api.get(`/analytics/seller/${id}`);
+        if (res.data) {
+          const data = res.data;
           if (data && data.discount_stats) {
             setDiscountStats(data.discount_stats);
           }
@@ -515,15 +497,15 @@ const ArtisanDetail = () => {
   useEffect(() => {
     const fetchWorkshops = async () => {
       try {
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000/api';
-        const res = await fetch(`${backendUrl}/work-and-events/public`);
-        if (!res.ok) return;
-        const payload = await res.json();
-        const list = Array.isArray(payload?.data) ? payload.data : [];
-        const filtered = list
-          .filter((item) => String(item?.seller?.sellerID ?? item?.seller_id) === String(id))
-          .filter((item) => item !== null && item !== undefined); // Filter out null/undefined items
-        setWorkshops(filtered);
+        const res = await api.get('/work-and-events/public');
+        if (res.data) {
+          const payload = res.data;
+          const list = Array.isArray(payload?.data) ? payload.data : [];
+          const filtered = list
+            .filter((item) => String(item?.seller?.sellerID ?? item?.seller_id) === String(id))
+            .filter((item) => item !== null && item !== undefined); // Filter out null/undefined items
+          setWorkshops(filtered);
+        }
       } catch (e) {
         console.error('Failed to fetch workshops/events:', e);
         setWorkshops([]);
@@ -538,20 +520,9 @@ const ArtisanDetail = () => {
   useEffect(() => {
     const checkFollowStatus = async () => {
       try {
-        const token = sessionStorage.getItem('auth_token');
-        if (!token) return;
-
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000/api';
-        const response = await fetch(`${backendUrl}/sellers/${id}/follow-status`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setIsFollowing(data.is_following);
+        const response = await api.get(`/sellers/${id}/follow-status`);
+        if (response.data) {
+          setIsFollowing(response.data.is_following);
         }
       } catch (error) {
         console.error('Error checking follow status:', error);

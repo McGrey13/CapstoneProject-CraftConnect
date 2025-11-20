@@ -229,31 +229,42 @@ const VerificationPending = ({ storeData, onCheckStatus }) => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Phone className="h-5 w-5" />
-                  <span className="text-sm font-medium">+63 123 456 7890</span>
+                  <span className="text-sm font-medium">+639212266566</span>
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
+              <button
+                type="button"
                 onClick={checkStoreStatus}
                 disabled={checkingStatus}
-                className={`${
-                  storeStatus === 'approved' ? 'bg-green-600 hover:bg-green-700' :
-                  storeStatus === 'rejected' ? 'bg-red-600 hover:bg-red-700' :
-                  'bg-amber-600 hover:bg-amber-700'
-                } text-white font-semibold px-6 py-3 shadow-lg`}
+                className="px-6 py-3 shadow-lg rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center gap-2 border-2"
+                style={{ 
+                  color: '#000000',
+                  backgroundColor: '#ffffff',
+                  borderColor: storeStatus === 'approved' ? '#16a34a' : storeStatus === 'rejected' ? '#dc2626' : '#d97706',
+                  fontWeight: '600'
+                }}
+                onMouseEnter={(e) => {
+                  if (!checkingStatus) {
+                    e.target.style.backgroundColor = storeStatus === 'approved' ? '#f0fdf4' : storeStatus === 'rejected' ? '#fef2f2' : '#fffbeb';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#ffffff';
+                }}
               >
                 {checkingStatus ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Checking...
+                    <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#000000' }} />
+                    <span style={{ color: '#000000', fontWeight: '600' }}>Checking...</span>
                   </>
                 ) : (
-                  'Check Status Now'
+                  <span style={{ color: '#000000', fontWeight: '600' }}>Check Status Now</span>
                 )}
-              </Button>
+              </button>
               
               {storeStatus === 'rejected' && (
                 <Button

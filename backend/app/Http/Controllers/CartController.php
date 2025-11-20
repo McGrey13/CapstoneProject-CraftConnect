@@ -9,6 +9,7 @@ use App\Models\OrderProduct;
 use App\Models\Product;
 use App\Models\ProductVariation;
 use App\Models\Seller;
+use App\Models\User;
 use App\Http\Controllers\ChatController;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -273,7 +274,7 @@ class CartController extends Controller
                 // If selected items are provided, only checkout those items
                 // Otherwise, checkout all items (backward compatibility)
                 if (!empty($selectedCartIds)) {
-                    $cartItems = Cart::with('product')
+                    $cartItems = Cart::with(['product.seller'])
                         ->where('userID', $user->userID)
                         ->whereIn('cart_id', $selectedCartIds)
                         ->get();
@@ -283,7 +284,7 @@ class CartController extends Controller
                         'found_count' => $cartItems->count()
                     ]);
                 } else {
-                    $cartItems = Cart::with('product')->where('userID', $user->userID)->get();
+                    $cartItems = Cart::with(['product.seller'])->where('userID', $user->userID)->get();
                     
                     Log::info('Checking out all cart items (no selection provided)', [
                         'cart_count' => $cartItems->count()
@@ -336,11 +337,98 @@ class CartController extends Controller
                 Log::info('Checkout with payment method', ['payment_method' => $paymentMethod]);
 
                 // Calculate total amount
-                $totalAmount = $cartItems->sum(function ($item) {
+                $subtotal = $cartItems->sum(function ($item) {
                     $unitPrice = $item->unit_price
                         ?? ($item->selected_variation ? (float) $item->selected_variation->price : (float) $item->product->productPrice);
                     return $unitPrice * $item->quantity;
                 });
+
+                // Handle discount code if provided
+                $discountCode = null;
+                $discountAmount = 0;
+                $discountCodeId = $request->input('discount_id');
+                $discountCodeString = $request->input('discount_code');
+                
+                if ($discountCodeString || $discountCodeId) {
+                    // Find the discount code
+                    $discountQuery = \App\Models\DiscountCode::query();
+                    if ($discountCodeId) {
+                        $discountCode = $discountQuery->where('coupons_id', $discountCodeId)->first();
+                    } else {
+                        $discountCode = $discountQuery->where('code', strtoupper(trim($discountCodeString)))->first();
+                    }
+                    
+                    if ($discountCode) {
+                        // Validate discount code
+                        $now = now();
+                        
+                        // Check if expired
+                        if ($discountCode->expires_at && $discountCode->expires_at->isPast()) {
+                            throw new \Exception('This discount code has expired.');
+                        }
+                        
+                        // Check usage limit
+                        if ($discountCode->usage_limit && $discountCode->times_used >= $discountCode->usage_limit) {
+                            throw new \Exception('This discount code has reached its usage limit.');
+                        }
+                        
+                        // IMPORTANT: Validate that discount code can only be used for products from the seller who created it
+                        $discountCodeSellerUserId = $discountCode->created_by;
+                        
+                        // Get all unique seller user_ids from cart items (products are already loaded with seller)
+                        $cartSellerUserIds = $cartItems->map(function ($item) {
+                            $product = $item->product;
+                            if ($product && $product->seller && $product->seller->user_id) {
+                                return $product->seller->user_id;
+                            }
+                            return null;
+                        })->filter()->unique()->values()->all();
+                        
+                        // Check if all products belong to the seller who created the discount code
+                        if (empty($cartSellerUserIds)) {
+                            throw new \Exception('Cannot apply discount code: Unable to verify product sellers.');
+                        }
+                        
+                        // All products must be from the same seller who created the discount code
+                        if (count($cartSellerUserIds) !== 1 || $cartSellerUserIds[0] != $discountCodeSellerUserId) {
+                            // Get seller names for error message
+                            $sellerNames = User::whereIn('userID', $cartSellerUserIds)
+                                ->pluck('userName')
+                                ->implode(', ');
+                            
+                            // Get the seller who created the discount code name
+                            $discountCodeSeller = User::find($discountCodeSellerUserId);
+                            $discountCodeSellerName = $discountCodeSeller ? $discountCodeSeller->userName : 'Unknown Seller';
+                            
+                            throw new \Exception("This discount code can only be used for products from {$discountCodeSellerName}. Your cart contains products from: {$sellerNames}");
+                        }
+                        
+                        // Calculate discount amount
+                        if ($discountCode->type === 'percentage' || $discountCode->type === 'percent') {
+                            $discountAmount = ($subtotal * (float)$discountCode->value) / 100;
+                        } else if ($discountCode->type === 'fixed' || $discountCode->type === 'amount') {
+                            $discountAmount = (float)$discountCode->value;
+                        }
+                        
+                        // Don't allow discount to exceed subtotal
+                        $discountAmount = min($discountAmount, $subtotal);
+                        
+                        // Increment times_used BEFORE creating order (to track usage)
+                        $discountCode->increment('times_used');
+                        
+                        Log::info('Discount code applied', [
+                            'code' => $discountCode->code,
+                            'discount_amount' => $discountAmount,
+                            'times_used' => $discountCode->times_used,
+                            'created_by' => $discountCode->created_by,
+                            'cart_seller_ids' => $cartSellerUserIds
+                        ]);
+                    } else {
+                        throw new \Exception('Invalid discount code.');
+                    }
+                }
+                
+                $totalAmount = $subtotal - $discountAmount;
 
                 // Find or create customer record
                 $customer = Customer::where('user_id', $user->userID)->first();
@@ -368,9 +456,9 @@ class CartController extends Controller
                 // COD orders should be 'pending' payment until delivery
                 // Online payments (GCash/PayMaya) will be 'pending' until webhook confirms
                 $paymentStatus = ($paymentMethod === 'cod') ? 'pending' : 'pending';
-
+                
                 // Create order with pending status (will be confirmed after payment)
-                $order = Order::create([
+                $orderData = [
                     'customer_id' => $customer->customerID,
                     'sellerID' => $sellerID,
                     'status' => 'pending', // Set to pending initially
@@ -380,7 +468,21 @@ class CartController extends Controller
                     'location' => $fullAddress,
                     'tracking_number' => null, // Tracking number will be generated when rider is assigned
                     'order_number' => $orderNumber // Assign unique order number
-                ]);
+                ];
+                
+                // Only add notes if the column exists (check if notes is in fillable)
+                // Note: We'll log discount info separately since notes column may not exist
+                if ($discountCode) {
+                    Log::info('Discount code used in order', [
+                        'order_number' => $orderNumber,
+                        'discount_code' => $discountCode->code,
+                        'discount_amount' => $discountAmount,
+                        'original_subtotal' => $subtotal,
+                        'final_total' => $totalAmount
+                    ]);
+                }
+                
+                $order = Order::create($orderData);
                 
                 Log::info('Order created', [
                     'order_id' => $order->orderID,

@@ -345,13 +345,13 @@ class SellerController extends AuthController
         }
 
         $request->validate([
-            'story' => 'nullable|string|max:1000',
+            'story' => 'nullable|string|max:5000',
             'userName' => 'nullable|string|max:255',
-            'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:15360',
         ], [
             'profileImage.image' => 'The file must be an image.',
             'profileImage.mimes' => 'The image must be a file of type: jpeg, png, jpg, gif.',
-            'profileImage.max' => 'The image may not be greater than 2MB.',
+            'profileImage.max' => 'The image may not be greater than 15MB (15360 KB).',
         ]);
 
         if ($request->hasFile('profileImage')) {

@@ -1473,8 +1473,95 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
         </div>
       </div>
 
+      {/* Search, Filters, Sort Bar */}
+      <div 
+        className="max-w-5xl mx-auto mt-16 mb-8 flex flex-col sm:flex-row items-center gap-4 rounded-xl shadow p-3 sm:p-4"
+        style={{ backgroundColor: customization.background_color }}
+      >
+        <div className="flex-1 flex items-center gap-2">
+          <div className="relative w-full">
+            <input 
+              type="text" 
+              placeholder="Search products..." 
+              className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
+              style={{ 
+                borderColor: customization.accent_color,
+                backgroundColor: customization.background_color,
+                color: customization.text_color
+              }}
+            />
+            <span className="absolute left-2 top-2.5" style={{ color: customization.text_color }}>🔍</span>
+            </div>
+          <button 
+            className="px-4 py-2 rounded-lg font-semibold border transition"
+            style={{ 
+              backgroundColor: customization.accent_color,
+              color: customization.text_color,
+              borderColor: customization.accent_color
+            }}
+          >
+            Filters
+          </button>
+                      </div>
+        <select 
+          className="px-4 py-2 rounded-lg border font-semibold"
+          style={{ 
+            borderColor: customization.accent_color,
+            backgroundColor: customization.background_color,
+            color: customization.text_color
+          }}
+        >
+          <option>All</option>
+        </select>
+        <div className="font-semibold" style={{ color: customization.text_color }}>
+          {products.length} products
+                    </div>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold" style={{ color: customization.text_color }}>Sort:</span>
+          <select 
+            className="px-2 py-1 rounded-lg border font-semibold"
+            style={{ 
+              borderColor: customization.accent_color,
+              backgroundColor: customization.background_color,
+              color: customization.text_color
+            }}
+          >
+            <option>Most Popular</option>
+          </select>
+          <button 
+            className="p-2 rounded-lg border transition"
+            style={{ 
+              borderColor: customization.accent_color,
+              backgroundColor: customization.background_color,
+              color: customization.text_color
+            }}
+          >
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="7" height="7" rx="2" fill="currentColor"/>
+              <rect x="14" y="3" width="7" height="7" rx="2" fill="currentColor"/>
+              <rect x="14" y="14" width="7" height="7" rx="2" fill="currentColor"/>
+              <rect x="3" y="14" width="7" height="7" rx="2" fill="currentColor"/>
+            </svg>
+          </button>
+          <button 
+            className="p-2 rounded-lg border transition"
+            style={{ 
+              borderColor: customization.accent_color,
+              backgroundColor: customization.background_color,
+              color: customization.text_color
+            }}
+          >
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="3" rx="1.5" fill="currentColor"/>
+              <rect x="3" y="10.5" width="18" height="3" rx="1.5" fill="currentColor"/>
+              <rect x="3" y="18" width="18" height="3" rx="1.5" fill="currentColor"/>
+            </svg>
+          </button>
+                    </div>
+                  </div>
+
       {/* Featured Products Section */}
-      <div className="max-w-5xl mx-auto mt-16 mb-12">
+      <div className="max-w-5xl mx-auto mb-12">
         <div className="text-center mb-8">
           <h2 
             className="text-3xl font-extrabold mb-2"
@@ -1579,93 +1666,6 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
           ))}
         </div>
       </div>
-
-      {/* Search, Filters, Sort Bar */}
-      <div 
-        className="max-w-5xl mx-auto mt-8 flex flex-col sm:flex-row items-center gap-4 rounded-xl shadow p-3 sm:p-4"
-        style={{ backgroundColor: customization.background_color }}
-      >
-        <div className="flex-1 flex items-center gap-2">
-          <div className="relative w-full">
-            <input 
-              type="text" 
-              placeholder="Search products..." 
-              className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
-              style={{ 
-                borderColor: customization.accent_color,
-                backgroundColor: customization.background_color,
-                color: customization.text_color
-              }}
-            />
-            <span className="absolute left-2 top-2.5" style={{ color: customization.text_color }}>🔍</span>
-            </div>
-          <button 
-            className="px-4 py-2 rounded-lg font-semibold border transition"
-            style={{ 
-              backgroundColor: customization.accent_color,
-              color: customization.text_color,
-              borderColor: customization.accent_color
-            }}
-          >
-            Filters
-          </button>
-                      </div>
-        <select 
-          className="px-4 py-2 rounded-lg border font-semibold"
-          style={{ 
-            borderColor: customization.accent_color,
-            backgroundColor: customization.background_color,
-            color: customization.text_color
-          }}
-        >
-          <option>All</option>
-        </select>
-        <div className="font-semibold" style={{ color: customization.text_color }}>
-          {products.length} products
-                    </div>
-        <div className="flex items-center gap-2">
-          <span className="font-semibold" style={{ color: customization.text_color }}>Sort:</span>
-          <select 
-            className="px-2 py-1 rounded-lg border font-semibold"
-            style={{ 
-              borderColor: customization.accent_color,
-              backgroundColor: customization.background_color,
-              color: customization.text_color
-            }}
-          >
-            <option>Most Popular</option>
-          </select>
-          <button 
-            className="p-2 rounded-lg border transition"
-            style={{ 
-              borderColor: customization.accent_color,
-              backgroundColor: customization.background_color,
-              color: customization.text_color
-            }}
-          >
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-              <rect x="3" y="3" width="7" height="7" rx="2" fill="currentColor"/>
-              <rect x="14" y="3" width="7" height="7" rx="2" fill="currentColor"/>
-              <rect x="14" y="14" width="7" height="7" rx="2" fill="currentColor"/>
-              <rect x="3" y="14" width="7" height="7" rx="2" fill="currentColor"/>
-            </svg>
-          </button>
-          <button 
-            className="p-2 rounded-lg border transition"
-            style={{ 
-              borderColor: customization.accent_color,
-              backgroundColor: customization.background_color,
-              color: customization.text_color
-            }}
-          >
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-              <rect x="3" y="3" width="18" height="3" rx="1.5" fill="currentColor"/>
-              <rect x="3" y="10.5" width="18" height="3" rx="1.5" fill="currentColor"/>
-              <rect x="3" y="18" width="18" height="3" rx="1.5" fill="currentColor"/>
-            </svg>
-          </button>
-                    </div>
-                  </div>
 
       {/* Product Grid */}
       <div 

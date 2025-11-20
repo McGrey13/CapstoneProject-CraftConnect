@@ -19,6 +19,106 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
   const [publishStatus, setPublishStatus] = useState('draft');
   const [hasVariations, setHasVariations] = useState(false);
   const [variations, setVariations] = useState([]); // Array of {label: '', quantity: '', price: ''}
+  const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
+  const [bulkAddData, setBulkAddData] = useState({
+    baseLabel: '',
+    selectedSizes: [],
+    customSizes: '',
+    defaultQuantity: '',
+    defaultPrice: '',
+    sizeType: 'shoes' // 'shoes', 'clothing', 'custom'
+  });
+
+  // Predefined size options
+  const sizeOptions = {
+    shoes: ['5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '10.5', '11', '11.5', '12'],
+    clothing: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'],
+    custom: []
+  };
+
+  const handleBulkAddVariations = () => {
+    if (!bulkAddData.baseLabel.trim()) {
+      alert('Please enter a base label (e.g., color name)');
+      return;
+    }
+
+    let sizesToUse = [];
+    
+    if (bulkAddData.sizeType === 'custom') {
+      // Parse custom sizes (comma or newline separated)
+      sizesToUse = bulkAddData.customSizes
+        .split(/[,\n]/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+    } else {
+      sizesToUse = bulkAddData.selectedSizes;
+    }
+
+    if (sizesToUse.length === 0) {
+      alert('Please select at least one size');
+      return;
+    }
+
+    // Generate variations
+    const newVariations = sizesToUse.map(size => ({
+      label: `${bulkAddData.baseLabel.trim()} - ${size}`,
+      quantity: bulkAddData.defaultQuantity || '0',
+      price: bulkAddData.defaultPrice || ''
+    }));
+
+    // Add to existing variations (or create new array if none exist)
+    setVariations(prev => {
+      // Remove any duplicates based on label
+      const existingLabels = new Set(prev.map(v => v.label));
+      const uniqueNewVariations = newVariations.filter(v => !existingLabels.has(v.label));
+      return [...prev, ...uniqueNewVariations];
+    });
+    
+    // Enable variations if not already enabled
+    if (!hasVariations) {
+      setHasVariations(true);
+    }
+    
+    // Reset bulk add form
+    setBulkAddData({
+      baseLabel: '',
+      selectedSizes: [],
+      customSizes: '',
+      defaultQuantity: '',
+      defaultPrice: '',
+      sizeType: 'shoes'
+    });
+    setIsBulkAddOpen(false);
+    
+    alert(`✅ Successfully added ${newVariations.length} variation${newVariations.length !== 1 ? 's' : ''}!`);
+  };
+
+  const toggleSizeSelection = (size) => {
+    setBulkAddData(prev => {
+      const isSelected = prev.selectedSizes.includes(size);
+      return {
+        ...prev,
+        selectedSizes: isSelected
+          ? prev.selectedSizes.filter(s => s !== size)
+          : [...prev.selectedSizes, size]
+      };
+    });
+  };
+
+  const selectAllSizes = () => {
+    const currentSizes = sizeOptions[bulkAddData.sizeType] || [];
+    setBulkAddData(prev => ({
+      ...prev,
+      selectedSizes: currentSizes
+    }));
+  };
+
+  const clearAllSizes = () => {
+    setBulkAddData(prev => ({
+      ...prev,
+      selectedSizes: []
+    }));
+  };
 
   const totalVariationQuantity = useMemo(() => {
     if (!hasVariations || variations.length === 0) return 0;
@@ -47,6 +147,15 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
     setMainImageIndex(0);
     setHasVariations(false);
     setVariations([]);
+    setIsBulkAddOpen(false);
+    setBulkAddData({
+      baseLabel: '',
+      selectedSizes: [],
+      customSizes: '',
+      defaultQuantity: '',
+      defaultPrice: '',
+      sizeType: 'shoes'
+    });
     // Clear file inputs if any were opened
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (videoInputRef.current) videoInputRef.current.value = '';
@@ -492,16 +601,27 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                   {/* Size Variations */}
                   {hasVariations && (
                     <div className="mb-4 sm:mb-6 bg-gradient-to-br from-[#faf9f8] to-white rounded-lg sm:rounded-xl border-2 border-[#e5ded7] p-4 sm:p-5">
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                         <h4 className="text-base sm:text-lg font-bold text-[#5c3d28]">Variation Options</h4>
-                        <button
-                          type="button"
-                          onClick={handleAddVariation}
-                          className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-xs sm:text-sm font-semibold rounded-lg hover:from-[#8f674a] hover:to-[#6a4c34] transition-all duration-200 flex items-center gap-2"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Add Size
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsBulkAddOpen(true)}
+                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-xs sm:text-sm font-semibold rounded-lg hover:from-[#8f674a] hover:to-[#6a4c34] transition-all duration-200 flex items-center gap-2"
+                            title="Bulk add variations (e.g., all sizes for one color)"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Bulk Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleAddVariation}
+                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-xs sm:text-sm font-semibold rounded-lg hover:from-[#8f674a] hover:to-[#6a4c34] transition-all duration-200 flex items-center gap-2"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Add Size
+                          </button>
+                        </div>
                       </div>
                       
                       {variations.length === 0 ? (
@@ -533,7 +653,7 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                                   required
                                 />
                               </div>
-                              <div className="sm:col-span-4">
+                              <div className="sm:col-span-3">
                                 <label className="block text-xs font-semibold text-[#5c3d28] mb-1">Price (Optional)</label>
                                 <div className="relative">
                                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[#a4785a] text-xs">₱</span>
@@ -548,14 +668,15 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                                   />
                                 </div>
                               </div>
-                              <div className="sm:col-span-2">
+                              <div className="sm:col-span-3 flex items-end">
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveVariation(index)}
-                                  className="w-full px-3 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition-all duration-200 flex items-center justify-center gap-1"
+                                  className="w-full px-2 sm:px-3 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition-all duration-200 flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg min-h-[38px]"
+                                  title="Remove this variation"
                                 >
-                                  <X className="h-4 w-4" />
-                                  Remove
+                                  <X className="h-5 w-5" strokeWidth={3} />
+                                  <span className="hidden sm:inline">Remove</span>
                                 </button>
                               </div>
                             </div>
@@ -865,6 +986,214 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
           </form>
         </div>
       </div>
+
+      {/* Bulk Add Variations Modal */}
+      {isBulkAddOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-2 sm:p-4">
+          <div className="bg-white rounded-lg sm:rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-4 sm:p-6 rounded-t-lg sm:rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg sm:text-2xl font-bold text-white">Bulk Add Variations</h2>
+                <button
+                  onClick={() => setIsBulkAddOpen(false)}
+                  className="text-white hover:bg-white/20 rounded-full p-2 transition-all"
+                >
+                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-6 space-y-4">
+              <div className="bg-[#f8f1ec] border border-[#d5bfae] rounded-lg p-3">
+                <p className="text-sm text-[#5c3d28]">
+                  <strong>💡 Quick Tip:</strong> Perfect for products like shoes! Enter a color/style name and select all sizes to create multiple variations at once.
+                </p>
+              </div>
+
+              {/* Base Label */}
+              <div>
+                <label className="block text-sm font-bold text-[#5c3d28] mb-2">
+                  Base Label (e.g., Color or Style) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={bulkAddData.baseLabel}
+                  onChange={(e) => setBulkAddData(prev => ({ ...prev, baseLabel: e.target.value }))}
+                  placeholder="e.g., Blue, Red, Black, Classic"
+                  className="w-full px-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a]"
+                />
+                <p className="text-xs text-gray-500 mt-1">This will be combined with sizes (e.g., "Blue - 8")</p>
+              </div>
+
+              {/* Size Type Selection */}
+              <div>
+                <label className="block text-sm font-bold text-[#5c3d28] mb-2">
+                  Size Type
+                </label>
+                <select
+                  value={bulkAddData.sizeType}
+                  onChange={(e) => setBulkAddData(prev => ({ ...prev, sizeType: e.target.value, selectedSizes: [], customSizes: '' }))}
+                  className="w-full px-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a]"
+                >
+                  <option value="shoes">👟 Shoe Sizes</option>
+                  <option value="clothing">👕 Clothing Sizes</option>
+                  <option value="custom">✏️ Custom Sizes</option>
+                </select>
+              </div>
+
+              {/* Size Selection */}
+              {bulkAddData.sizeType === 'custom' ? (
+                <div>
+                  <label className="block text-sm font-bold text-[#5c3d28] mb-2">
+                    Custom Sizes <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={bulkAddData.customSizes}
+                    onChange={(e) => setBulkAddData(prev => ({ ...prev, customSizes: e.target.value }))}
+                    placeholder="Enter sizes separated by commas or new lines&#10;Example: 5, 6, 7, 8, 9, 10&#10;or: Small, Medium, Large"
+                    className="w-full min-h-[100px] px-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a]"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Separate sizes with commas or new lines</p>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-bold text-[#5c3d28]">
+                      Select Sizes <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={selectAllSizes}
+                        className="text-xs px-2 py-1 bg-[#f8f1ec] text-[#5c3d28] border border-[#d5bfae] rounded hover:bg-[#e5ded7] transition-all"
+                      >
+                        Select All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearAllSizes}
+                        className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-all"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 border-2 border-[#e5ded7] rounded-lg bg-[#faf9f8]">
+                    {sizeOptions[bulkAddData.sizeType].map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => toggleSizeSelection(size)}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
+                          bulkAddData.selectedSizes.includes(size)
+                            ? 'bg-white text-[#5c3d28] border-[#a4785a] shadow-md font-semibold'
+                            : 'bg-white text-[#5c3d28] border-[#e5ded7] hover:border-[#a4785a] hover:shadow-sm'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Selected: {bulkAddData.selectedSizes.length} size{bulkAddData.selectedSizes.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              )}
+
+              {/* Default Quantity and Price */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-[#5c3d28] mb-2">
+                    Default Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={bulkAddData.defaultQuantity}
+                    onChange={(e) => setBulkAddData(prev => ({ ...prev, defaultQuantity: e.target.value }))}
+                    placeholder="0"
+                    className="w-full px-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a]"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Applied to all variations</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-[#5c3d28] mb-2">
+                    Default Price (Optional)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a4785a]">₱</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={bulkAddData.defaultPrice}
+                      onChange={(e) => setBulkAddData(prev => ({ ...prev, defaultPrice: e.target.value }))}
+                      placeholder="0.00"
+                      className="w-full pl-8 pr-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a]"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Leave empty to use base price</p>
+                </div>
+              </div>
+
+              {/* Preview */}
+              {(bulkAddData.baseLabel && (
+                bulkAddData.sizeType === 'custom' 
+                  ? bulkAddData.customSizes.split(/[,\n]/).filter(s => s.trim()).length > 0
+                  : bulkAddData.selectedSizes.length > 0
+              )) && (
+                <div className="bg-[#faf9f8] border border-[#e5ded7] rounded-lg p-3">
+                  <p className="text-xs font-semibold text-[#5c3d28] mb-2">Preview:</p>
+                  <div className="text-xs text-[#7b5a3b] space-y-1 max-h-32 overflow-y-auto">
+                    {(
+                      bulkAddData.sizeType === 'custom'
+                        ? bulkAddData.customSizes.split(/[,\n]/).map(s => s.trim()).filter(s => s)
+                        : bulkAddData.selectedSizes
+                    ).slice(0, 10).map((size, idx) => (
+                      <div key={idx}>
+                        • {bulkAddData.baseLabel} - {size}
+                        {bulkAddData.defaultQuantity && ` (Qty: ${bulkAddData.defaultQuantity})`}
+                        {bulkAddData.defaultPrice && ` (₱${bulkAddData.defaultPrice})`}
+                      </div>
+                    ))}
+                    {(
+                      bulkAddData.sizeType === 'custom'
+                        ? bulkAddData.customSizes.split(/[,\n]/).map(s => s.trim()).filter(s => s).length
+                        : bulkAddData.selectedSizes.length
+                    ) > 10 && (
+                      <div className="text-[#7b5a3b] italic">
+                        ... and {(
+                          bulkAddData.sizeType === 'custom'
+                            ? bulkAddData.customSizes.split(/[,\n]/).map(s => s.trim()).filter(s => s).length
+                            : bulkAddData.selectedSizes.length
+                        ) - 10} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-4 border-t border-[#e5ded7]">
+                <button
+                  type="button"
+                  onClick={() => setIsBulkAddOpen(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkAddVariations}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white rounded-lg hover:from-[#8f674a] hover:to-[#6a4c34] transition-all font-medium"
+                >
+                  Add Variations
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

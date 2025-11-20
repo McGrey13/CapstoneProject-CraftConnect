@@ -560,26 +560,52 @@ class FacebookController extends Controller
             if ($request->hasFile('image')) {
                 $image = $request->file('image');
                 
-                // Upload image to Facebook first
+                // When both image and link are present, include link in message (not as separate parameter)
+                // Facebook doesn't allow both attached_media and link parameter together - link parameter takes precedence
+                $photoMessage = $payload['message'];
+                if (!empty($payload['link'])) {
+                    // Include link in message so both image and link appear
+                    $photoMessage = $payload['message'] . "\n\n🔗 " . $payload['link'];
+                    Log::info('Including link in photo message (both image and link)', ['link' => $payload['link']]);
+                }
+                
+                // Upload image to Facebook Photos endpoint (published directly)
+                $photoParams = [
+                    'message' => $photoMessage,
+                    'access_token' => $account->page_access_token,
+                ];
+                
+                // If only link (no message text), we can also use 'link' parameter, but that creates link preview instead of photo
+                // So we'll always include link in message when both exist
+                
                 $uploadResponse = Http::attach('source', file_get_contents($image->getPathname()), $image->getClientOriginalName())
-                    ->post(self::GRAPH_BASE . '/' . $account->page_id . '/photos', [
-                        'message' => $payload['message'],
-                        'access_token' => $account->page_access_token,
-                    ]);
+                    ->post(self::GRAPH_BASE . '/' . $account->page_id . '/photos', $photoParams);
 
                 if (!$uploadResponse->ok()) {
                     Log::warning('Facebook image upload failed', ['response' => $uploadResponse->json()]);
                     return response()->json(['message' => 'Failed to upload image to Facebook', 'error' => $uploadResponse->json()], 400);
                 }
 
-                return response()->json(['success' => true, 'post_id' => $uploadResponse->json('id')]);
+                $photoId = $uploadResponse->json('id');
+                Log::info('Facebook photo post successful', [
+                    'post_id' => $photoId,
+                    'has_link' => !empty($payload['link']),
+                    'has_image' => true
+                ]);
+                
+                return response()->json(['success' => true, 'post_id' => $photoId]);
             } else {
-                // Regular text post
+                // Regular text post with optional link
                 $response = Http::asForm()->post(self::GRAPH_BASE . '/' . $account->page_id . '/feed', $params);
                 if (!$response->ok()) {
                     Log::warning('Facebook post failed', ['response' => $response->json()]);
                     return response()->json(['message' => 'Failed to create post', 'error' => $response->json()], 400);
                 }
+
+                Log::info('Facebook feed post successful', [
+                    'post_id' => $response->json('id'),
+                    'has_link' => !empty($payload['link'])
+                ]);
 
                 return response()->json(['success' => true, 'post_id' => $response->json('id')]);
             }

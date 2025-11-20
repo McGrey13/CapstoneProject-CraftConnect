@@ -28,7 +28,24 @@ import {
 import SuccessNotificationModal from "../ui/SuccessNotificationModal";
 
           const SocialMedia = () => {
-            const [fbStatus, setFbStatus] = useState({ connected: false, page: null });
+            // Initialize fbStatus from sessionStorage if available, to persist across navigation
+            const getInitialFbStatus = () => {
+              try {
+                const saved = sessionStorage.getItem('fbStatus');
+                if (saved) {
+                  const parsed = JSON.parse(saved);
+                  // Only use saved status if it has valid data
+                  if (parsed && parsed.connected) {
+                    return parsed;
+                  }
+                }
+              } catch (e) {
+                console.error('Error loading saved FB status:', e);
+              }
+              return { connected: false, page: null };
+            };
+
+            const [fbStatus, setFbStatus] = useState(getInitialFbStatus);
             const [loading, setLoading] = useState(false);
             const [pages, setPages] = useState([]);
             const [posting, setPosting] = useState(false);
@@ -43,25 +60,125 @@ import SuccessNotificationModal from "../ui/SuccessNotificationModal";
             const [showSuccessModal, setShowSuccessModal] = useState(false);
             const [successMessage, setSuccessMessage] = useState("");
 
+            // Save fbStatus to sessionStorage whenever it changes
+            useEffect(() => {
+              if (fbStatus.connected) {
+                sessionStorage.setItem('fbStatus', JSON.stringify(fbStatus));
+              } else {
+                sessionStorage.removeItem('fbStatus');
+              }
+            }, [fbStatus]);
+
             const fetchStatus = async () => {
               try {
                 const token = getToken();
                 if (!token) {
                   setError("Please log in to connect social media accounts");
+                  // Only reset to disconnected if no token
+                  setFbStatus({ connected: false, page: null });
                   return;
                 }
                 const res = await api.get("/social/facebook/status");
                 console.log('Facebook status response:', res.data);
-                setFbStatus(res.data);
-                setError("");
+                
+                // Only update status if we get a valid response
+                if (res.data) {
+                  // Ensure page is set correctly - page can be null if not selected
+                  const status = {
+                    connected: res.data.connected || false,
+                    page: res.data.page && res.data.page.id ? {
+                      id: res.data.page.id,
+                      name: res.data.page.name || 'Unknown Page',
+                      url: res.data.page.url || null
+                    } : null
+                  };
+                  setFbStatus(status);
+                  setError("");
+                  console.log('Status updated:', status);
+                }
               } catch (err) {
                 console.error("Failed to fetch Facebook status:", err);
-                // Don't set error if status check fails, just log it
-                console.log("Status check failed, but continuing...");
-                // Set a default status that allows posting
-                setFbStatus({ connected: true, page: { id: 'default', name: 'Default Page' } });
+                // Don't override existing status on error - preserve what we have
+                // Only show error if we don't have a status yet
+                if (!fbStatus.connected) {
+                  setError("Failed to load Facebook status. Please refresh the page.");
+                } else {
+                  // If we already have a connected status, keep it and just log the error
+                  console.log("Status check failed, but keeping existing connection status");
+                }
               }
             };
+
+            // Auto-post effect - runs after status is loaded and post data is ready
+            useEffect(() => {
+              if (window.pendingAutoPostData && fbStatus.connected && fbStatus.page) {
+                const autoPostData = window.pendingAutoPostData;
+                delete window.pendingAutoPostData;
+                
+                // Wait a bit for UI to stabilize
+                setTimeout(() => {
+                  const formData = new FormData();
+                  formData.append('message', autoPostData.message);
+                  if (autoPostData.link && autoPostData.link.trim()) {
+                    formData.append('link', autoPostData.link.trim());
+                  }
+                  if (autoPostData.image) {
+                    formData.append('image', autoPostData.image);
+                  }
+                  formData.append('post_type', autoPostData.platform === 'instagram' ? 'instagram' : 'facebook');
+                  
+                  if (fbStatus.page && fbStatus.page.id) {
+                    formData.append('page_id', fbStatus.page.id);
+                  }
+                  
+                  setPosting(true);
+                  setError("");
+                  setSuccess("");
+                  
+                  const endpoint = "/social/facebook/post";
+                  api.post(endpoint, formData, {
+                    headers: {
+                      'Content-Type': 'multipart/form-data',
+                    },
+                  })
+                  .then(response => {
+                    if (response.data.success) {
+                      setMessage("");
+                      setLink("");
+                      setSelectedImage(null);
+                      setImagePreview(null);
+                      setPostToInstagram(false);
+                      setSuccessMessage(`Posted to ${autoPostData.platform === 'instagram' ? 'Instagram' : 'Facebook'} successfully!`);
+                      setShowSuccessModal(true);
+                    } else {
+                      setError(`Failed to post: ${response.data.message || 'Unknown error'}`);
+                    }
+                  })
+                  .catch(err => {
+                    console.error(`Failed to auto-post to ${autoPostData.platform}:`, err);
+                    const errorMsg = err.response?.data?.message || err.response?.data?.error || err.response?.data?.details;
+                    const errorCode = err.response?.data?.error_code;
+                    
+                    if (err.response?.status === 400) {
+                      if (errorCode === 'NO_ACCOUNT') {
+                        setError('Facebook not connected. Please go to "Connected Accounts" tab and connect your Facebook account first.');
+                      } else if (errorCode === 'NO_PAGES') {
+                        setError('No Facebook Pages found. Please create a Facebook Page first.');
+                      } else if (errorCode === 'NO_PAGE_SELECTED') {
+                        setError('Please select a Facebook Page from "Connected Accounts" tab, then try posting again.');
+                      } else {
+                        setError(errorMsg || 'Failed to post. Please review and try again.');
+                      }
+                    } else {
+                      setError(errorMsg || `Failed to post to ${autoPostData.platform === 'instagram' ? 'Instagram' : 'Facebook'}. Please try again.`);
+                    }
+                  })
+                  .finally(() => {
+                    setPosting(false);
+                  });
+                }, 1500); // Wait 1.5 seconds for state to fully update
+              }
+            }, [fbStatus.connected, fbStatus.page]);
 
             useEffect(() => {
               fetchStatus();
@@ -83,6 +200,7 @@ import SuccessNotificationModal from "../ui/SuccessNotificationModal";
               
               // Handle pending post from product share
               const pendingPost = sessionStorage.getItem('pendingPost');
+              const shouldAutoPost = sessionStorage.getItem('autoPost') === 'true';
               if (pendingPost) {
                 try {
                   const postData = JSON.parse(pendingPost);
@@ -104,21 +222,43 @@ import SuccessNotificationModal from "../ui/SuccessNotificationModal";
                         const file = new File([blob], `${postData.productName || 'product'}-preview.png`, { type: 'image/png' });
                         setSelectedImage(file);
                         setImagePreview(postData.imageData);
+                        
+                        // If auto-post flag is set, store post data for auto-submit after status is loaded
+                        if (shouldAutoPost) {
+                          window.pendingAutoPostData = {
+                            message: postData.message || "",
+                            link: postData.link || "",
+                            image: file,
+                            platform: postData.platform || 'facebook'
+                          };
+                        }
                       })
                       .catch(err => console.error('Error loading preview image:', err));
+                  } else if (shouldAutoPost) {
+                    // No image, but auto-post is requested
+                    window.pendingAutoPostData = {
+                      message: postData.message || "",
+                      link: postData.link || "",
+                      image: null,
+                      platform: postData.platform || 'facebook'
+                    };
+                  } else {
+                    // Not auto-posting, just show the form
+                    // Show success message
+                    setSuccess(`Product preview loaded! Review and click "Post to ${postData.platform === 'instagram' ? 'Instagram' : 'Facebook'}" when ready.`);
                   }
                   
                   // Clear pending post from storage
                   sessionStorage.removeItem('pendingPost');
+                  sessionStorage.removeItem('autoPost');
                   
                   // Switch to posts tab
                   setActiveTab("posts");
                   
-                  // Show success message
-                  setSuccess(`Product preview loaded! Review and click "Post to ${postData.platform === 'instagram' ? 'Instagram' : 'Facebook'}" when ready.`);
-                  
                 } catch (error) {
                   console.error('Error loading pending post:', error);
+                  sessionStorage.removeItem('pendingPost');
+                  sessionStorage.removeItem('autoPost');
                 }
               }
               
@@ -192,13 +332,28 @@ import SuccessNotificationModal from "../ui/SuccessNotificationModal";
               try {
                 setLoading(true);
                 setError("");
-                await api.post("/social/facebook/select-page", { page_id: pageId });
-                await fetchStatus();
+                setSuccess("");
+                const response = await api.post("/social/facebook/select-page", { page_id: pageId });
+                
+                // Immediately update local state with the selected page info
+                if (response.data && response.data.page) {
+                  setFbStatus({
+                    connected: true,
+                    page: response.data.page
+                  });
+                } else {
+                  // If backend doesn't return page info, fetch it
+                  await fetchStatus();
+                }
+                
                 setSuccess("Page selected successfully!");
                 setPages([]); // Clear pages after selection
+                
+                // Clear any previous errors
+                setError("");
               } catch (err) {
                 console.error("Failed to select page:", err);
-                setError("Failed to select page. Please try again.");
+                setError(err.response?.data?.message || "Failed to select page. Please try again.");
               } finally {
                 setLoading(false);
               }
@@ -259,14 +414,23 @@ import SuccessNotificationModal from "../ui/SuccessNotificationModal";
                 // Create FormData for the post
                 const formData = new FormData();
                 formData.append('message', message.trim());
-                if (link && link.trim()) formData.append('link', link.trim());
-                if (selectedImage) formData.append('image', selectedImage);
+                // Always append link if provided, even if empty string - backend handles nullable
+                if (link && link.trim()) {
+                  formData.append('link', link.trim());
+                  console.log('Including link in post:', link.trim());
+                }
+                if (selectedImage) {
+                  formData.append('image', selectedImage);
+                  console.log('Including image in post:', selectedImage.name);
+                }
                 formData.append('post_type', postToInstagram ? 'instagram' : 'facebook');
 
                 // Add any available page info (don't require it to be perfect)
                 if (fbStatus.page && fbStatus.page.id) {
                   formData.append('page_id', fbStatus.page.id);
                   console.log('Using page ID:', fbStatus.page.id);
+                } else {
+                  console.warn('No page ID in fbStatus, backend will try to auto-select');
                 }
 
                 console.log('FormData entries:');
@@ -322,7 +486,7 @@ import SuccessNotificationModal from "../ui/SuccessNotificationModal";
                     setError('Loading your Facebook pages...');
                     // Try to refresh status and pages
                     await fetchStatus();
-                    await fetchPages();
+                    await loadPages();
                     setTimeout(() => {
                       setError('Facebook pages loaded. Please select a page from "Connected Accounts" tab, then try posting again.');
                     }, 2000);
@@ -601,7 +765,7 @@ import SuccessNotificationModal from "../ui/SuccessNotificationModal";
                                 ))}
                               </div>
                             </div>
-                          ) : pages.length === 0 && fbStatus.connected && loading === false ? (
+                          ) : pages.length === 0 && fbStatus.connected && !fbStatus.page && loading === false ? (
                             <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                               <div className="text-sm text-amber-800">
                                 <p className="font-medium mb-2">No Facebook Pages found</p>

@@ -389,7 +389,7 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const checkout = async (paymentMethod = 'cod', selectedCartItems = null) => {
+  const checkout = async (paymentMethod = 'cod', selectedCartItems = null, discountCode = null) => {
     if (!isAuthenticated || (user?.role && user.role !== 'customer')) {
       const errorMsg = "Please log in to proceed to checkout.";
       console.warn(errorMsg);
@@ -559,6 +559,13 @@ export const CartProvider = ({ children }) => {
       const checkoutData = {
         payment_method: paymentMethod
       };
+      
+      // Add discount code if provided
+      if (discountCode && discountCode.code) {
+        checkoutData.discount_code = discountCode.code;
+        checkoutData.discount_id = discountCode.discountId || discountCode.id;
+        console.log('Including discount code in checkout:', discountCode.code);
+      }
       
       // Add selected cart item IDs if specific items were selected
       if (itemsToCheckout.length < currentCart.length) {

@@ -24,6 +24,109 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
   const [hasVariations, setHasVariations] = useState(false);
   const [variations, setVariations] = useState([]);
   const [imageErrors, setImageErrors] = useState([]);
+  const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
+  const [bulkAddData, setBulkAddData] = useState({
+    baseLabel: '',
+    selectedSizes: [],
+    customSizes: '',
+    defaultQuantity: '',
+    defaultPrice: '',
+    sizeType: 'shoes' // 'shoes', 'clothing', 'custom'
+  });
+
+  // Predefined size options
+  const sizeOptions = {
+    shoes: ['5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '10.5', '11', '11.5', '12'],
+    clothing: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'],
+    custom: []
+  };
+
+  const handleBulkAddVariations = () => {
+    if (!bulkAddData.baseLabel.trim()) {
+      alert('Please enter a base label (e.g., color name)');
+      return;
+    }
+
+    let sizesToUse = [];
+    
+    if (bulkAddData.sizeType === 'custom') {
+      // Parse custom sizes (comma or newline separated)
+      sizesToUse = bulkAddData.customSizes
+        .split(/[,\n]/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+    } else {
+      sizesToUse = bulkAddData.selectedSizes;
+    }
+
+    if (sizesToUse.length === 0) {
+      alert('Please select at least one size');
+      return;
+    }
+
+    // Generate variations
+    const newVariations = sizesToUse.map(size => ({
+      label: `${bulkAddData.baseLabel.trim()} - ${size}`,
+      size: size,
+      quantity: bulkAddData.defaultQuantity || '0',
+      price: bulkAddData.defaultPrice || '',
+      variation_id: null,
+      sku: ''
+    }));
+
+    // Add to existing variations (or create new array if none exist)
+    setVariations(prev => {
+      // Remove any duplicates based on label
+      const existingLabels = new Set(prev.map(v => v.label));
+      const uniqueNewVariations = newVariations.filter(v => !existingLabels.has(v.label));
+      return [...prev, ...uniqueNewVariations];
+    });
+    
+    // Enable variations if not already enabled
+    if (!hasVariations) {
+      setHasVariations(true);
+    }
+    
+    // Reset bulk add form
+    setBulkAddData({
+      baseLabel: '',
+      selectedSizes: [],
+      customSizes: '',
+      defaultQuantity: '',
+      defaultPrice: '',
+      sizeType: 'shoes'
+    });
+    setIsBulkAddOpen(false);
+    
+    alert(`✅ Successfully added ${newVariations.length} variation${newVariations.length !== 1 ? 's' : ''}!`);
+  };
+
+  const toggleSizeSelection = (size) => {
+    setBulkAddData(prev => {
+      const isSelected = prev.selectedSizes.includes(size);
+      return {
+        ...prev,
+        selectedSizes: isSelected
+          ? prev.selectedSizes.filter(s => s !== size)
+          : [...prev.selectedSizes, size]
+      };
+    });
+  };
+
+  const selectAllSizes = () => {
+    const currentSizes = sizeOptions[bulkAddData.sizeType] || [];
+    setBulkAddData(prev => ({
+      ...prev,
+      selectedSizes: currentSizes
+    }));
+  };
+
+  const clearAllSizes = () => {
+    setBulkAddData(prev => ({
+      ...prev,
+      selectedSizes: []
+    }));
+  };
 
   const totalVariationQuantity = useMemo(() => {
     if (!hasVariations || variations.length === 0) return 0;
@@ -218,27 +321,62 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
       // Handle multiple images - check if product has multiple images or single image
       const imagesToSet = [];
       
-      // First add the main product image if it exists
-      if (product.productImage) {
-        imagesToSet.push({
-          file: null,
-          preview: product.productImage,
-          id: `main-${Math.random().toString(36).substr(2, 9)}`,
-          isMain: true
+      // Helper function to normalize URLs for comparison
+      const normalizeUrlForComparison = (url) => {
+        if (!url) return '';
+        let normalized = url.toLowerCase();
+        // Remove /storage/ or /images/ prefixes
+        normalized = normalized.replace(/^\/+(storage|images)\//, '');
+        normalized = normalized.replace(/^\/+/, '');
+        // Remove protocol and domain
+        normalized = normalized.replace(/^https?:\/\/[^/]+/, '');
+        normalized = normalized.replace(/^\/+/, '');
+        // Extract just the filename for comparison
+        const filename = normalized.split('/').pop() || normalized;
+        return filename.split('?')[0]; // Remove query params
+      };
+      
+      const mainImageUrl = product.productImage;
+      const mainImageNormalized = mainImageUrl ? normalizeUrlForComparison(mainImageUrl) : null;
+      let mainImageFound = false;
+      
+      // First, check if main image is in productImages array
+      if (product.productImages && Array.isArray(product.productImages) && product.productImages.length > 0) {
+        product.productImages.forEach((img, index) => {
+          if (img) {
+            const normalizedImg = normalizeUrlForComparison(img);
+            const isMainImage = mainImageNormalized && normalizedImg === mainImageNormalized;
+            
+            if (isMainImage && !mainImageFound) {
+              // This is the main image, mark it as main
+              imagesToSet.push({
+                file: null,
+                preview: img,
+                id: `main-${Math.random().toString(36).substr(2, 9)}`,
+                isMain: true
+              });
+              mainImageFound = true;
+            } else if (!isMainImage) {
+              // This is an additional image
+              imagesToSet.push({
+                file: null,
+                preview: img,
+                id: `additional-${index}-${Math.random().toString(36).substr(2, 9)}`,
+                isMain: false
+              });
+            }
+            // If isMainImage is true but mainImageFound is also true, skip it (duplicate)
+          }
         });
       }
       
-      // Then add additional images if they exist
-      if (product.productImages && Array.isArray(product.productImages) && product.productImages.length > 0) {
-        product.productImages.forEach((img, index) => {
-          if (img) { // Make sure the image exists
-            imagesToSet.push({
-              file: null,
-              preview: img,
-              id: `additional-${index}-${Math.random().toString(36).substr(2, 9)}`,
-              isMain: false
-            });
-          }
+      // If main image exists but wasn't found in productImages array, add it first
+      if (mainImageUrl && !mainImageFound) {
+        imagesToSet.unshift({
+          file: null,
+          preview: mainImageUrl,
+          id: `main-${Math.random().toString(36).substr(2, 9)}`,
+          isMain: true
         });
       }
       
@@ -459,9 +597,22 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
         }
         submitData.append(`variations[${index}][label]`, variation.label);
         submitData.append(`variations[${index}][size]`, variation.label);
-        submitData.append(`variations[${index}][quantity]`, variation.quantity);
+        
+        // Ensure quantity is an integer
+        const quantityValue = variation.quantity;
+        const quantityInt = parseInt(quantityValue, 10);
+        if (Number.isNaN(quantityInt)) {
+          console.error(`Invalid quantity for variation ${index}:`, quantityValue);
+          return; // Skip this variation if quantity is invalid
+        }
+        submitData.append(`variations[${index}][quantity]`, quantityInt.toString());
+        
         if (variation.price !== '' && variation.price !== null && variation.price !== undefined) {
-          submitData.append(`variations[${index}][price]`, variation.price);
+          // Ensure price is a valid number
+          const priceValue = parseFloat(variation.price);
+          if (Number.isFinite(priceValue)) {
+            submitData.append(`variations[${index}][price]`, priceValue.toString());
+          }
         }
         if (variation.variation_id) {
           submitData.append(`variations[${index}][variation_id]`, variation.variation_id);
@@ -764,16 +915,27 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
 
                   {hasVariations && (
                     <div className="mt-4 bg-gradient-to-br from-[#faf9f8] to-white rounded-lg sm:rounded-xl border-2 border-[#e5ded7] p-4 sm:p-5">
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                         <h4 className="text-base sm:text-lg font-bold text-[#5c3d28]">Variation Options</h4>
-                        <button
-                          type="button"
-                          onClick={handleAddVariation}
-                          className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-xs sm:text-sm font-semibold rounded-lg hover:from-[#8f674a] hover:to-[#6a4c34] transition-all duration-200 flex items-center gap-2"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Add Option
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsBulkAddOpen(true)}
+                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-xs sm:text-sm font-semibold rounded-lg hover:from-[#8f674a] hover:to-[#6a4c34] transition-all duration-200 flex items-center gap-2"
+                            title="Bulk add variations (e.g., all sizes for one color)"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Bulk Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleAddVariation}
+                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-xs sm:text-sm font-semibold rounded-lg hover:from-[#8f674a] hover:to-[#6a4c34] transition-all duration-200 flex items-center gap-2"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Add Option
+                          </button>
+                        </div>
                       </div>
 
                       {variations.length === 0 ? (
@@ -785,7 +947,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                           {variations.map((variation, index) => (
                             <div
                               key={variation.variation_id || `variation-${index}`}
-                              className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 items-end bg-white p-3 rounded-lg border border-[#e5ded7]"
+                              className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 items-end bg-white p-3 rounded-lg border border-[#e5ded7] relative"
                             >
                               <div className="sm:col-span-3">
                                 <label className="block text-xs font-semibold text-[#5c3d28] mb-1">
@@ -814,7 +976,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                                   required
                                 />
                               </div>
-                              <div className="sm:col-span-4">
+                              <div className="sm:col-span-3">
                                 <label className="block text-xs font-semibold text-[#5c3d28] mb-1">
                                   Price (Optional)
                                 </label>
@@ -833,14 +995,15 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                                   />
                                 </div>
                               </div>
-                              <div className="sm:col-span-2">
+                              <div className="sm:col-span-3 flex items-end">
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveVariation(index)}
-                                  className="w-full px-3 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition-all duration-200 flex items-center justify-center gap-1"
+                                  className="w-full px-3 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg min-h-[38px]"
+                                  title="Remove this variation"
                                 >
-                                  <X className="h-4 w-4" />
-                                  Remove
+                                  <X className="h-5 w-5" strokeWidth={3} />
+                                  <span className="hidden sm:inline">Remove</span>
                                 </button>
                               </div>
                             </div>
@@ -1102,6 +1265,214 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
           </form>
         </div>
       </div>
+
+      {/* Bulk Add Variations Modal */}
+      {isBulkAddOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-2 sm:p-4">
+          <div className="bg-white rounded-lg sm:rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-4 sm:p-6 rounded-t-lg sm:rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg sm:text-2xl font-bold text-white">Bulk Add Variations</h2>
+                <button
+                  onClick={() => setIsBulkAddOpen(false)}
+                  className="text-white hover:bg-white/20 rounded-full p-2 transition-all"
+                >
+                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-6 space-y-4">
+              <div className="bg-[#f8f1ec] border border-[#d5bfae] rounded-lg p-3">
+                <p className="text-sm text-[#5c3d28]">
+                  <strong>💡 Quick Tip:</strong> Perfect for products like shoes! Enter a color/style name and select all sizes to create multiple variations at once.
+                </p>
+              </div>
+
+              {/* Base Label */}
+              <div>
+                <Label className="block text-sm font-bold text-[#5c3d28] mb-2">
+                  Base Label (e.g., Color or Style) <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="text"
+                  value={bulkAddData.baseLabel}
+                  onChange={(e) => setBulkAddData(prev => ({ ...prev, baseLabel: e.target.value }))}
+                  placeholder="e.g., Blue, Red, Black, Classic"
+                  className="w-full px-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a]"
+                />
+                <p className="text-xs text-gray-500 mt-1">This will be combined with sizes (e.g., "Blue - 8")</p>
+              </div>
+
+              {/* Size Type Selection */}
+              <div>
+                <Label className="block text-sm font-bold text-[#5c3d28] mb-2">
+                  Size Type
+                </Label>
+                <select
+                  value={bulkAddData.sizeType}
+                  onChange={(e) => setBulkAddData(prev => ({ ...prev, sizeType: e.target.value, selectedSizes: [], customSizes: '' }))}
+                  className="w-full px-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a]"
+                >
+                  <option value="shoes">👟 Shoe Sizes</option>
+                  <option value="clothing">👕 Clothing Sizes</option>
+                  <option value="custom">✏️ Custom Sizes</option>
+                </select>
+              </div>
+
+              {/* Size Selection */}
+              {bulkAddData.sizeType === 'custom' ? (
+                <div>
+                  <Label className="block text-sm font-bold text-[#5c3d28] mb-2">
+                    Custom Sizes <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    value={bulkAddData.customSizes}
+                    onChange={(e) => setBulkAddData(prev => ({ ...prev, customSizes: e.target.value }))}
+                    placeholder="Enter sizes separated by commas or new lines&#10;Example: 5, 6, 7, 8, 9, 10&#10;or: Small, Medium, Large"
+                    className="w-full min-h-[100px] px-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a]"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Separate sizes with commas or new lines</p>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="block text-sm font-bold text-[#5c3d28]">
+                      Select Sizes <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={selectAllSizes}
+                        className="text-xs px-2 py-1 bg-[#f8f1ec] text-[#5c3d28] border border-[#d5bfae] rounded hover:bg-[#e5ded7] transition-all"
+                      >
+                        Select All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearAllSizes}
+                        className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-all"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2 border-2 border-[#e5ded7] rounded-lg bg-[#faf9f8]">
+                    {sizeOptions[bulkAddData.sizeType].map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => toggleSizeSelection(size)}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
+                          bulkAddData.selectedSizes.includes(size)
+                            ? 'bg-white text-[#5c3d28] border-[#a4785a] shadow-md font-semibold'
+                            : 'bg-white text-[#5c3d28] border-[#e5ded7] hover:border-[#a4785a] hover:shadow-sm'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Selected: {bulkAddData.selectedSizes.length} size{bulkAddData.selectedSizes.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              )}
+
+              {/* Default Quantity and Price */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label className="block text-sm font-bold text-[#5c3d28] mb-2">
+                    Default Quantity
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={bulkAddData.defaultQuantity}
+                    onChange={(e) => setBulkAddData(prev => ({ ...prev, defaultQuantity: e.target.value }))}
+                    placeholder="0"
+                    className="w-full px-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a]"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Applied to all variations</p>
+                </div>
+                <div>
+                  <Label className="block text-sm font-bold text-[#5c3d28] mb-2">
+                    Default Price (Optional)
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a4785a]">₱</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={bulkAddData.defaultPrice}
+                      onChange={(e) => setBulkAddData(prev => ({ ...prev, defaultPrice: e.target.value }))}
+                      placeholder="0.00"
+                      className="w-full pl-8 pr-3 py-2 text-sm border-2 border-[#e5ded7] rounded-lg focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a]"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Leave empty to use base price</p>
+                </div>
+              </div>
+
+              {/* Preview */}
+              {(bulkAddData.baseLabel && (
+                bulkAddData.sizeType === 'custom' 
+                  ? bulkAddData.customSizes.split(/[,\n]/).filter(s => s.trim()).length > 0
+                  : bulkAddData.selectedSizes.length > 0
+              )) && (
+                <div className="bg-[#faf9f8] border border-[#e5ded7] rounded-lg p-3">
+                  <p className="text-xs font-semibold text-[#5c3d28] mb-2">Preview:</p>
+                  <div className="text-xs text-[#7b5a3b] space-y-1 max-h-32 overflow-y-auto">
+                    {(
+                      bulkAddData.sizeType === 'custom'
+                        ? bulkAddData.customSizes.split(/[,\n]/).map(s => s.trim()).filter(s => s)
+                        : bulkAddData.selectedSizes
+                    ).slice(0, 10).map((size, idx) => (
+                      <div key={idx}>
+                        • {bulkAddData.baseLabel} - {size}
+                        {bulkAddData.defaultQuantity && ` (Qty: ${bulkAddData.defaultQuantity})`}
+                        {bulkAddData.defaultPrice && ` (₱${bulkAddData.defaultPrice})`}
+                      </div>
+                    ))}
+                    {(
+                      bulkAddData.sizeType === 'custom'
+                        ? bulkAddData.customSizes.split(/[,\n]/).map(s => s.trim()).filter(s => s).length
+                        : bulkAddData.selectedSizes.length
+                    ) > 10 && (
+                      <div className="text-[#7b5a3b] italic">
+                        ... and {(
+                          bulkAddData.sizeType === 'custom'
+                            ? bulkAddData.customSizes.split(/[,\n]/).map(s => s.trim()).filter(s => s).length
+                            : bulkAddData.selectedSizes.length
+                        ) - 10} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-4 border-t border-[#e5ded7]">
+                <button
+                  type="button"
+                  onClick={() => setIsBulkAddOpen(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkAddVariations}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white rounded-lg hover:from-[#8f674a] hover:to-[#6a4c34] transition-all font-medium"
+                >
+                  Add Variations
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

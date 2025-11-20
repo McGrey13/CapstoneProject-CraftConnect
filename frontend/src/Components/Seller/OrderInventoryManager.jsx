@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import {
   Card,
@@ -1178,10 +1178,10 @@ const OrdersTab = () => {
           <div className="bg-white rounded-lg sm:rounded-2xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl relative">
             <div className="sticky top-0 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-4 sm:p-6 rounded-t-lg sm:rounded-t-2xl z-10">
               <div className="flex items-center justify-between pr-0">
-                <h2 className="text-lg sm:text-2xl font-bold text-white">Order Details</h2>
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Order Details</h2>
                 <button 
                   onClick={() => setIsViewModalOpen(false)}
-                  className="text-white hover:bg-white/30 bg-white/10 border-2 border-white/30 rounded-full p-2 transition-all text-2xl sm:text-3xl font-bold flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 shrink-0 shadow-lg hover:shadow-xl hover:scale-110"
+                  className="text-black bg-white/90 rounded-full p-2 text-2xl sm:text-3xl md:text-4xl font-bold flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 shrink-0 shadow-lg"
                   aria-label="Close"
                   title="Close"
                 >
@@ -1190,50 +1190,50 @@ const OrdersTab = () => {
               </div>
             </div>
             
-            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <div className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 md:space-y-8">
               {/* Order Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-gray-500 font-medium">Order ID</p>
-                  <p className="text-base sm:text-lg font-semibold text-[#5c3d28]">{selectedOrder.id}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
+                <div className="space-y-2">
+                  <p className="text-sm sm:text-base md:text-lg text-gray-500 font-medium">Order ID</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-semibold text-[#5c3d28]">{selectedOrder.id}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-gray-500 font-medium">Status</p>
-                  <Badge className={`${getStatusColor(selectedOrder.status)} text-xs`}>
+                <div className="space-y-2">
+                  <p className="text-sm sm:text-base md:text-lg text-gray-500 font-medium">Status</p>
+                  <Badge className={`${getStatusColor(selectedOrder.status)} text-sm sm:text-base md:text-lg px-3 py-1`}>
                     {selectedOrder.status}
                   </Badge>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-gray-500 font-medium">Customer</p>
-                  <p className="text-base sm:text-lg font-semibold text-[#5c3d28]">{selectedOrder.customer}</p>
+                <div className="space-y-2">
+                  <p className="text-sm sm:text-base md:text-lg text-gray-500 font-medium">Customer</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-semibold text-[#5c3d28]">{selectedOrder.customer}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-gray-500 font-medium">Date</p>
-                  <p className="text-base sm:text-lg font-semibold text-[#5c3d28]">{selectedOrder.date}</p>
+                <div className="space-y-2">
+                  <p className="text-sm sm:text-base md:text-lg text-gray-500 font-medium">Date</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-semibold text-[#5c3d28]">{selectedOrder.date}</p>
                 </div>
               </div>
 
               {/* Products List */}
-              <div className="border-t border-[#e5ded7] pt-3 sm:pt-4">
-                <h3 className="text-base sm:text-lg font-semibold text-[#5c3d28] mb-2 sm:mb-3">Order Items</h3>
+              <div className="border-t border-[#e5ded7] pt-4 sm:pt-6 md:pt-8">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-[#5c3d28] mb-3 sm:mb-4 md:mb-6">Order Items</h3>
                 <div className="bg-[#faf9f8] rounded-lg border border-[#e5ded7] overflow-hidden">
                   <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gradient-to-r from-[#f8f1ec] to-[#faf9f8] hover:bg-gradient-to-r">
-                        <TableHead className="font-semibold">Product</TableHead>
-                        <TableHead className="font-semibold">SKU</TableHead>
-                        <TableHead className="font-semibold text-center">Qty</TableHead>
-                        <TableHead className="font-semibold text-right">Price</TableHead>
-                        <TableHead className="font-semibold text-right">Subtotal</TableHead>
+                        <TableHead className="font-semibold text-base sm:text-lg md:text-xl py-4 sm:py-5 md:py-6">Product</TableHead>
+                        <TableHead className="font-semibold text-base sm:text-lg md:text-xl py-4 sm:py-5 md:py-6">SKU</TableHead>
+                        <TableHead className="font-semibold text-center text-base sm:text-lg md:text-xl py-4 sm:py-5 md:py-6">Qty</TableHead>
+                        <TableHead className="font-semibold text-right text-base sm:text-lg md:text-xl py-4 sm:py-5 md:py-6">Price</TableHead>
+                        <TableHead className="font-semibold text-right text-base sm:text-lg md:text-xl py-4 sm:py-5 md:py-6">Subtotal</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {selectedOrder.products && selectedOrder.products.length > 0 ? (
                         selectedOrder.products.map((product, index) => (
                           <TableRow key={index} className="hover:bg-white/50">
-                            <TableCell>
-                              <div className="flex items-center gap-2">
+                            <TableCell className="py-4 sm:py-5 md:py-6">
+                              <div className="flex items-center gap-3 sm:gap-4 md:gap-5">
                                 {product.product_image ? (
                                   <img 
                                     src={product.product_image.includes('/storage/') 
@@ -1243,7 +1243,7 @@ const OrdersTab = () => {
                                       : `/images/${product.product_image.replace(/^\/+/, '')}`
                                     } 
                                     alt={product.product_name}
-                                    className="h-10 w-10 rounded object-cover border border-[#e5ded7]"
+                                    className="h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded object-cover border border-[#e5ded7]"
                                     onError={(e) => {
                                       e.target.style.display = 'none';
                                       if (e.target.nextSibling) {
@@ -1253,32 +1253,32 @@ const OrdersTab = () => {
                                   />
                                 ) : null}
                                 <div 
-                                  className={`h-10 w-10 rounded flex items-center justify-center bg-gray-200 border border-[#e5ded7] ${product.product_image ? 'hidden' : ''}`}
+                                  className={`h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded flex items-center justify-center bg-gray-200 border border-[#e5ded7] ${product.product_image ? 'hidden' : ''}`}
                                 >
-                                  <ImageIcon className="h-5 w-5 text-gray-400" />
+                                  <ImageIcon className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 text-gray-400" />
                                 </div>
-                                <span className="font-medium text-[#5c3d28]">{product.product_name || 'Unknown Product'}</span>
+                                <span className="font-medium text-[#5c3d28] text-base sm:text-lg md:text-xl">{product.product_name || 'Unknown Product'}</span>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <code className="text-xs bg-[#e5ded7] px-2 py-1 rounded text-[#7b5a3b]">
+                            <TableCell className="py-4 sm:py-5 md:py-6">
+                              <code className="text-base sm:text-lg md:text-xl bg-[#e5ded7] px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 md:py-2.5 rounded text-[#7b5a3b] font-medium">
                                 {product.sku || 'N/A'}
                               </code>
                             </TableCell>
-                            <TableCell className="text-center font-medium">
+                            <TableCell className="text-center font-medium text-base sm:text-lg md:text-xl py-4 sm:py-5 md:py-6">
                               {product.quantity}
                             </TableCell>
-                            <TableCell className="text-right text-[#5c3d28]">
+                            <TableCell className="text-right text-[#5c3d28] text-base sm:text-lg md:text-xl py-4 sm:py-5 md:py-6 font-medium">
                               ₱{parseFloat(product.price || 0).toFixed(2)}
                             </TableCell>
-                            <TableCell className="text-right font-semibold text-[#5c3d28]">
+                            <TableCell className="text-right font-semibold text-[#5c3d28] text-base sm:text-lg md:text-xl py-4 sm:py-5 md:py-6">
                               ₱{parseFloat(product.total_amount || 0).toFixed(2)}
                             </TableCell>
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-6 text-gray-500">
+                          <TableCell colSpan={5} className="text-center py-8 sm:py-10 md:py-12 text-gray-500 text-base sm:text-lg md:text-xl">
                             No product details available
                           </TableCell>
                         </TableRow>
@@ -1290,23 +1290,23 @@ const OrdersTab = () => {
               </div>
 
               {/* Total Summary */}
-              <div className="border-t border-[#e5ded7] pt-3 sm:pt-4">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-xs sm:text-sm text-gray-500 font-medium">Total Items</p>
-                  <p className="text-base sm:text-lg font-semibold text-[#5c3d28]">{selectedOrder.items}</p>
+              <div className="border-t border-[#e5ded7] pt-4 sm:pt-6 md:pt-8">
+                <div className="flex justify-between items-center mb-3 sm:mb-4">
+                  <p className="text-sm sm:text-base md:text-lg text-gray-500 font-medium">Total Items</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-semibold text-[#5c3d28]">{selectedOrder.items}</p>
                 </div>
-                <div className="flex justify-between items-center bg-gradient-to-r from-[#f8f1ec] to-[#faf9f8] p-2 sm:p-3 rounded-lg">
-                  <p className="text-sm sm:text-base font-semibold text-[#5c3d28]">Total Amount</p>
-                  <p className="text-xl sm:text-2xl font-bold text-[#a4785a]">{selectedOrder.total}</p>
+                <div className="flex justify-between items-center bg-gradient-to-r from-[#f8f1ec] to-[#faf9f8] p-3 sm:p-4 md:p-6 rounded-lg">
+                  <p className="text-base sm:text-lg md:text-xl font-semibold text-[#5c3d28]">Total Amount</p>
+                  <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#a4785a]">{selectedOrder.total}</p>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-[#e5ded7]">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 pt-4 sm:pt-6 md:pt-8 border-t border-[#e5ded7]">
                 <Button 
                   onClick={() => setIsViewModalOpen(false)}
                   variant="outline"
-                  className="w-full sm:flex-1 border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] text-sm"
+                  className="w-full sm:flex-1 border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] text-base sm:text-lg md:text-xl py-3 sm:py-4 md:py-5"
                 >
                   Close
                 </Button>
@@ -1316,7 +1316,7 @@ const OrdersTab = () => {
                       setIsViewModalOpen(false);
                       handleStatusChange(selectedOrder);
                     }}
-                    className="w-full sm:flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white hover:from-[#8f674a] hover:to-[#6a4c34] text-sm"
+                    className="w-full sm:flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white hover:from-[#8f674a] hover:to-[#6a4c34] text-base sm:text-lg md:text-xl py-3 sm:py-4 md:py-5"
                   >
                     Mark as Packed
                   </Button>
@@ -1597,6 +1597,7 @@ const InventoryTab_DEPRECATED = () => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 120000, // 2 minutes timeout for product creation with images
       });
 
       console.log("Upload response status:", response.status);
@@ -1612,11 +1613,21 @@ const InventoryTab_DEPRECATED = () => {
       }
     } catch (error) {
       console.error("Error adding product:", error);
-      if (error.response?.status === 422) {
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        alert('Request timed out. This may happen with large image uploads. Please try again with smaller images or fewer images at once.');
+      } else if (error.response?.status === 422) {
         console.error("Validation errors:", error.response.data);
-        alert(error.response?.data?.message || "Product validation failed. Please review the form.");
+        if (error.response?.data?.errors) {
+          const errors = error.response.data.errors;
+          const errorMessages = Object.entries(errors)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('\n');
+          alert(`Validation Error:\n\n${errorMessages}`);
+        } else {
+          alert(error.response?.data?.message || "Product validation failed. Please review the form.");
+        }
       } else {
-        alert("Error adding product. Please try again.");
+        alert(error.response?.data?.message || "Error adding product. Please try again.");
       }
     }
   };
@@ -1641,6 +1652,7 @@ const InventoryTab_DEPRECATED = () => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 120000, // 2 minutes timeout for product updates with images
       });
 
       if (response.data) {
@@ -1652,7 +1664,18 @@ const InventoryTab_DEPRECATED = () => {
       }
     } catch (error) {
       console.error("Error updating product:", error);
-      alert("Error updating product. Please try again.");
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        alert('Request timed out. This may happen with large image uploads. Please try again with smaller images or fewer images at once.');
+      } else if (error.response?.data?.errors) {
+        // Show validation errors
+        const errors = error.response.data.errors;
+        const errorMessages = Object.entries(errors)
+          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('\n');
+        alert(`Validation Error:\n\n${errorMessages}`);
+      } else {
+        alert(error.response?.data?.message || "Error updating product. Please try again.");
+      }
     }
   };
 
@@ -1743,9 +1766,10 @@ const InventoryTab_DEPRECATED = () => {
         const variationsPayload = currentProduct.variations.map((variation, index) => {
           const key = variation?.variation_id ?? variation?.id ?? `idx-${index}`;
           const draftValue = variationQuantityDraft[key];
+          // Ensure quantity is an integer
           const updatedQuantity = Number.isFinite(Number(draftValue))
-            ? Math.max(0, Number(draftValue))
-            : Math.max(0, Number(variation?.quantity ?? 0));
+            ? Math.max(0, Math.floor(Number(draftValue)))
+            : Math.max(0, Math.floor(Number(variation?.quantity ?? 0)));
 
           return {
             variation_id: variation?.variation_id ?? variation?.id ?? null,
@@ -1771,9 +1795,21 @@ const InventoryTab_DEPRECATED = () => {
           }
           formData.append(`variations[${index}][label]`, variation.label || '');
           formData.append(`variations[${index}][size]`, variation.size || '');
-          formData.append(`variations[${index}][quantity]`, variation.quantity);
+          
+          // Ensure quantity is an integer
+          const quantityInt = parseInt(variation.quantity, 10);
+          if (Number.isNaN(quantityInt)) {
+            console.error(`Invalid quantity for variation ${index}:`, variation.quantity);
+            return; // Skip this variation if quantity is invalid
+          }
+          formData.append(`variations[${index}][quantity]`, quantityInt.toString());
+          
           if (variation.price !== null && variation.price !== undefined && variation.price !== '') {
-            formData.append(`variations[${index}][price]`, variation.price);
+            // Ensure price is a valid number
+            const priceValue = parseFloat(variation.price);
+            if (Number.isFinite(priceValue)) {
+              formData.append(`variations[${index}][price]`, priceValue.toString());
+            }
           }
           if (variation.sku) {
             formData.append(`variations[${index}][sku]`, variation.sku);
@@ -1792,6 +1828,7 @@ const InventoryTab_DEPRECATED = () => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 120000, // 2 minutes timeout for quantity updates (may include variations)
       });
 
       if (response.data) {
@@ -1804,7 +1841,18 @@ const InventoryTab_DEPRECATED = () => {
       }
     } catch (error) {
       console.error("Error updating quantity:", error);
-      alert("Error updating quantity. Please try again.");
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        alert('Request timed out. Please try again.');
+      } else if (error.response?.data?.errors) {
+        // Show validation errors
+        const errors = error.response.data.errors;
+        const errorMessages = Object.entries(errors)
+          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('\n');
+        alert(`Validation Error:\n\n${errorMessages}`);
+      } else {
+        alert(error.response?.data?.message || "Error updating quantity. Please try again.");
+      }
     }
   };
 
@@ -1823,29 +1871,22 @@ const InventoryTab_DEPRECATED = () => {
   };
 
   const handlePostToSocialMedia = async (platform) => {
-    if (!productToShare) return;
+    if (!productToShare) {
+      console.error('No product to share');
+      alert('No product selected to share.');
+      return;
+    }
 
     try {
-      // Generate preview image first
-      const previewCanvas = await generateProductPreviewCanvas();
+      console.log('Starting post preparation for platform:', platform);
       
-      if (!previewCanvas) {
-        alert('Failed to generate preview image. Please try again.');
-        return;
-      }
-
-      // Convert canvas to blob
-      const previewBlob = await new Promise((resolve) => {
-        previewCanvas.toBlob(resolve, 'image/png');
-      });
-
       // Prepare post data
       const productId = productToShare.product_id || productToShare.id;
       const baseUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
       const productLink = `${baseUrl}/product/${productId}`;
-      const message = `Check out this handcrafted product: ${productToShare.productName}\n\n${productToShare.productDescription || 'Handmade with love and care!'}\n\nCategory: ${productToShare.category}`;
+      const message = `Check out this handcrafted product: ${productToShare.productName}\n\n${productToShare.productDescription || 'Handmade with love and care!'}`;
 
-      // Store data in sessionStorage to pass to SocialMedia page
+      // Initialize post data
       const postData = {
         message: message,
         link: productLink,
@@ -1853,20 +1894,66 @@ const InventoryTab_DEPRECATED = () => {
         productName: productToShare.productName,
       };
 
-      // Store preview image as base64
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        postData.imageData = reader.result;
-        sessionStorage.setItem('pendingPost', JSON.stringify(postData));
+      // Try to generate preview image, but don't block navigation if it fails
+      try {
+        console.log('Generating preview canvas...');
+        const previewCanvas = await generateProductPreviewCanvas();
         
-        // Navigate to Social Media page
-        window.location.href = '/seller/social-media?tab=posts&platform=' + platform;
-      };
-      reader.readAsDataURL(previewBlob);
+        if (previewCanvas) {
+          console.log('Preview canvas generated, converting to blob...');
+          // Convert canvas to blob
+          const previewBlob = await new Promise((resolve, reject) => {
+            previewCanvas.toBlob((blob) => {
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error('Failed to convert canvas to blob'));
+              }
+            }, 'image/png');
+          });
+
+          if (previewBlob) {
+            console.log('Converting blob to base64...');
+            // Store preview image as base64
+            postData.imageData = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                if (reader.result) {
+                  resolve(reader.result);
+                } else {
+                  reject(new Error('Failed to read blob as data URL'));
+                }
+              };
+              reader.onerror = () => reject(new Error('FileReader error'));
+              reader.readAsDataURL(previewBlob);
+            });
+          }
+        }
+      } catch (imageError) {
+        console.warn('Failed to generate preview image, continuing without it:', imageError);
+        // Continue without image - user can add one manually
+      }
+
+      // Store post data in sessionStorage
+      sessionStorage.setItem('pendingPost', JSON.stringify(postData));
+      sessionStorage.setItem('autoPost', 'true'); // Flag to auto-post
+      
+      console.log('Post data stored in sessionStorage, navigating to social media page...');
+      
+      // Navigate to Social Media page - always navigate regardless of image generation
+      const targetUrl = `/seller/social-media?tab=posts&platform=${platform}`;
+      console.log('Navigating to:', targetUrl);
+      
+      // Use window.location.href for reliable navigation
+      window.location.href = targetUrl;
 
     } catch (error) {
       console.error('Error preparing post:', error);
-      alert('Failed to prepare post. Please try again.');
+      alert('An error occurred while preparing the post. Navigating to social media page anyway...');
+      
+      // Still navigate even if there's an error - user can create post manually
+      const targetUrl = `/seller/social-media?tab=posts&platform=${platform}`;
+      window.location.href = targetUrl;
     }
   };
 
@@ -2493,34 +2580,35 @@ const InventoryTab_DEPRECATED = () => {
   }
 
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+    <div className="space-y-4 md:space-y-6">
+      {/* Search and Action Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
         <div className="relative w-full sm:flex-1 sm:max-w-md">
-          <Search className="absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 text-[#a4785a]" />
+          <Search className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#a4785a]" />
           <Input
             placeholder="Search products..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 text-sm sm:text-base border-2 border-[#d5bfae] rounded-lg focus:border-[#a4785a] focus:ring-2 focus:ring-[#a4785a]/20 transition-all w-full"
+            className="pl-7 sm:pl-9 pr-2 sm:pr-4 py-1.5 sm:py-2 text-xs sm:text-sm border border-[#d5bfae] rounded focus:border-[#a4785a] focus:ring-1 focus:ring-[#a4785a]/20 transition-all h-8 sm:h-10"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="relative">
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className="border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200 text-xs sm:text-sm"
+              className="h-7 sm:h-8 border border-[#d5bfae] text-[#5c3d28] hover:bg-[#f8f1ec] hover:border-[#a4785a] transition-all duration-200 text-[10px] sm:text-xs px-2 sm:px-3"
             >
-              <Filter className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+              <Filter className="mr-1 h-3 w-3" />
               Filter
               {stockFilter !== "all" && (
-                <Badge className="ml-1 sm:ml-2 bg-[#a4785a] text-white text-xs">1</Badge>
+                <Badge className="ml-1 bg-[#a4785a] text-white text-[10px] px-1">1</Badge>
               )}
             </Button>
             {isFilterOpen && (
-              <div className="absolute top-full mt-2 right-0 bg-white border-2 border-[#d5bfae] rounded-lg shadow-xl z-10 min-w-[180px] sm:min-w-[200px] p-2">
-                <div className="text-xs sm:text-sm font-semibold text-[#5c3d28] mb-2 px-2">Filter by Stock Status</div>
+              <div className="absolute top-full mt-1 right-0 bg-white border border-[#d5bfae] rounded shadow-lg z-10 min-w-[180px] sm:min-w-[200px] p-2">
+                <div className="text-[10px] sm:text-xs font-semibold text-[#5c3d28] mb-2 px-2">Filter by Stock Status</div>
                 {stockStatusOptions.map((option) => (
                   <button
                     key={option.value}
@@ -2528,7 +2616,7 @@ const InventoryTab_DEPRECATED = () => {
                       setStockFilter(option.value);
                       setIsFilterOpen(false);
                     }}
-                    className={`w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded-md transition-all text-xs sm:text-sm ${
+                    className={`w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded-md transition-all text-[10px] sm:text-xs ${
                       stockFilter === option.value
                         ? "bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white"
                         : "hover:bg-[#f8f1ec] text-[#5c3d28]"
@@ -2543,10 +2631,10 @@ const InventoryTab_DEPRECATED = () => {
           
           {/* Add Product Button */}
           <Button 
-            className="w-full sm:w-auto ml-auto bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm"
+            className="h-7 sm:h-8 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200 text-[10px] sm:text-xs px-2 sm:px-3"
             onClick={() => setIsAddDialogOpen(true)}
           >
-            <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Add Product
+            <Plus className="mr-1 h-3 w-3" /> Add Product
           </Button>
           
           {/* Add Product Modal */}
@@ -2558,278 +2646,192 @@ const InventoryTab_DEPRECATED = () => {
         </div>
       </div>
       
-      <Card className="border-[#e5ded7] shadow-xl overflow-visible">
-        <CardHeader className="pb-3 sm:pb-4 border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white px-3 sm:px-6">
-          <CardTitle className="text-[#5c3d28] text-lg sm:text-xl">Product Inventory</CardTitle>
+      <Card className="border-[#e5ded7] shadow overflow-visible">
+        <CardHeader className="pb-2 border-b border-[#e5ded7] bg-[#faf9f8] px-2 sm:px-4 hidden">
+          <CardTitle className="text-[#5c3d28] text-base sm:text-lg">Product Inventory</CardTitle>
           <CardDescription className="text-[#7b5a3b] text-xs sm:text-sm">Manage your product inventory and stock levels</CardDescription>
         </CardHeader>
-        <CardContent className="pt-4 sm:pt-6 px-0 sm:px-6 overflow-visible">
-          {/* Mobile: Scrollable wrapper */}
-          <div className="overflow-x-auto -mx-3 sm:mx-0 overflow-y-visible">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-xs sm:text-sm w-12 sm:w-16">Image</TableHead>
-                <TableHead className="text-xs sm:text-sm">Name</TableHead>
-                <TableHead className="text-xs sm:text-sm hidden lg:table-cell">Category</TableHead>
-                <TableHead className="text-xs sm:text-sm">Price</TableHead>
-                <TableHead className="text-xs sm:text-sm">Stock</TableHead>
-                <TableHead className="text-xs sm:text-sm hidden lg:table-cell">Status</TableHead>
-                <TableHead className="text-right text-xs sm:text-sm">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+        <CardContent className="pt-2 px-2 sm:px-4 overflow-visible">
+          <div className="overflow-x-auto -mx-2 sm:mx-0 overflow-y-visible">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <LoadingSpinner message="Loading products..." size="small" />
-                  </TableCell>
+                  <TableHead className="text-sm sm:text-base px-2 py-2 w-12 sm:w-16">Image</TableHead>
+                  <TableHead className="text-sm sm:text-base px-2 py-2">Name</TableHead>
+                  <TableHead className="text-sm sm:text-base px-2 py-2">Category</TableHead>
+                  <TableHead className="text-sm sm:text-base px-2 py-2 hidden md:table-cell">Price</TableHead>
+                  <TableHead className="text-sm sm:text-base px-2 py-2 hidden md:table-cell">Stock</TableHead>
+                  <TableHead className="text-sm sm:text-base px-2 py-2 hidden lg:table-cell">Status</TableHead>
+                  <TableHead className="text-right text-sm sm:text-base px-2 py-2 w-8 sm:w-auto"></TableHead>
                 </TableRow>
-              ) : filteredInventory.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <EmptyState
-                      icon="📦"
-                      title="No Products Found"
-                      description={searchTerm ? "No products match your search criteria" : "You haven't added any products yet"}
-                    />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredInventory.map((product) => (
-                  <TableRow key={product.id || product.product_id || `product-${Math.random().toString(36).substr(2, 9)}`}>
-                    <TableCell className="w-12 sm:w-16">
-                      {product.productImage ? (
-                        <img 
-                          src={product.productImage.includes('/storage/') 
-                            ? product.productImage.replace('/storage/', '/images/')
-                            : product.productImage
-                          } 
-                          alt={product.productName} 
-                          className="h-8 w-8 sm:h-10 sm:w-10 object-cover rounded"
-                          onError={(e) => {
-                            console.warn('Image failed to load:', product.productImage);
-                            e.target.style.display = 'none';
-                            if (e.target.nextSibling) {
-                              e.target.nextSibling.style.display = 'flex';
-                            }
-                          }}
-                        />
-                      ) : null}
-                      <div 
-                        className={`h-8 w-8 sm:h-10 sm:w-10 bg-gray-200 rounded flex items-center justify-center ${product.productImage ? 'hidden' : ''}`}
-                      >
-                        <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      <LoadingSpinner message="Loading products..." size="small" />
                     </TableCell>
-                    <TableCell className="text-xs sm:text-sm font-medium truncate max-w-[120px] sm:max-w-none">
-                      <div>
-                        <div className="font-medium">{product.productName}</div>
-                      </div>
+                  </TableRow>
+                ) : filteredInventory.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      <EmptyState
+                        icon="📦"
+                        title="No Products Found"
+                        description={searchTerm ? "No products match your search criteria" : "You haven't added any products yet"}
+                      />
                     </TableCell>
-                    <TableCell className="text-xs sm:text-sm hidden lg:table-cell">{product.category}</TableCell>
-                    <TableCell className="text-xs sm:text-sm font-semibold whitespace-nowrap">₱{product.productPrice}</TableCell>
-                    <TableCell className="text-xs sm:text-sm whitespace-nowrap">{product.productQuantity}</TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <Badge className={`${getStockColor(product.status)} text-xs`} variant="outline">
-                        {product.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="px-3 py-3 relative">
-                      {/* Desktop: Show all actions directly */}
-                      <div className="hidden sm:flex items-center gap-2 flex-wrap">
-                        <button
-                          onClick={() => handleViewProduct(product)}
-                          className="px-3 py-1.5 text-xs font-medium bg-white border-2 border-[#a4785a] text-[#a4785a] rounded-md hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
-                          style={{ backgroundColor: 'white', color: '#a4785a' }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#a4785a';
-                            e.target.style.color = 'white';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = 'white';
-                            e.target.style.color = '#a4785a';
-                          }}
+                  </TableRow>
+                ) : (
+                  filteredInventory.map((product) => (
+                    <TableRow key={product.id || product.product_id || `product-${Math.random().toString(36).substr(2, 9)}`}>
+                      <TableCell className="px-2 py-2">
+                        {product.productImage ? (
+                          <img 
+                            src={product.productImage.includes('/storage/') 
+                              ? product.productImage.replace('/storage/', '/images/')
+                              : product.productImage
+                            } 
+                            alt={product.productName} 
+                            className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded border border-[#e5ded7]"
+                            onError={(e) => {
+                              console.warn('Image failed to load:', product.productImage);
+                              e.target.style.display = 'none';
+                              if (e.target.nextSibling) {
+                                e.target.nextSibling.style.display = 'flex';
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <div 
+                          className={`h-10 w-10 sm:h-12 sm:w-12 bg-gray-200 rounded flex items-center justify-center border border-[#e5ded7] ${product.productImage ? 'hidden' : ''}`}
                         >
-                          View
-                        </button>
-                        <button
-                          onClick={() => handleShareProduct(product)}
-                          className="px-3 py-1.5 text-xs font-medium bg-white border-2 border-[#a4785a] text-[#a4785a] rounded-md hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
-                          style={{ backgroundColor: 'white', color: '#a4785a' }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#a4785a';
-                            e.target.style.color = 'white';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = 'white';
-                            e.target.style.color = '#a4785a';
-                          }}
-                        >
-                          Share
-                        </button>
-                        <button
-                          onClick={() => handleQuantityClick(product)}
-                          className="px-3 py-1.5 text-xs font-medium bg-white border-2 border-[#a4785a] text-[#a4785a] rounded-md hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
-                          style={{ backgroundColor: 'white', color: '#a4785a' }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#a4785a';
-                            e.target.style.color = 'white';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = 'white';
-                            e.target.style.color = '#a4785a';
-                          }}
-                        >
-                          Stock
-                        </button>
-                        {(!product.hasOrders || product.hasOrders === 0) && (
+                          <ImageIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 py-2">
+                        <div className="font-medium text-xs sm:text-sm text-[#5c3d28]">{product.productName}</div>
+                        <div className="text-xs text-gray-500 md:hidden mt-0.5">
+                          ₱{product.productPrice} • Qty: {product.productQuantity}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 py-2">
+                        <span className="text-xs sm:text-sm text-[#7b5a3b]">{product.category}</span>
+                      </TableCell>
+                      <TableCell className="px-2 py-2 hidden md:table-cell">
+                        <span className="text-xs sm:text-sm font-semibold text-[#5c3d28]">₱{product.productPrice}</span>
+                      </TableCell>
+                      <TableCell className="px-2 py-2 hidden md:table-cell">
+                        <span className="text-xs sm:text-sm text-[#5c3d28]">{product.productQuantity}</span>
+                      </TableCell>
+                      <TableCell className="px-2 py-2 hidden lg:table-cell">
+                        <Badge className={`${getStockColor(product.status)} text-xs sm:text-sm`} variant="outline">
+                          {product.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-2 py-2 relative">
+                        {/* Desktop: Show all actions directly */}
+                        <div className="hidden sm:flex items-center gap-1.5 flex-wrap">
                           <button
-                            onClick={() => handleTogglePublishStatus(product)}
-                            className="px-3 py-1.5 text-xs font-medium bg-white border-2 border-[#a4785a] text-[#a4785a] rounded-md hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
-                            style={{ backgroundColor: 'white', color: '#a4785a' }}
-                            onMouseEnter={(e) => {
-                              e.target.style.backgroundColor = '#a4785a';
-                              e.target.style.color = 'white';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.backgroundColor = 'white';
-                              e.target.style.color = '#a4785a';
-                            }}
+                            onClick={() => handleViewProduct(product)}
+                            className="px-2 py-1 text-xs sm:text-sm bg-white border border-[#a4785a] text-[#a4785a] rounded hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
                           >
-                            {product.publish_status === 'published' ? 'Draft' : 'Publish'}
+                            View
                           </button>
-                        )}
-                        <button
-                          onClick={() => handleEditClick(product)}
-                          className="px-3 py-1.5 text-xs font-medium bg-white border-2 border-[#a4785a] text-[#a4785a] rounded-md hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
-                          style={{ backgroundColor: 'white', color: '#a4785a' }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#a4785a';
-                            e.target.style.color = 'white';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = 'white';
-                            e.target.style.color = '#a4785a';
-                          }}
-                        >
-                          Edit
-                        </button>
-                      </div>
-                      
-                      {/* Mobile: Show dropdown */}
-                      <div className="sm:hidden flex items-center justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setOpenActionMenu(openActionMenu === product.id ? null : product.id)}
-                          className="h-6 w-6 p-0.5 hover:bg-[#f8f1ec]"
-                        >
-                          <MoreHorizontal className="h-4 w-4 text-[#7b5a3b]" />
-                        </Button>
-                      </div>
-                      
-                      {/* Dropdown positioned relative to TableCell */}
-                      {openActionMenu === product.id && (
-                        <>
-                          <div className="fixed inset-0 z-[9998]" onClick={() => setOpenActionMenu(null)} />
-                          <div className="absolute right-0 top-full mt-1 bg-white border border-[#e5ded7] rounded-lg shadow-lg z-[9999] min-w-[120px] py-1">
+                          <button
+                            onClick={() => handleShareProduct(product)}
+                            className="px-2 py-1 text-xs sm:text-sm bg-white border border-[#a4785a] text-[#a4785a] rounded hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
+                          >
+                            Share
+                          </button>
+                          <button
+                            onClick={() => handleQuantityClick(product)}
+                            className="px-2 py-1 text-xs sm:text-sm bg-white border border-[#a4785a] text-[#a4785a] rounded hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
+                          >
+                            Stock
+                          </button>
+                          {(!product.hasOrders || product.hasOrders === 0) && (
                             <button
-                              onClick={() => {
-                                handleViewProduct(product);
-                                setOpenActionMenu(null);
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-[10px] bg-white text-[#a4785a] hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
-                              style={{ backgroundColor: 'white', color: '#a4785a' }}
-                              onMouseEnter={(e) => {
-                                e.target.style.backgroundColor = '#a4785a';
-                                e.target.style.color = 'white';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.target.style.backgroundColor = 'white';
-                                e.target.style.color = '#a4785a';
-                              }}
+                              onClick={() => handleTogglePublishStatus(product)}
+                              className="px-2 py-1 text-xs sm:text-sm bg-white border border-[#a4785a] text-[#a4785a] rounded hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
                             >
-                              View Details
+                              {product.publish_status === 'published' ? 'Draft' : 'Publish'}
                             </button>
-                            <button
-                              onClick={() => {
-                                handleShareProduct(product);
-                                setOpenActionMenu(null);
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-[10px] bg-white text-[#a4785a] hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
-                              style={{ backgroundColor: 'white', color: '#a4785a' }}
-                              onMouseEnter={(e) => {
-                                e.target.style.backgroundColor = '#a4785a';
-                                e.target.style.color = 'white';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.target.style.backgroundColor = 'white';
-                                e.target.style.color = '#a4785a';
-                              }}
-                            >
-                              Share Product
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleQuantityClick(product);
-                                setOpenActionMenu(null);
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-[10px] bg-white text-[#a4785a] hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
-                              style={{ backgroundColor: 'white', color: '#a4785a' }}
-                              onMouseEnter={(e) => {
-                                e.target.style.backgroundColor = '#a4785a';
-                                e.target.style.color = 'white';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.target.style.backgroundColor = 'white';
-                                e.target.style.color = '#a4785a';
-                              }}
-                            >
-                              Update Stock
-                            </button>
-                            {(!product.hasOrders || product.hasOrders === 0) && (
+                          )}
+                          <button
+                            onClick={() => handleEditClick(product)}
+                            className="px-2 py-1 text-xs sm:text-sm bg-white border border-[#a4785a] text-[#a4785a] rounded hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                        
+                        {/* Mobile: Show dropdown */}
+                        <div className="sm:hidden flex items-center justify-end">
+                          <button
+                            onClick={() => setOpenActionMenu(openActionMenu === product.id ? null : product.id)}
+                            className="p-1.5 bg-gray-200 hover:bg-gray-300 rounded cursor-pointer"
+                          >
+                            <MoreHorizontal className="h-4 w-4 text-gray-600" />
+                          </button>
+                        </div>
+                        
+                        {/* Dropdown positioned relative to TableCell */}
+                        {openActionMenu === product.id && (
+                          <>
+                            <div className="fixed inset-0 z-[9998]" onClick={() => setOpenActionMenu(null)} />
+                            <div className="absolute right-0 top-full mt-1 bg-white border border-[#e5ded7] rounded-lg shadow-lg z-[9999] min-w-[120px] py-1">
                               <button
                                 onClick={() => {
-                                  handleTogglePublishStatus(product);
+                                  handleViewProduct(product);
                                   setOpenActionMenu(null);
                                 }}
-                                className="w-full text-left px-3 py-1.5 text-[10px] bg-white text-[#a4785a] hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
-                                style={{ backgroundColor: 'white', color: '#a4785a' }}
-                                onMouseEnter={(e) => {
-                                  e.target.style.backgroundColor = '#a4785a';
-                                  e.target.style.color = 'white';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.target.style.backgroundColor = 'white';
-                                  e.target.style.color = '#a4785a';
-                                }}
+                                className="w-full text-left px-3 py-1.5 text-xs sm:text-sm bg-white text-[#a4785a] hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
                               >
-                                {product.publish_status === 'published' ? 'Save as Draft' : 'Publish Product'}
+                                View Details
                               </button>
-                            )}
-                            <button
-                              onClick={() => {
-                                handleEditClick(product);
-                                setOpenActionMenu(null);
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-[10px] bg-white text-[#a4785a] hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
-                              style={{ backgroundColor: 'white', color: '#a4785a' }}
-                              onMouseEnter={(e) => {
-                                e.target.style.backgroundColor = '#a4785a';
-                                e.target.style.color = 'white';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.target.style.backgroundColor = 'white';
-                                e.target.style.color = '#a4785a';
-                              }}
-                            >
-                              Edit Product
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </TableCell>
+                              <button
+                                onClick={() => {
+                                  handleShareProduct(product);
+                                  setOpenActionMenu(null);
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-xs sm:text-sm bg-white text-[#a4785a] hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
+                              >
+                                Share Product
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleQuantityClick(product);
+                                  setOpenActionMenu(null);
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-xs sm:text-sm bg-white text-[#a4785a] hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
+                              >
+                                Update Stock
+                              </button>
+                              {(!product.hasOrders || product.hasOrders === 0) && (
+                                <button
+                                  onClick={() => {
+                                    handleTogglePublishStatus(product);
+                                    setOpenActionMenu(null);
+                                  }}
+                                  className="w-full text-left px-3 py-1.5 text-xs sm:text-sm bg-white text-[#a4785a] hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
+                                >
+                                  {product.publish_status === 'published' ? 'Save as Draft' : 'Publish Product'}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => {
+                                  handleEditClick(product);
+                                  setOpenActionMenu(null);
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-xs sm:text-sm bg-white text-[#a4785a] hover:!bg-[#a4785a] hover:!text-white cursor-pointer transition-all duration-200"
+                              >
+                                Edit Product
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </TableCell>
                   </TableRow>
                 ))
               )}
@@ -2913,18 +2915,6 @@ const InventoryTab_DEPRECATED = () => {
                   {(currentProduct.productImage || (Array.isArray(currentProduct.productImages) && currentProduct.productImages.length > 0)) && (
                     <div className="border-t border-[#e5ded7] pt-3 sm:pt-4">
                       {(() => {
-                        // Helper function to normalize image URLs for comparison
-                        const normalizeUrlForComparison = (url) => {
-                          if (!url) return '';
-                          // Remove /storage/ or /images/ prefixes, keep just the filename/path
-                          let normalized = url.replace(/^\/+(storage|images)\//, '');
-                          normalized = normalized.replace(/^\/+/, '');
-                          // Remove protocol and domain for comparison
-                          normalized = normalized.replace(/^https?:\/\/[^/]+/, '');
-                          normalized = normalized.replace(/^\/+/, '');
-                          return normalized;
-                        };
-
                         // Helper function to get display URL
                         const getDisplayUrl = (url) => {
                           if (!url) return '';
@@ -2937,49 +2927,55 @@ const InventoryTab_DEPRECATED = () => {
                           return `/images/${url.replace(/^\/+/, '')}`;
                         };
 
-                        // Get main image URL (normalized for comparison)
-                        const mainImageUrl = currentProduct.productImage ? normalizeUrlForComparison(currentProduct.productImage) : null;
-                        
-                        // Filter and prepare all images
+                        // Helper function to normalize URLs for comparison (more lenient)
+                        const normalizeUrlForComparison = (url) => {
+                          if (!url) return '';
+                          let normalized = url.toLowerCase();
+                          // Remove /storage/ or /images/ prefixes
+                          normalized = normalized.replace(/^\/+(storage|images)\//, '');
+                          normalized = normalized.replace(/^\/+/, '');
+                          // Remove protocol and domain
+                          normalized = normalized.replace(/^https?:\/\/[^/]+/, '');
+                          normalized = normalized.replace(/^\/+/, '');
+                          // Extract just the filename for comparison
+                          const filename = normalized.split('/').pop() || normalized;
+                          return filename.split('?')[0]; // Remove query params
+                        };
+
+                        // Collect all images - similar to EditProductModal logic
                         const allImages = [];
+                        const mainImageUrl = currentProduct.productImage;
+                        const mainImageNormalized = mainImageUrl ? normalizeUrlForComparison(mainImageUrl) : null;
                         
-                        // Check if main image exists and is not in productImages array
-                        if (mainImageUrl && currentProduct.productImage) {
-                          const isMainInAdditional = Array.isArray(currentProduct.productImages) && 
-                            currentProduct.productImages.some(img => {
-                              const normalizedAdditional = normalizeUrlForComparison(img);
-                              return normalizedAdditional === mainImageUrl || normalizedAdditional.includes(mainImageUrl) || mainImageUrl.includes(normalizedAdditional);
-                            });
-                          
-                          if (!isMainInAdditional) {
-                            // Main image is unique, add it first with MAIN badge
-                            allImages.push({
-                              url: currentProduct.productImage,
-                              isMain: true,
-                              index: 0
-                            });
-                          }
+                        // First, add main image if it exists
+                        if (mainImageUrl) {
+                          allImages.push({
+                            url: mainImageUrl,
+                            isMain: true,
+                            index: 0
+                          });
                         }
 
-                        // Add additional images, check if any matches main
+                        // Then add all additional images, marking main if it matches
                         if (Array.isArray(currentProduct.productImages) && currentProduct.productImages.length > 0) {
                           currentProduct.productImages.forEach((imageUrl, index) => {
                             if (!imageUrl) return;
                             
-                            const normalizedAdditional = normalizeUrlForComparison(imageUrl);
-                            const isMainImage = mainImageUrl && (
-                              normalizedAdditional === mainImageUrl || 
-                              normalizedAdditional.includes(mainImageUrl) || 
-                              mainImageUrl.includes(normalizedAdditional)
-                            );
+                            const normalizedUrl = normalizeUrlForComparison(imageUrl);
+                            const isMainImage = mainImageNormalized && normalizedUrl === mainImageNormalized;
                             
-                            // Skip if this is the main image and we already added it
-                            if (!isMainImage || allImages.length === 0) {
+                            // Only add if it's not already the main image we added
+                            if (!isMainImage || !mainImageUrl) {
+                              // If this is the main image but we haven't added main yet, mark it as main
+                              const shouldBeMain = isMainImage && !mainImageUrl;
                               allImages.push({
                                 url: imageUrl,
-                                isMain: isMainImage,
+                                isMain: shouldBeMain,
                                 index: allImages.length
                               });
+                            } else if (isMainImage && allImages.length > 0) {
+                              // If main image is in productImages array, update the first one to be marked as main
+                              allImages[0].isMain = true;
                             }
                           });
                         }
@@ -2998,7 +2994,7 @@ const InventoryTab_DEPRECATED = () => {
                                   const displayUrl = getDisplayUrl(imageData.url);
                                   
                                   return (
-                                    <div key={`image-${imageData.index}`} className="relative group">
+                                    <div key={`image-${imageData.index}-${displayIndex}`} className="relative group">
                                       {imageData.isMain && (
                                         <div className="absolute top-2 left-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg z-10">
                                           MAIN
@@ -3006,7 +3002,7 @@ const InventoryTab_DEPRECATED = () => {
                                       )}
                                       {!imageData.isMain && (
                                         <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
-                                          {displayIndex + (imageData.isMain ? 0 : 1)}
+                                          {displayIndex + 1}
                                         </div>
                                       )}
                                       <img 
@@ -3015,7 +3011,7 @@ const InventoryTab_DEPRECATED = () => {
                                           ? `${currentProduct.productName} - Main` 
                                           : `${currentProduct.productName} - Image ${displayIndex + 1}`
                                         }
-                                        className="w-full h-32 sm:h-40 md:h-48 object-cover rounded-lg border-2 border-[#e5ded7] cursor-pointer hover:border-[#a4785a] hover:shadow-lg transition-all duration-200"
+                                        className="w-full h-40 sm:h-48 md:h-56 object-cover rounded-lg border-2 border-[#e5ded7] cursor-pointer hover:border-[#a4785a] hover:shadow-lg transition-all duration-200"
                                         onClick={() => {
                                           window.open(displayUrl, '_blank');
                                         }}
@@ -3028,7 +3024,7 @@ const InventoryTab_DEPRECATED = () => {
                                         }}
                                       />
                                       <div 
-                                        className="hidden h-32 sm:h-40 md:h-48 w-full bg-gray-200 rounded-lg border-2 border-[#e5ded7] items-center justify-center text-gray-500"
+                                        className="hidden h-40 sm:h-48 md:h-56 w-full bg-gray-200 rounded-lg border-2 border-[#e5ded7] items-center justify-center text-gray-500"
                                         style={{display: 'none'}}
                                       >
                                         <div className="text-center">
@@ -3466,8 +3462,6 @@ const InventoryTab_DEPRECATED = () => {
                   <div className="bg-[#f8f1ec] border-2 border-[#e5ded7] rounded-lg p-3 sm:p-4">
                     <p className="text-xs sm:text-sm text-gray-600 mb-1">Product Name</p>
                     <p className="text-base sm:text-lg font-bold text-[#5c3d28]">{productToShare.productName}</p>
-                    <p className="text-xs sm:text-sm text-gray-600 mt-2">Category</p>
-                    <p className="text-sm sm:text-base font-semibold text-[#5c3d28]">{productToShare.category}</p>
                     <p className="text-xs sm:text-sm text-gray-600 mt-2">Product Link</p>
                     <div className="bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded border border-[#d5bfae] mt-1">
                       <p className="text-xs text-[#7b5a3b] break-all">
@@ -3544,20 +3538,7 @@ const InventoryTab_DEPRECATED = () => {
                       >
                         📷 Instagram
                       </Button>
-                      <Button
-                        onClick={() => shareProductViaSocial('twitter')}
-                        variant="outline"
-                        className="border-2 border-[#1da1f2] text-[#1da1f2] hover:bg-[#1da1f2] hover:text-white justify-start text-xs sm:text-sm"
-                      >
-                        🐦 Twitter
-                      </Button>
-                      <Button
-                        onClick={() => shareProductViaSocial('messenger')}
-                        variant="outline"
-                        className="border-2 border-[#0084FF] text-[#0084FF] hover:bg-[#0084FF] hover:text-white justify-start text-xs sm:text-sm"
-                      >
-                        💬 Messenger
-                      </Button>
+
                     </div>
                   </div>
 
