@@ -228,9 +228,9 @@ class ProductController extends Controller
             'category' => 'required|string',
             'status' => 'nullable|in:in stock,low stock,out of stock',
             'publish_status' => 'nullable|in:published,draft',
-            'productImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120',
+            'productImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:15360',
             'productImages' => 'nullable|array',
-            'productImages.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120',
+            'productImages.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:15360',
             'productVideo' => 'nullable|mimes:mp4,avi,mov|max:20480',
             'variations' => 'nullable|array', // Array of size variations
             'variations.*.size' => 'nullable|string|max:50',
@@ -512,9 +512,9 @@ class ProductController extends Controller
             'tags.*' => 'nullable|string',
             'status' => 'nullable|in:in stock,low stock,out of stock',
             'publish_status' => 'nullable|in:published,draft',
-            'productImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120',
+            'productImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:15360',
             'productImages' => 'nullable|array',
-            'productImages.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120',
+            'productImages.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:15360',
             'existingImages' => 'nullable|array',
             'existingImages.*' => 'nullable|string',
             'mainImageIndex' => 'nullable|integer',
@@ -911,15 +911,28 @@ class ProductController extends Controller
             });
 
             // Get product variations (sizes)
-            $variations = $product->variations->map(function($variation) {
+            $variations = $product->variations->map(function($variation) use ($product) {
+                // Use size as label if size exists, otherwise use a default
+                $label = $variation->size ? ucfirst(strtolower($variation->size)) : null;
+                
+                // Generate SKU if not set: Use product SKU or ID + variation size
+                $sku = $variation->sku;
+                if (empty($sku)) {
+                    $baseSku = !empty($product->sku) ? $product->sku : 'PRD-' . $product->product_id;
+                    $sizeCode = $variation->size ? strtoupper(substr(preg_replace('/[^A-Z0-9]/', '', $variation->size), 0, 3)) : 'VAR';
+                    $sku = $baseSku . '-' . $sizeCode . '-' . $variation->variation_id;
+                }
+                
                 return [
                     'variation_id' => $variation->variation_id,
+                    'id' => $variation->variation_id, // For frontend compatibility
                     'size' => $variation->size,
-                    'quantity' => $variation->quantity,
+                    'label' => $label ?: $variation->size ?: 'Variation',
+                    'quantity' => $variation->quantity ?? 0,
                     'price' => $variation->price,
-                    'sku' => $variation->sku,
+                    'sku' => $sku,
                 ];
-            });
+            })->values()->toArray(); // Convert Collection to array
 
             $productData = [
                 'id' => $product->product_id,
@@ -939,7 +952,7 @@ class ProductController extends Controller
                 'updated_at' => $product->updated_at,
                 // Product variations (sizes)
                 'variations' => $variations,
-                'has_variations' => $variations->count() > 0,
+                'has_variations' => count($variations) > 0,
                 // Reviews and ratings data
                 'reviews' => $formattedReviews,
                 'average_rating' => round($averageRating, 2),

@@ -8,7 +8,8 @@ const UserContext = createContext();
 // Flag to track if CSRF has been initialized (outside component to persist across re-mounts)
 let csrfInitialized = false;
 
-const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour
+// const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour
+const SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SESSION_CHECK_INTERVAL_MS = 15 * 1000; // check every 15 seconds
 
 export const UserProvider = ({ children }) => {

@@ -2909,36 +2909,144 @@ const InventoryTab_DEPRECATED = () => {
                     </div>
                   </div>
 
-                  {/* Product Image */}
-                  {currentProduct.productImage && (
+                  {/* Product Images - All Images Gallery */}
+                  {(currentProduct.productImage || (Array.isArray(currentProduct.productImages) && currentProduct.productImages.length > 0)) && (
                     <div className="border-t border-[#e5ded7] pt-3 sm:pt-4">
-                      <h3 className="text-base sm:text-lg font-semibold text-[#5c3d28] mb-2 sm:mb-3">Product Image</h3>
-                      <div className="flex justify-center">
-                        <img 
-                          src={currentProduct.productImage.includes('/storage/') 
-                            ? currentProduct.productImage.replace('/storage/', '/images/')
-                            : currentProduct.productImage
-                          } 
-                          alt={currentProduct.productName}
-                          className="max-w-full h-48 sm:h-64 object-cover rounded-lg border border-[#e5ded7]"
-                          onError={(e) => {
-                            console.warn('Image failed to load:', currentProduct.productImage);
-                            e.target.style.display = 'none';
-                            if (e.target.nextSibling) {
-                              e.target.nextSibling.style.display = 'flex';
+                      {(() => {
+                        // Helper function to normalize image URLs for comparison
+                        const normalizeUrlForComparison = (url) => {
+                          if (!url) return '';
+                          // Remove /storage/ or /images/ prefixes, keep just the filename/path
+                          let normalized = url.replace(/^\/+(storage|images)\//, '');
+                          normalized = normalized.replace(/^\/+/, '');
+                          // Remove protocol and domain for comparison
+                          normalized = normalized.replace(/^https?:\/\/[^/]+/, '');
+                          normalized = normalized.replace(/^\/+/, '');
+                          return normalized;
+                        };
+
+                        // Helper function to get display URL
+                        const getDisplayUrl = (url) => {
+                          if (!url) return '';
+                          if (url.includes('/storage/')) {
+                            return url.replace('/storage/', '/images/');
+                          }
+                          if (url.startsWith('http')) {
+                            return url;
+                          }
+                          return `/images/${url.replace(/^\/+/, '')}`;
+                        };
+
+                        // Get main image URL (normalized for comparison)
+                        const mainImageUrl = currentProduct.productImage ? normalizeUrlForComparison(currentProduct.productImage) : null;
+                        
+                        // Filter and prepare all images
+                        const allImages = [];
+                        
+                        // Check if main image exists and is not in productImages array
+                        if (mainImageUrl && currentProduct.productImage) {
+                          const isMainInAdditional = Array.isArray(currentProduct.productImages) && 
+                            currentProduct.productImages.some(img => {
+                              const normalizedAdditional = normalizeUrlForComparison(img);
+                              return normalizedAdditional === mainImageUrl || normalizedAdditional.includes(mainImageUrl) || mainImageUrl.includes(normalizedAdditional);
+                            });
+                          
+                          if (!isMainInAdditional) {
+                            // Main image is unique, add it first with MAIN badge
+                            allImages.push({
+                              url: currentProduct.productImage,
+                              isMain: true,
+                              index: 0
+                            });
+                          }
+                        }
+
+                        // Add additional images, check if any matches main
+                        if (Array.isArray(currentProduct.productImages) && currentProduct.productImages.length > 0) {
+                          currentProduct.productImages.forEach((imageUrl, index) => {
+                            if (!imageUrl) return;
+                            
+                            const normalizedAdditional = normalizeUrlForComparison(imageUrl);
+                            const isMainImage = mainImageUrl && (
+                              normalizedAdditional === mainImageUrl || 
+                              normalizedAdditional.includes(mainImageUrl) || 
+                              mainImageUrl.includes(normalizedAdditional)
+                            );
+                            
+                            // Skip if this is the main image and we already added it
+                            if (!isMainImage || allImages.length === 0) {
+                              allImages.push({
+                                url: imageUrl,
+                                isMain: isMainImage,
+                                index: allImages.length
+                              });
                             }
-                          }}
-                        />
-                        <div 
-                          className="hidden h-48 sm:h-64 w-full bg-gray-200 rounded-lg border border-[#e5ded7] items-center justify-center text-gray-500"
-                          style={{display: 'none'}}
-                        >
-                          <div className="text-center">
-                            <div className="text-3xl sm:text-4xl mb-2">📷</div>
-                            <div className="text-xs sm:text-sm">Image not available</div>
-                          </div>
-                        </div>
-                      </div>
+                          });
+                        }
+
+                        const totalImages = allImages.length;
+
+                        return (
+                          <>
+                            <h3 className="text-base sm:text-lg font-semibold text-[#5c3d28] mb-2 sm:mb-3">
+                              Product Images
+                              {totalImages > 0 ? ` (${totalImages} ${totalImages === 1 ? 'image' : 'images'})` : ''}
+                            </h3>
+                            <div className="bg-[#faf9f8] rounded-lg border border-[#e5ded7] p-3 sm:p-4">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+                                {allImages.map((imageData, displayIndex) => {
+                                  const displayUrl = getDisplayUrl(imageData.url);
+                                  
+                                  return (
+                                    <div key={`image-${imageData.index}`} className="relative group">
+                                      {imageData.isMain && (
+                                        <div className="absolute top-2 left-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg z-10">
+                                          MAIN
+                                        </div>
+                                      )}
+                                      {!imageData.isMain && (
+                                        <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
+                                          {displayIndex + (imageData.isMain ? 0 : 1)}
+                                        </div>
+                                      )}
+                                      <img 
+                                        src={displayUrl}
+                                        alt={imageData.isMain 
+                                          ? `${currentProduct.productName} - Main` 
+                                          : `${currentProduct.productName} - Image ${displayIndex + 1}`
+                                        }
+                                        className="w-full h-32 sm:h-40 md:h-48 object-cover rounded-lg border-2 border-[#e5ded7] cursor-pointer hover:border-[#a4785a] hover:shadow-lg transition-all duration-200"
+                                        onClick={() => {
+                                          window.open(displayUrl, '_blank');
+                                        }}
+                                        onError={(e) => {
+                                          console.warn('Image failed to load:', displayUrl);
+                                          e.target.style.display = 'none';
+                                          if (e.target.nextSibling) {
+                                            e.target.nextSibling.style.display = 'flex';
+                                          }
+                                        }}
+                                      />
+                                      <div 
+                                        className="hidden h-32 sm:h-40 md:h-48 w-full bg-gray-200 rounded-lg border-2 border-[#e5ded7] items-center justify-center text-gray-500"
+                                        style={{display: 'none'}}
+                                      >
+                                        <div className="text-center">
+                                          <ImageIcon className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 mx-auto mb-2" />
+                                          <p className="text-xs text-gray-500">Image not available</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <p className="text-xs text-[#7b5a3b] mt-3 text-center">
+                                📸 Click on any image to view in full size
+                              </p>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
 
@@ -2952,38 +3060,104 @@ const InventoryTab_DEPRECATED = () => {
                     </div>
                   )}
 
+                {/* Variations Section - Enhanced Display */}
                 {Array.isArray(currentProduct.variations) && currentProduct.variations.length > 0 && (
                   <div className="border-t border-[#e5ded7] pt-3 sm:pt-4">
-                    <h3 className="text-base sm:text-lg font-semibold text-[#5c3d28] mb-2 sm:mb-3">Variation Options</h3>
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                      <div>
+                        <h3 className="text-base sm:text-lg font-bold text-[#5c3d28]">Product Variations</h3>
+                        <p className="text-xs text-[#7b5a3b] mt-1">
+                          {currentProduct.variations.length} variation{currentProduct.variations.length !== 1 ? 's' : ''} available
+                        </p>
+                      </div>
+                      <Badge className="bg-[#a4785a] text-white text-xs sm:text-sm px-3 py-1">
+                        {currentProduct.variations.reduce((sum, v) => sum + (v.quantity || 0), 0)} total in stock
+                      </Badge>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                      {currentProduct.variations.map((variation, index) => (
-                        <div
-                          key={variation.variation_id || variation.label || `variation-${index}`}
-                          className="bg-[#faf9f8] border border-[#e5ded7] rounded-lg p-3 sm:p-4 shadow-sm"
-                        >
-                          <p className="text-sm font-semibold text-[#5c3d28] flex items-center justify-between">
-                            <span>{variation.label || variation.size || `Option ${index + 1}`}</span>
-                            {variation.sku && (
-                              <span className="text-xs font-medium text-[#7b5a3b] bg-[#f4ebe3] px-2 py-0.5 rounded-full">
-                                SKU: {variation.sku}
-                              </span>
-                            )}
-                          </p>
-                          <div className="mt-2 text-xs sm:text-sm text-[#5c3d28] space-y-1">
-                            <p>Quantity: <span className="font-semibold">{variation.quantity ?? 0}</span></p>
-                            <p>
-                              Price:{' '}
-                              <span className="font-semibold">
-                                {variation.price !== null &&
-                                variation.price !== undefined &&
-                                variation.price !== ''
-                                  ? `₱${parseFloat(variation.price).toFixed(2)}`
-                                  : 'Uses base price'}
-                              </span>
-                            </p>
+                      {currentProduct.variations.map((variation, index) => {
+                        const isOutOfStock = (variation.quantity ?? 0) <= 0;
+                        const variationPrice = variation.price !== null && variation.price !== undefined && variation.price !== ''
+                          ? parseFloat(variation.price)
+                          : null;
+                        const hasCustomPrice = variationPrice !== null && variationPrice !== parseFloat(currentProduct.productPrice || 0);
+
+                        return (
+                          <div
+                            key={variation.variation_id || variation.id || variation.label || `variation-${index}`}
+                            className={`border-2 rounded-lg p-4 shadow-sm transition-all duration-200 ${
+                              isOutOfStock
+                                ? "bg-gray-50 border-gray-300 opacity-75"
+                                : "bg-gradient-to-br from-white to-[#faf9f8] border-[#e5ded7] hover:border-[#a4785a] hover:shadow-md"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <p className="text-sm sm:text-base font-bold text-[#5c3d28] mb-1">
+                                  {variation.label || variation.size || `Option ${index + 1}`}
+                                </p>
+                                {variation.sku && (
+                                  <code className="text-xs bg-[#e5ded7] px-2 py-1 rounded text-[#7b5a3b] font-mono">
+                                    {variation.sku}
+                                  </code>
+                                )}
+                              </div>
+                              {isOutOfStock ? (
+                                <Badge className="bg-red-100 text-red-800 text-xs">Out of Stock</Badge>
+                              ) : (
+                                <Badge className="bg-green-100 text-green-800 text-xs">
+                                  {variation.quantity} available
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-2 mt-3 pt-3 border-t border-[#e5ded7]">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs sm:text-sm text-gray-600 font-medium">Quantity:</span>
+                                <span className={`text-sm sm:text-base font-bold ${
+                                  isOutOfStock ? "text-red-600" : "text-[#5c3d28]"
+                                }`}>
+                                  {variation.quantity ?? 0}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs sm:text-sm text-gray-600 font-medium">Price:</span>
+                                <span className="text-base sm:text-lg font-bold text-[#a4785a]">
+                                  {variationPrice !== null
+                                    ? `₱${variationPrice.toFixed(2)}`
+                                    : `₱${parseFloat(currentProduct.productPrice || 0).toFixed(2)}`}
+                                  {hasCustomPrice && (
+                                    <span className="ml-1 text-xs text-[#7b5a3b] font-normal">
+                                      (Custom)
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                              {!hasCustomPrice && variationPrice === null && (
+                                <p className="text-xs text-[#7b5a3b] italic">
+                                  Uses base product price
+                                </p>
+                              )}
+                            </div>
                           </div>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Variation Summary */}
+                    <div className="mt-4 p-3 sm:p-4 bg-gradient-to-r from-[#f5f0eb] to-[#ede5dc] rounded-lg border border-[#d5bfae]">
+                      <div className="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                          <p className="text-xs text-[#7b5a3b] font-medium">Total Variations</p>
+                          <p className="text-xl font-bold text-[#5c3d28]">{currentProduct.variations.length}</p>
                         </div>
-                      ))}
+                        <div>
+                          <p className="text-xs text-[#7b5a3b] font-medium">Total Stock</p>
+                          <p className="text-xl font-bold text-[#5c3d28]">
+                            {currentProduct.variations.reduce((sum, v) => sum + (v.quantity || 0), 0)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

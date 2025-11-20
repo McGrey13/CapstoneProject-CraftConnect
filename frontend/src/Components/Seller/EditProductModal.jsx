@@ -23,6 +23,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
   const [tagInput, setTagInput] = useState('');
   const [hasVariations, setHasVariations] = useState(false);
   const [variations, setVariations] = useState([]);
+  const [imageErrors, setImageErrors] = useState([]);
 
   const totalVariationQuantity = useMemo(() => {
     if (!hasVariations || variations.length === 0) return 0;
@@ -122,20 +123,28 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
         product_id: product.product_id
       });
       
-      let productVariations = product.variations || [];
-      if (typeof productVariations === 'string') {
-        try {
-          const parsed = JSON.parse(productVariations);
-          if (Array.isArray(parsed)) {
-            productVariations = parsed;
+      // Handle variations - check has_variations flag and variations array
+      const hasProductVariations = product.has_variations === true || product.has_variations === 1 || product.has_variations === '1';
+      let productVariations = [];
+      
+      if (hasProductVariations && product.variations) {
+        productVariations = product.variations;
+        if (typeof productVariations === 'string') {
+          try {
+            const parsed = JSON.parse(productVariations);
+            if (Array.isArray(parsed)) {
+              productVariations = parsed;
+            } else {
+              productVariations = [];
+            }
+          } catch (error) {
+            console.warn('Failed to parse variations string:', error);
+            productVariations = [];
           }
-        } catch (error) {
-          console.warn('Failed to parse variations string:', error);
-          productVariations = [];
         }
       }
 
-      const mappedVariations = Array.isArray(productVariations)
+      const mappedVariations = Array.isArray(productVariations) && productVariations.length > 0
         ? productVariations
             .filter(Boolean)
             .map((variation) => {
@@ -262,8 +271,31 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
+    const errors = [];
+    const maxSize = 15 * 1024 * 1024; // 15MB in bytes (15360 kilobytes)
+    
     if (files.length > 0) {
-      files.forEach(file => {
+      files.forEach((file, index) => {
+        // Check file size (15MB = 15360 KB)
+        if (file.size > maxSize) {
+          const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+          errors.push({
+            fileName: file.name,
+            size: sizeInMB,
+            message: `${file.name} is ${sizeInMB}MB. Maximum size is 15MB (15360 KB).`
+          });
+          return; // Skip this file
+        }
+        
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          errors.push({
+            fileName: file.name,
+            message: `${file.name} is not a valid image file.`
+          });
+          return; // Skip this file
+        }
+        
         const reader = new FileReader();
         reader.onloadend = () => {
           setProductImages(prev => [...prev, {
@@ -274,6 +306,15 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
         };
         reader.readAsDataURL(file);
       });
+      
+      // Show errors if any
+      if (errors.length > 0) {
+        setImageErrors(errors);
+        const errorMessages = errors.map(err => err.message).join('\n');
+        alert(`Some images could not be uploaded:\n\n${errorMessages}`);
+      } else {
+        setImageErrors([]);
+      }
     }
   };
 
@@ -409,6 +450,8 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
     }
     submitData.set('publish_status', formData.publishStatus || 'draft');
 
+    // Only send variations if hasVariations is true and we have valid variations
+    // When hasVariations is false, don't send any variation data at all
     if (hasVariations && validVariations.length > 0) {
       validVariations.forEach((variation, index) => {
         if (!variation.label || variation.quantity === '' || variation.quantity === null) {
@@ -417,16 +460,50 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
         submitData.append(`variations[${index}][label]`, variation.label);
         submitData.append(`variations[${index}][size]`, variation.label);
         submitData.append(`variations[${index}][quantity]`, variation.quantity);
-        if (variation.price !== '') {
+        if (variation.price !== '' && variation.price !== null && variation.price !== undefined) {
           submitData.append(`variations[${index}][price]`, variation.price);
         }
         if (variation.variation_id) {
           submitData.append(`variations[${index}][variation_id]`, variation.variation_id);
         }
-        if (variation.sku) {
+        if (variation.sku && variation.sku !== '') {
           submitData.append(`variations[${index}][sku]`, variation.sku);
         }
       });
+    } else {
+      // Explicitly ensure no variation fields are sent when hasVariations is false
+      // This prevents any leftover variation data from being sent
+      console.log('Product has no variations - ensuring no variation data is sent');
+    }
+    
+    // Validate image file sizes before submission (15MB = 15360 KB)
+    const maxImageSize = 15 * 1024 * 1024; // 15MB in bytes
+    const invalidImages = [];
+    
+    productImages.forEach((image, index) => {
+      if (image.file && image.file.size > maxImageSize) {
+        const sizeInMB = (image.file.size / (1024 * 1024)).toFixed(2);
+        const sizeInKB = (image.file.size / 1024).toFixed(0);
+        invalidImages.push({
+          name: image.file.name || `Image ${index + 1}`,
+          sizeMB: sizeInMB,
+          sizeKB: sizeInKB,
+          index: index
+        });
+      }
+    });
+    
+    if (invalidImages.length > 0) {
+      const errorMessages = invalidImages.map(img => 
+        `• ${img.name}: ${img.sizeMB}MB (${img.sizeKB}KB) - Maximum allowed is 15MB (15360KB)`
+      ).join('\n');
+      alert(`❌ Image Size Error\n\nThe following images exceed the 15MB (15360KB) limit:\n\n${errorMessages}\n\nPlease remove or compress these images before saving.`);
+      setImageErrors(invalidImages.map(img => ({
+        fileName: img.name,
+        size: img.sizeMB,
+        message: `${img.name} is ${img.sizeMB}MB (${img.sizeKB}KB). Maximum size is 15MB (15360 KB).`
+      })));
+      return; // Prevent form submission
     }
     
     // Add multiple images - separate new files from existing images
@@ -655,7 +732,7 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                   </div>
 
                   <div className="mt-2">
-                    <label className="flex items-center gap-3 cursor-pointer">
+                      <label className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={hasVariations}
@@ -663,8 +740,17 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                           const checked = e.target.checked;
                           setHasVariations(checked);
                           if (!checked) {
+                            // Clear variations and reset quantity to base product quantity
                             setVariations([]);
+                            // Reset product quantity to the original product quantity if available
+                            if (product && !checked) {
+                              setFormData(prev => ({
+                                ...prev,
+                                productQuantity: product.productQuantity ? String(product.productQuantity) : prev.productQuantity
+                              }));
+                            }
                           } else if (variations.length === 0) {
+                            // Add a new empty variation when enabling variations
                             setVariations([{ label: '', size: '', quantity: '', price: '', variation_id: null, sku: '' }]);
                           }
                         }}
@@ -840,8 +926,18 @@ const EditProductModal = ({ isOpen, onClose, product, onSave }) => {
                         <p className="pl-1">or drag and drop</p>
                       </div>
                       <p className="text-xs text-[#7b5a3b] mt-2 sm:mt-3">
-                        PNG, JPG, GIF up to 5MB each
+                        PNG, JPG, GIF up to 15MB (15360 KB) each
                       </p>
+                      {imageErrors.length > 0 && (
+                        <div className="mt-3 p-3 bg-red-50 border-2 border-red-300 rounded-lg">
+                          <p className="text-xs font-semibold text-red-800 mb-2">⚠️ Upload Errors:</p>
+                          <ul className="text-xs text-red-700 space-y-1">
+                            {imageErrors.map((error, idx) => (
+                              <li key={idx}>• {error.message}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </div>
 

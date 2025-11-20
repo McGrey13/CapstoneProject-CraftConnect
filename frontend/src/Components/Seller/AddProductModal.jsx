@@ -116,8 +116,8 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
         alert('Please upload a valid image file.');
         return;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        alert('Image size must be less than 10MB.');
+      if (file.size > 15 * 1024 * 1024) {
+        alert('Image size must be less than 15MB.');
         return;
       }
       setMainImage({ file: file, preview: URL.createObjectURL(file) });
@@ -131,8 +131,8 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
         alert('Please upload a valid image file.');
         return;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        alert('Image size must be less than 10MB.');
+      if (file.size > 15 * 1024 * 1024) {
+        alert('Image size must be less than 15MB.');
         return;
       }
       const newImages = [...additionalImages];
@@ -619,7 +619,7 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                             <ImageIcon className="text-[#a4785a]" size={32} />
                           </div>
                           <p className="text-sm sm:text-base text-[#5c3d28] font-semibold mb-1 sm:mb-2">Click to upload your product's main photo</p>
-                          <p className="text-xs sm:text-sm text-[#7b5a3b]">PNG, JPG, GIF up to 5MB</p>
+                          <p className="text-xs sm:text-sm text-[#7b5a3b]">PNG, JPG, GIF up to 15MB</p>
                         </>
                       )}
                       <input

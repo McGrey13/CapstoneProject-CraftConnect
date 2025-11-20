@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Heart, ShoppingCart, Star, Minus, Plus, ArrowLeft, Play, MessageCircle, ChevronLeft, ChevronRight, Users, Award, X, Image as ImageIcon, Video as VideoIcon } from "lucide-react";
+import { Heart, ShoppingCart, Star, Minus, Plus, ArrowLeft, Play, MessageCircle, ChevronLeft, ChevronRight, Users, Award, X, Image as ImageIcon, Video as VideoIcon, Check } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
@@ -317,9 +317,43 @@ const ProductDetails = () => {
 
       const response = await api.get(`/products/${id}`);
       const productData = response.data;
+      
+      console.log('Product data received:', {
+        productId: productData.id || productData.product_id,
+        hasVariations: productData.has_variations,
+        variations: productData.variations,
+        variationsType: typeof productData.variations,
+        variationsLength: Array.isArray(productData.variations) ? productData.variations.length : 'not array'
+      });
 
-      const mappedVariations = Array.isArray(productData.variations)
-        ? productData.variations.map((variation, idx) => {
+      // Check for variations in multiple ways
+      let variationsArray = [];
+      
+      // First, always check if variations array exists and is valid (even if has_variations is false)
+      if (Array.isArray(productData.variations)) {
+        variationsArray = productData.variations.filter(v => v !== null && v !== undefined);
+      } else if (productData.variations && typeof productData.variations === 'string') {
+        // Try to parse if it's a string
+        try {
+          const parsed = JSON.parse(productData.variations);
+          if (Array.isArray(parsed)) {
+            variationsArray = parsed.filter(v => v !== null && v !== undefined);
+          }
+        } catch (e) {
+          console.warn('Failed to parse variations string:', e);
+        }
+      }
+      
+      // If no variations found but has_variations flag is true, log it
+      if (variationsArray.length === 0 && (productData.has_variations === true || productData.has_variations === 1)) {
+        console.warn('Product has_variations flag is true but no variations found in array');
+      }
+
+      console.log('Variations array after processing:', variationsArray);
+      console.log('Number of variations:', variationsArray.length);
+
+      const mappedVariations = variationsArray.length > 0
+        ? variationsArray.map((variation, idx) => {
             const rawQuantity =
               variation.quantity ??
               variation.productQuantity ??
@@ -377,11 +411,23 @@ const ProductDetails = () => {
         : [];
 
       setVariationOptions(mappedVariations);
-      const initialVariation =
-        mappedVariations.find((variation) => (variation.quantity ?? 0) > 0) ||
-        mappedVariations[0] ||
-        null;
-      setSelectedVariationId(initialVariation?.id ?? null);
+      console.log('Variations loaded:', mappedVariations);
+      console.log('Product has variations:', mappedVariations.length > 0);
+      console.log('has_variations flag:', productData.has_variations);
+      
+      // Auto-select first available variation, or first variation if none available
+      // But only if there are actually variations
+      if (mappedVariations.length > 0) {
+        const initialVariation =
+          mappedVariations.find((variation) => (variation.quantity ?? 0) > 0) ||
+          mappedVariations[0] ||
+          null;
+        setSelectedVariationId(initialVariation?.id ?? null);
+        console.log('Initial variation selected:', initialVariation);
+      } else {
+        setSelectedVariationId(null);
+        console.log('No variations to select');
+      }
       
       // Process all images (main + additional) with fixed URLs
       const images = [];
@@ -807,261 +853,42 @@ const ProductDetails = () => {
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Product Info */}
-        <div className="space-y-4 flex flex-col">
-          <Card className="bg-white border-2 border-[#d5bfae] shadow-xl">
-            <CardContent className="p-6">
-              <h1 className="text-3xl font-bold text-[#5c3d28] mb-3">{product.productName}</h1>
+          {/* Description and Reviews Tabs - Moved to left side */}
+          <div className="mt-6 pb-12">
+            <Tabs defaultValue="description">
+              <TabsList className="bg-white border-2 border-[#d5bfae] shadow-lg">
+                <TabsTrigger 
+                  value="description" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-md text-[#5c3d28] font-semibold transition-all duration-200 hover:text-[#a4785a] hover:bg-[#a4785a]/10"
+                >
+                  Description
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="reviews" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-md text-[#5c3d28] font-semibold transition-all duration-200 hover:text-[#a4785a] hover:bg-[#a4785a]/10"
+                >
+                  Reviews ({reviews.length})
+                </TabsTrigger>
+              </TabsList>
               
-              {/* Store Info with Logo */}
-              <div className="flex items-center gap-3 mb-4">
-                {product.seller?.store?.logo_url ? (
-                  <img 
-                    src={fixImageUrl(product.seller.store.logo_url)} 
-                    alt={product.seller.store.store_name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-[#d5bfae] shadow-md"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                ) : null}
-                {/* Fallback icon if no logo */}
-                <div 
-                  className="w-12 h-12 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-md"
-                  style={{ display: product.seller?.store?.logo_url ? 'none' : 'flex' }}
-                >
-                  <Award className="h-6 w-6 text-white" />
-                </div>
-                <p className="text-[#7b5a3b] text-lg font-semibold">
-                  {product.seller?.store?.store_name || product.seller?.businessName || "Unknown Store"}
-                </p>
-              </div>
-
-              {/* Enhanced Rating Section with Container */}
-              <div className="bg-gradient-to-r from-[#f5f0eb] to-[#ede5dc] p-4 rounded-xl border-2 border-[#d5bfae] mb-4 max-h-20 overflow-hidden">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="flex items-center gap-2">
-                    {renderStars(averageRating, false, () => {}, "w-6 h-6")}
-                    <span className="text-2xl font-bold text-[#5c3d28]">
-                      {averageRating > 0 ? averageRating.toFixed(1) : "0.0"}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-6 text-sm text-[#7b5a3b]">
-                  <div className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    <span>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-3xl font-bold text-[#5c3d28] mb-4">
-                ₱{effectivePrice.toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quantity and Actions */}
-          <Card className="bg-white border-2 border-[#d5bfae] shadow-xl">
-            <CardContent className="p-3">
-              {variationOptions.length > 0 && (
-                <div className="mb-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                    <span className="text-lg font-semibold text-[#5c3d28]">Select Variation</span>
-                    {selectedVariation && (
-                      <span className="text-sm text-[#7b5a3b]">
-                        {selectedVariation.quantity > 0
-                          ? `${selectedVariation.quantity} item(s) available`
-                          : "Out of stock"}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {variationOptions.map((variation) => {
-                      const isSelected = selectedVariationId === variation.id;
-                      const isOutOfStock = (variation.quantity ?? 0) <= 0;
-                      const priceValue =
-                        variation.price !== undefined && variation.price !== null
-                          ? Number(variation.price)
-                          : effectivePrice;
-                      const displayPrice = Number.isFinite(priceValue)
-                        ? priceValue.toFixed(2)
-                        : effectivePrice.toFixed(2);
-                      const attributesSummary =
-                        Array.isArray(variation.attributes) && variation.attributes.length > 0
-                          ? variation.attributes
-                              .map((attribute) => {
-                                if (typeof attribute === "string") {
-                                  return attribute;
-                                }
-                                if (attribute && typeof attribute === "object") {
-                                  const parts = [attribute.name, attribute.value].filter(Boolean);
-                                  return parts.join(": ");
-                                }
-                                return null;
-                              })
-                              .filter(Boolean)
-                              .join(" • ")
-                          : null;
-
-                      return (
-                        <Button
-                          key={variation.id}
-                          type="button"
-                          variant="outline"
-                          disabled={isOutOfStock}
-                          onClick={() => handleVariationSelect(variation.id)}
-                          className={`min-w-[140px] flex-1 sm:flex-none text-left px-4 py-3 border-2 transition-all duration-200 ${
-                            isSelected && !isOutOfStock
-                              ? "bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white border-transparent shadow-md"
-                              : "border-[#d5bfae] text-[#5c3d28] hover:border-[#a4785a]"
-                          } ${isOutOfStock ? "opacity-50 cursor-not-allowed" : ""}`}
-                        >
-                          <span className="font-semibold block">{variation.label}</span>
-                          <span className={`text-sm ${isSelected ? "text-white/90" : "text-[#7b5a3b]"}`}>
-                            ₱{displayPrice}
-                          </span>
-                          <span className={`text-xs ${isSelected ? "text-white/80" : "text-[#7b5a3b]/80"}`}>
-                            {variation.quantity > 0 ? `${variation.quantity} in stock` : "Out of stock"}
-                          </span>
-                          {attributesSummary && (
-                            <span className={`mt-1 text-xs ${isSelected ? "text-white/80" : "text-[#7b5a3b]/80"}`}>
-                              {attributesSummary}
-                            </span>
-                          )}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-4">
-                  <span className="text-lg font-semibold text-[#5c3d28]">Quantity:</span>
-                  <div className="flex items-center gap-3">
-                    <Button 
-                      onClick={() => handleQuantityChange(-1)} 
-                      disabled={quantity <= 1}
-                      className="w-10 h-10 rounded-full border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </Button>
-                    <span className="text-2xl font-bold text-[#5c3d28] min-w-[3rem] text-center">{quantity}</span>
-                    <Button 
-                      onClick={() => handleQuantityChange(1)}
-                      className="w-10 h-10 rounded-full border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200"
-                      disabled={availableQuantity > 0 && quantity >= availableQuantity}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="mt-2">
-                  {availableQuantity > 0 ? (
-                    <span className="text-sm text-[#7b5a3b]">
-                      {availableQuantity} item(s) available
-                      {selectedVariation?.sku && (
-                        <span className="ml-2 text-xs text-[#5c3d28]/80">SKU: {selectedVariation.sku}</span>
-                      )}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-red-600">Currently out of stock</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Two Small Buttons */}
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={handleFavoriteClick}
-                  className="flex-1 border-2 border-[#d5bfae] bg-white text-[#5c3d28] hover:border-[#a4785a] hover:bg-[#f5f0eb] hover:shadow-md transition-all duration-200 py-2 text-sm"
-                >
-                  <Heart
-                    className={`w-4 h-4 mr-2 transition-colors duration-200 ${
-                      isFavorited 
-                        ? "text-red-500 fill-current" 
-                        : "text-[#5c3d28]"
-                    }`}
-                  />
-                  <span className="text-[#5c3d28]">{isFavorited ? "Favorited" : "Add to Favorites"}</span>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const token = sessionStorage.getItem("auth_token");
-                    if (!token) {
-                      setShowLoginModal(true);
-                      return;
-                    }
-                    setShowMessageSeller(true);
-                  }}
-                  className="flex-1 border-2 border-[#d5bfae] bg-white text-[#5c3d28] hover:border-[#a4785a] hover:bg-[#f5f0eb] hover:shadow-md transition-all duration-200 py-2 text-sm"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2 text-[#5c3d28] transition-colors duration-200" />
-                  <span className="text-[#5c3d28]">Message Seller</span>
-                </Button>
-              </div>
-
-              {/* Two Large Buttons */}
-              <div className="flex gap-3 mt-3">
-                <Button
-                  onClick={handleAddToCart}
-                  className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-bold py-8 text-2xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                  disabled={addingToCart || availableQuantity <= 0}
-                >
-                  <ShoppingCart className="w-8 h-8 mr-4" />
-                  {availableQuantity <= 0 ? "Out of Stock" : "Add to Cart"}
-                </Button>
-                
-                <Button
-                  onClick={handleBuyNow}
-                  style={{ backgroundColor: '#E27D60', color: 'white' }}
-                  className="flex-1 hover:bg-[#d16a4f] font-bold py-8 text-2xl shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  Buy Now
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Tabs defaultValue="description" className="mt-6">
-            <TabsList className="bg-white border-2 border-[#d5bfae] shadow-lg">
-              <TabsTrigger 
-                value="description" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-md text-[#5c3d28] font-semibold transition-all duration-200 hover:text-[#a4785a] hover:bg-[#a4785a]/10"
-              >
-                Description
-              </TabsTrigger>
-              <TabsTrigger 
-                value="reviews" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:text-white data-[state=active]:shadow-md text-[#5c3d28] font-semibold transition-all duration-200 hover:text-[#a4785a] hover:bg-[#a4785a]/10"
-              >
-                Reviews ({reviews.length})
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="description" className="mt-6">
-              <Card className="bg-white border-2 border-[#d5bfae] shadow-xl">
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-[#5c3d28] mb-4">Product Description</h3>
-                  <p className="text-[#7b5a3b] text-lg leading-relaxed">{product.productDescription}</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="reviews" className="mt-6">
+              <TabsContent value="description" className="mt-6">
+                <Card className="bg-white border-2 border-[#d5bfae] shadow-xl">
+                  <CardContent className="p-6 pb-8">
+                    <h3 className="text-xl font-bold text-[#5c3d28] mb-4">Product Description</h3>
+                    <p className="text-[#7b5a3b] text-lg leading-relaxed">{product.productDescription}</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="reviews" className="mt-6 pb-8">
               {reviews.length > 0 ? (
                 <div className="bg-white border-2 border-[#d5bfae] shadow-xl rounded-lg overflow-hidden">
                   <div className="p-4 bg-gradient-to-r from-[#f5f0eb] to-[#ede5dc] border-b-2 border-[#d5bfae]">
                     <h3 className="text-lg font-bold text-[#5c3d28]">Customer Reviews</h3>
                     <p className="text-sm text-[#7b5a3b]">{reviews.length} review{reviews.length !== 1 ? 's' : ''} total</p>
                   </div>
-                  <div className="max-h-96 overflow-y-auto p-4 space-y-3">
+                  <div className="max-h-96 overflow-y-auto p-4 space-y-3 pb-6">
                     {reviews.slice(0, 3).map((review) => (
                       <Card key={review.review_id || review.id} className="bg-white border border-[#d5bfae] shadow-sm hover:shadow-md transition-all duration-200">
                         <CardContent className="p-4">
@@ -1152,7 +979,7 @@ const ProductDetails = () => {
                 </div>
               ) : (
                 <Card className="bg-white border-2 border-[#d5bfae] shadow-xl">
-                  <CardContent className="p-8 text-center">
+                  <CardContent className="p-8 text-center pb-8">
                     <div className="p-6 bg-[#f5f0eb] rounded-full w-24 h-24 mx-auto flex items-center justify-center mb-4">
                       <Star className="h-12 w-12 text-[#a4785a]" />
                     </div>
@@ -1163,8 +990,355 @@ const ProductDetails = () => {
                   </CardContent>
                 </Card>
               )}
-            </TabsContent>
-          </Tabs>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+
+        {/* Product Info */}
+        <div className="space-y-4 flex flex-col">
+          <Card className="bg-white border-2 border-[#d5bfae] shadow-xl">
+            <CardContent className="p-6">
+              <h1 className="text-3xl font-bold text-[#5c3d28] mb-3">{product.productName}</h1>
+              
+              {/* Store Info with Logo */}
+              <div className="flex items-center gap-3 mb-4">
+                {product.seller?.store?.logo_url ? (
+                  <img 
+                    src={fixImageUrl(product.seller.store.logo_url)} 
+                    alt={product.seller.store.store_name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-[#d5bfae] shadow-md"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                {/* Fallback icon if no logo */}
+                <div 
+                  className="w-12 h-12 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-md"
+                  style={{ display: product.seller?.store?.logo_url ? 'none' : 'flex' }}
+                >
+                  <Award className="h-6 w-6 text-white" />
+                </div>
+                <p className="text-[#7b5a3b] text-lg font-semibold">
+                  {product.seller?.store?.store_name || product.seller?.businessName || "Unknown Store"}
+                </p>
+              </div>
+
+              {/* Enhanced Rating Section with Container */}
+              <div className="bg-gradient-to-r from-[#f5f0eb] to-[#ede5dc] p-4 rounded-xl border-2 border-[#d5bfae] mb-4 max-h-20 overflow-hidden">
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="flex items-center gap-2">
+                    {renderStars(averageRating, false, () => {}, "w-6 h-6")}
+                    <span className="text-2xl font-bold text-[#5c3d28]">
+                      {averageRating > 0 ? averageRating.toFixed(1) : "0.0"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-6 text-sm text-[#7b5a3b]">
+                  <div className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    <span>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Display - Show variation price if selected, otherwise base price */}
+              <div className="mb-4">
+                <div className="text-3xl font-bold text-[#5c3d28]">
+                  ₱{effectivePrice.toFixed(2)}
+                </div>
+                {variationOptions.length > 0 ? (
+                  selectedVariation ? (
+                    <div className="mt-2">
+                      <p className="text-sm text-[#7b5a3b]">
+                        {selectedVariation.price && selectedVariation.price !== product?.productPrice
+                          ? `Base price: ₱${Number(product?.productPrice || 0).toFixed(2)}`
+                          : "Base price for this variation"}
+                      </p>
+                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-xs font-semibold text-green-800">Selected: {selectedVariation.label}</p>
+                        {selectedVariation.sku && (
+                          <p className="text-xs text-green-700 mt-1">SKU: {selectedVariation.sku}</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-amber-600 font-medium mt-2">
+                      ⚠ Please select a variation option below
+                    </p>
+                  )
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quantity and Actions */}
+          <Card className="bg-white border-2 border-[#d5bfae] shadow-xl">
+            <CardContent className="p-3">
+              {/* Variations Section - Enhanced */}
+              {variationOptions.length > 0 ? (
+                <div className="mb-6 p-4 sm:p-6 bg-gradient-to-br from-[#faf9f8] to-white rounded-xl border-2 border-[#e5ded7] shadow-lg">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div>
+                      <span className="text-xl font-bold text-[#5c3d28]">Choose Your Option</span>
+                      <p className="text-sm text-[#7b5a3b] mt-1">
+                        Select a variation (size, color, style, etc.) to continue
+                      </p>
+                    </div>
+                    {selectedVariation && (
+                      <div className="flex items-center gap-2">
+                        <Badge className={`${selectedVariation.quantity > 0 ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'} text-xs border-2 px-3 py-1`}>
+                          {selectedVariation.quantity > 0
+                            ? `✓ ${selectedVariation.quantity} available`
+                            : "✗ Out of stock"}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Selected Variation Display */}
+                  {selectedVariation && (
+                    <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-green-800">Selected Option:</p>
+                          <p className="text-base font-bold text-[#5c3d28] mt-1">
+                            {selectedVariation.label || selectedVariation.size}
+                            {selectedVariation.sku && (
+                              <span className="ml-2 text-xs font-normal text-[#7b5a3b]">
+                                (SKU: {selectedVariation.sku})
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-green-800">Price:</p>
+                          <p className="text-lg font-bold text-[#5c3d28]">
+                            ₱{Number(selectedVariation.price || product?.productPrice || 0).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
+                    {variationOptions.map((variation) => {
+                      const isSelected = selectedVariationId === variation.id;
+                      const isOutOfStock = (variation.quantity ?? 0) <= 0;
+                      const priceValue =
+                        variation.price !== undefined && variation.price !== null && Number(variation.price) > 0
+                          ? Number(variation.price)
+                          : (product?.productPrice || 0);
+                      const displayPrice = Number.isFinite(priceValue) && priceValue > 0
+                        ? priceValue.toFixed(2)
+                        : Number(product?.productPrice || 0).toFixed(2);
+                      const hasCustomPrice = variation.price && Number(variation.price) > 0 && variation.price !== product?.productPrice;
+
+                      return (
+                        <button
+                          key={variation.id}
+                          type="button"
+                          disabled={isOutOfStock}
+                          onClick={() => !isOutOfStock && handleVariationSelect(variation.id)}
+                          className={`text-left p-3 rounded-lg border-2 transition-all duration-200 relative flex-shrink-0 min-w-[140px] ${
+                            isSelected && !isOutOfStock
+                              ? "bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white border-transparent shadow-xl transform scale-105 ring-4 ring-[#a4785a]/30"
+                              : "bg-white border-[#d5bfae] text-[#5c3d28] hover:border-[#a4785a] hover:shadow-lg"
+                          } ${isOutOfStock ? "opacity-50 cursor-not-allowed bg-gray-100" : "cursor-pointer"}`}
+                        >
+                          {isSelected && !isOutOfStock && (
+                            <div className="absolute top-1.5 right-1.5 bg-white rounded-full p-0.5">
+                              <Check className="w-3 h-3 text-[#a4785a]" />
+                            </div>
+                          )}
+                          <div className="w-full">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="font-bold text-sm pr-1">{variation.label || variation.size}</span>
+                              {variation.sku && (
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full whitespace-nowrap ${
+                                  isSelected ? "bg-white/30 text-white border border-white/50" : "bg-[#f4ebe3] text-[#7b5a3b]"
+                                }`}>
+                                  {variation.sku}
+                                </span>
+                              )}
+                            </div>
+                            <div className="space-y-1 mt-2">
+                              <div className={`text-base font-bold ${isSelected ? "text-white" : "text-[#a4785a]"}`}>
+                                ₱{displayPrice}
+                                {hasCustomPrice && (
+                                  <span className={`text-xs ml-1 ${isSelected ? "text-white/90" : "text-[#7b5a3b]"}`}>
+                                    (Custom)
+                                  </span>
+                                )}
+                              </div>
+                              <div className={`text-xs font-semibold flex items-center gap-1 ${
+                                isSelected 
+                                  ? "text-white/95" 
+                                  : isOutOfStock 
+                                    ? "text-red-600" 
+                                    : "text-green-600"
+                              }`}>
+                                {variation.quantity > 0 ? (
+                                  <>
+                                    <Check className="w-3 h-3" />
+                                    <span>{variation.quantity} in stock</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <X className="w-3 h-3" />
+                                    <span>Out of stock</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {!selectedVariation && variationOptions.length > 0 && (
+                    <div className="mt-4 p-3 bg-amber-50 border-2 border-amber-300 rounded-lg">
+                      <p className="text-sm text-amber-800 font-semibold text-center flex items-center justify-center gap-2">
+                        <X className="w-4 h-4" />
+                        Please select a variation option above to add to cart
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Show message when product doesn't have variations
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800 text-center">
+                    This product has no variation options. Available quantity: {product?.productQuantity || 0}
+                  </p>
+                </div>
+              )}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-4">
+                  <span className="text-lg font-semibold text-[#5c3d28]">Quantity:</span>
+                  <div className="flex items-center gap-3">
+                    <Button 
+                      onClick={() => handleQuantityChange(-1)} 
+                      disabled={quantity <= 1}
+                      className="w-10 h-10 rounded-full border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                    <span className="text-2xl font-bold text-[#5c3d28] min-w-[3rem] text-center">{quantity}</span>
+                    <Button 
+                      onClick={() => handleQuantityChange(1)}
+                      className="w-10 h-10 rounded-full border-2 border-[#d5bfae] hover:border-[#a4785a] hover:bg-[#a4785a] hover:text-white transition-all duration-200"
+                      disabled={availableQuantity > 0 && quantity >= availableQuantity}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  {availableQuantity > 0 ? (
+                    <span className="text-sm text-[#7b5a3b]">
+                      {availableQuantity} item(s) available
+                      {selectedVariation?.sku && (
+                        <span className="ml-2 text-xs text-[#5c3d28]/80">SKU: {selectedVariation.sku}</span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-red-600">Currently out of stock</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Two Small Buttons */}
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={handleFavoriteClick}
+                  className="flex-1 border-2 border-[#d5bfae] bg-white text-[#5c3d28] hover:border-[#a4785a] hover:bg-[#f5f0eb] hover:shadow-md transition-all duration-200 py-2 text-sm"
+                >
+                  <Heart
+                    className={`w-4 h-4 mr-2 transition-colors duration-200 ${
+                      isFavorited 
+                        ? "text-red-500 fill-current" 
+                        : "text-[#5c3d28]"
+                    }`}
+                  />
+                  <span className="text-[#5c3d28]">{isFavorited ? "Favorited" : "Add to Favorites"}</span>
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const token = sessionStorage.getItem("auth_token");
+                    if (!token) {
+                      setShowLoginModal(true);
+                      return;
+                    }
+                    setShowMessageSeller(true);
+                  }}
+                  className="flex-1 border-2 border-[#d5bfae] bg-white text-[#5c3d28] hover:border-[#a4785a] hover:bg-[#f5f0eb] hover:shadow-md transition-all duration-200 py-2 text-sm"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2 text-[#5c3d28] transition-colors duration-200" />
+                  <span className="text-[#5c3d28]">Message Seller</span>
+                </Button>
+              </div>
+
+              {/* Two Large Buttons */}
+              <div className="flex gap-3 mt-3">
+                <Button
+                  onClick={handleAddToCart}
+                  className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-bold py-8 text-2xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={addingToCart || availableQuantity <= 0 || (variationOptions.length > 0 && !selectedVariation)}
+                >
+                  <ShoppingCart className="w-8 h-8 mr-4" />
+                  {variationOptions.length > 0 && !selectedVariation
+                    ? "Select Option First"
+                    : availableQuantity <= 0
+                    ? "Out of Stock"
+                    : "Add to Cart"}
+                </Button>
+                
+                <Button
+                  onClick={handleBuyNow}
+                  style={{ backgroundColor: '#E27D60', color: 'white' }}
+                  className="flex-1 hover:bg-[#d16a4f] font-bold py-8 text-2xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={variationOptions.length > 0 && !selectedVariation}
+                >
+                  {variationOptions.length > 0 && !selectedVariation ? "Select Option First" : "Buy Now"}
+                </Button>
+              </div>
+              
+              {/* Show selected variation details before checkout */}
+              {selectedVariation && variationOptions.length > 0 && (
+                <div className="mt-3 p-3 bg-blue-50 border-2 border-blue-300 rounded-lg">
+                  <p className="text-xs font-semibold text-blue-800 mb-2">You will checkout with:</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-[#5c3d28]">
+                        {selectedVariation.label || selectedVariation.size}
+                        {selectedVariation.sku && (
+                          <span className="ml-2 text-xs font-normal text-[#7b5a3b]">
+                            (SKU: {selectedVariation.sku})
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-[#7b5a3b] mt-1">
+                        Quantity: {quantity} × ₱{Number(selectedVariation.price || product?.productPrice || 0).toFixed(2)} = ₱{(Number(selectedVariation.price || product?.productPrice || 0) * quantity).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-blue-800">Subtotal:</p>
+                      <p className="text-lg font-bold text-[#5c3d28]">
+                        ₱{(Number(selectedVariation.price || product?.productPrice || 0) * quantity).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
         </div>
       </div>
