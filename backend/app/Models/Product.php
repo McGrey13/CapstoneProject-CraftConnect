@@ -34,7 +34,8 @@ class Product extends Model
         'review_count',
         'publish_status',
         'is_featured',
-        'sku'
+        'sku',
+        'submission_token'
     ];
     
     protected $appends = ['id', 'average_rating', 'review_count'];

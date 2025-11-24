@@ -233,7 +233,7 @@ const NotificationDropdown = ({ className = '' }) => {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border-2 border-[#d5bfae] z-[60] max-h-[600px] flex flex-col" style={{ backgroundColor: 'white' }}>
+        <div className="absolute right-0 mt-2 w-96 !bg-white rounded-lg shadow-xl border-2 border-[#d5bfae] z-[60] max-h-[600px] flex flex-col" style={{ backgroundColor: '#ffffff', background: '#ffffff' }}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b-2 border-[#d5bfae] bg-gradient-to-r from-[#f5f0eb] to-[#ede5dc]" style={{ backgroundColor: '#f5f0eb' }}>
             <h3 className="text-lg font-semibold text-[#5c3d28]">Notifications</h3>
@@ -257,7 +257,7 @@ const NotificationDropdown = ({ className = '' }) => {
           </div>
 
           {/* Notifications List */}
-          <div className="flex-1 overflow-y-auto bg-white" style={{ backgroundColor: 'white' }}>
+          <div className="flex-1 overflow-y-auto !bg-white" style={{ backgroundColor: '#ffffff', background: '#ffffff' }}>
             {loading ? (
               <div className="flex items-center justify-center py-8 bg-white" style={{ backgroundColor: 'white' }}>
                 <Loader2 className="h-6 w-6 animate-spin text-[#a4785a]" />
@@ -268,16 +268,16 @@ const NotificationDropdown = ({ className = '' }) => {
                 <p className="text-sm font-medium">No notifications</p>
               </div>
             ) : (
-              <div className="divide-y divide-[#d5bfae]/30 bg-white" style={{ backgroundColor: 'white' }}>
+              <div className="divide-y divide-[#d5bfae]/30 !bg-white" style={{ backgroundColor: '#ffffff', background: '#ffffff' }}>
                 {notifications.map((notification) => (
                   <div
                     key={notification.notificationID}
                     className={`p-4 hover:bg-[#f5f0eb] transition-colors cursor-pointer border-l-4 ${
                       !notification.is_read 
-                        ? 'bg-white border-l-[#a4785a]' 
-                        : 'bg-white border-l-transparent'
+                        ? '!bg-white border-l-[#a4785a]' 
+                        : '!bg-white border-l-transparent'
                     }`}
-                    style={{ backgroundColor: 'white' }}
+                    style={{ backgroundColor: '#ffffff', background: '#ffffff' }}
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-3">

@@ -32,6 +32,7 @@ class Store extends Model
         'owner_phone',
         'owner_address',
         'status',
+        'submission_token',
         'rejection_reason',
         'primary_color',
         'secondary_color',

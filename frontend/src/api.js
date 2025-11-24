@@ -173,13 +173,38 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// Response interceptor for automatic token refresh
+// Helper function to check if response is HTML (error page)
+const isHtmlResponse = (data) => {
+  if (typeof data === 'string') {
+    return data.trim().startsWith('<!') || data.includes('<html') || data.includes('<br />') || data.includes('Fatal error');
+  }
+  return false;
+};
+
+// Response interceptor for automatic token refresh and HTML error detection
 api.interceptors.response.use(
   (response) => {
+    // Check if response data is HTML (error page from Laravel)
+    if (response.data && isHtmlResponse(response.data)) {
+      console.error('⚠️ Backend returned HTML error page instead of JSON:', response.data.substring(0, 200));
+      const error = new Error('Backend server error - please check if Laravel backend is running properly');
+      error.isHtmlError = true;
+      error.htmlResponse = response.data;
+      return Promise.reject(error);
+    }
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
+
+    // Check if error response is HTML
+    if (error.response?.data && isHtmlResponse(error.response.data)) {
+      console.error('⚠️ Backend returned HTML error page:', error.response.data.substring(0, 200));
+      const htmlError = new Error('Backend server error - Laravel backend may not be running or configured correctly');
+      htmlError.isHtmlError = true;
+      htmlError.htmlResponse = error.response.data;
+      return Promise.reject(htmlError);
+    }
 
   // If token expired and we haven't already tried to refresh
   if (error.response?.status === 401 && !originalRequest._retry) {

@@ -1690,24 +1690,24 @@ const Orders = () => {
 
       {/* After-Sale Dialog */}
       <Dialog open={afterSaleDialog.open} onOpenChange={(open) => setAfterSaleDialog(prev => ({ ...prev, open }))}>
-        <DialogContent className="max-w-xl bg-gradient-to-br from-white to-[#faf9f8] border-2 border-[#d5bfae]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-[#5c3d28]">Return / Refund Request</DialogTitle>
-            <DialogDescription className="text-[#7b5a3b]">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-[#faf9f8] border-2 border-[#d5bfae]">
+          <DialogHeader className="sticky top-0 bg-white z-10 pb-2 border-b border-[#d5bfae] mb-3">
+            <DialogTitle className="text-xl font-bold text-[#5c3d28]">Return / Refund Request</DialogTitle>
+            <DialogDescription className="text-sm text-[#7b5a3b]">
               Please provide details about your concern so we can assist you promptly
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-5">
+          <div className="space-y-3">
             {/* Step indicator */}
-            <div className="flex items-center justify-center gap-3 text-sm">
-              <div className={`px-3 py-1 rounded-full border ${afterSaleStep === 1 ? 'bg-[#a4785a] text-white border-[#a4785a]' : 'bg-white text-[#5c3d28] border-[#d5bfae]'}`}>1. Select Issue</div>
-              <div className={`px-3 py-1 rounded-full border ${afterSaleStep === 2 ? 'bg-[#a4785a] text-white border-[#a4785a]' : 'bg-white text-[#5c3d28] border-[#d5bfae]'}`}>2. Provide Details</div>
+            <div className="flex items-center justify-center gap-2 text-xs">
+              <div className={`px-2 py-1 rounded-full border ${afterSaleStep === 1 ? 'bg-[#a4785a] text-white border-[#a4785a]' : 'bg-white text-[#5c3d28] border-[#d5bfae]'}`}>1. Select Issue</div>
+              <div className={`px-2 py-1 rounded-full border ${afterSaleStep === 2 ? 'bg-[#a4785a] text-white border-[#a4785a]' : 'bg-white text-[#5c3d28] border-[#d5bfae]'}`}>2. Provide Details</div>
             </div>
 
             {afterSaleStep === 1 && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <label className="text-sm font-semibold text-[#5c3d28]">What happened to the product?</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {[
                     { key: 'received_damaged_items', label: 'Received damaged items' },
                     { key: 'receive_incorrect_item', label: 'Received incorrect item' },
@@ -1718,10 +1718,10 @@ const Orders = () => {
                       key={opt.key}
                       type="button"
                       onClick={() => { setSelectedIssue(opt.key); setSelectedReason(''); setCustomReason(''); }}
-                      className={`p-4 rounded-xl border-2 text-left ${selectedIssue === opt.key ? 'border-[#a4785a] bg-[#f5f0eb]' : 'border-[#d5bfae] hover:border-[#a4785a]'}`}
+                      className={`p-3 rounded-lg border-2 text-left ${selectedIssue === opt.key ? 'border-[#a4785a] bg-[#f5f0eb]' : 'border-[#d5bfae] hover:border-[#a4785a]'}`}
                     >
-                      <div className="font-semibold text-[#5c3d28]">{opt.label}</div>
-                      <div className="text-xs text-[#7b5a3b] mt-1">{opt.key === 'others' ? 'Describe your concern on the next step' : 'We will ask for specific reason next'}</div>
+                      <div className="font-semibold text-sm text-[#5c3d28]">{opt.label}</div>
+                      <div className="text-xs text-[#7b5a3b] mt-0.5">{opt.key === 'others' ? 'Describe your concern on the next step' : 'We will ask for specific reason next'}</div>
                     </button>
                   ))}
                 </div>
@@ -1736,12 +1736,12 @@ const Orders = () => {
             )}
 
             {afterSaleStep === 2 && (
-              <div className="space-y-5">
+              <div className="space-y-3">
                 <div>
                   <label className="text-sm font-semibold text-[#5c3d28]">Specific Reason</label>
                   {selectedIssue !== 'others' ? (
                     <select
-                      className="mt-2 w-full border-2 border-[#d5bfae] rounded-md p-2 text-sm"
+                      className="mt-1 w-full border-2 border-[#d5bfae] rounded-md p-2 text-sm"
                       value={selectedReason}
                       onChange={(e) => setSelectedReason(e.target.value)}
                     >
@@ -1755,17 +1755,17 @@ const Orders = () => {
                       placeholder="Describe your issue"
                       value={customReason}
                       onChange={(e) => setCustomReason(e.target.value)}
-                      rows={3}
-                      className="mt-2 border-2 border-[#d5bfae] focus:border-[#a4785a]"
+                      rows={2}
+                      className="mt-1 border-2 border-[#d5bfae] focus:border-[#a4785a]"
                     />
                   )}
                 </div>
 
                 <div>
                   <label className="text-sm font-semibold text-[#5c3d28]">Request Type</label>
-                  <div className="mt-2 flex gap-2 flex-wrap">
+                  <div className="mt-1 flex gap-2 flex-wrap">
                     {['return','exchange','refund','support'].map(t => (
-                      <Button key={t} variant={afterSaleType === t ? 'default' : 'outline'} onClick={() => setAfterSaleType(t)}>
+                      <Button key={t} variant={afterSaleType === t ? 'default' : 'outline'} size="sm" onClick={() => setAfterSaleType(t)}>
                         {t.charAt(0).toUpperCase() + t.slice(1)}
                       </Button>
                     ))}
@@ -1773,23 +1773,23 @@ const Orders = () => {
                 </div>
 
                 <Card className="bg-white border-2 border-[#d5bfae] shadow-sm">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3">
                     <label className="text-sm font-semibold text-[#5c3d28]">Describe the issue</label>
                     <Textarea
                       placeholder="Provide details that will help us resolve your concern promptly..."
                       value={afterSaleDescription}
                       onChange={(e) => setAfterSaleDescription(e.target.value)}
-                      rows={4}
-                      className="mt-2 border-2 border-[#d5bfae] focus:border-[#a4785a] resize-none"
+                      rows={3}
+                      className="mt-1 border-2 border-[#d5bfae] focus:border-[#a4785a] resize-none"
                     />
                   </CardContent>
                 </Card>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {/* Video uploader */}
-                  <div>
-                    <label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
-                      <VideoIcon className="h-4 w-4" /> Unboxing/Proof Video {['return','refund'].includes(afterSaleType) && <span className="text-red-600">(required)</span>}
+                  <div className="h-[140px]">
+                    <label className="text-xs font-semibold text-[#5c3d28] flex items-center gap-1">
+                      <VideoIcon className="h-3 w-3" /> Unboxing/Proof Video {['return','refund'].includes(afterSaleType) && <span className="text-red-600">(required)</span>}
                     </label>
                     <div
                       onDragOver={(e) => e.preventDefault()}
@@ -1801,25 +1801,25 @@ const Orders = () => {
                           setVideoPreview(URL.createObjectURL(file));
                         }
                       }}
-                      className="mt-2 border-2 border-dashed border-[#d5bfae] rounded-xl p-4 bg-[#f9f7f5] hover:border-[#a4785a] transition-colors"
+                      className="mt-1 border-2 border-dashed border-[#d5bfae] rounded-lg p-2 bg-[#f9f7f5] hover:border-[#a4785a] transition-colors h-[120px] overflow-hidden"
                     >
                       {videoPreview ? (
-                        <div className="relative">
-                          <video src={videoPreview} controls className="w-full rounded-lg border border-[#d5bfae]" />
+                        <div className="relative h-full">
+                          <video src={videoPreview} controls className="w-full h-full rounded-lg border border-[#d5bfae] object-contain" />
                           <button
                             type="button"
                             onClick={() => { setVideoFile(null); setVideoPreview(''); }}
-                            className="absolute top-2 right-2 bg-white/90 border border-[#d5bfae] rounded-full p-1 text-[#5c3d28] hover:bg-white"
+                            className="absolute top-1 right-1 bg-white/90 border border-[#d5bfae] rounded-full p-1 text-[#5c3d28] hover:bg-white z-10"
                             aria-label="Remove video"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3" />
                           </button>
                         </div>
                       ) : (
-                        <label htmlFor="afterSaleVideo" className="flex flex-col items-center justify-center cursor-pointer text-center">
-                          <UploadCloud className="h-8 w-8 text-[#a4785a]" />
-                          <span className="mt-2 text-sm text-[#5c3d28] font-medium">Drag & drop or click to upload</span>
-                          <span className="text-xs text-[#7b5a3b]">Max 50MB • mp4, webm, mov, avi</span>
+                        <label htmlFor="afterSaleVideo" className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
+                          <UploadCloud className="h-5 w-5 text-[#a4785a]" />
+                          <span className="mt-1 text-xs text-[#5c3d28] font-medium">Drag & drop or click</span>
+                          <span className="text-xs text-[#7b5a3b]">Max 50MB</span>
                           <input
                             id="afterSaleVideo"
                             type="file"
@@ -1839,9 +1839,9 @@ const Orders = () => {
                   </div>
 
                   {/* Images uploader */}
-                  <div>
-                    <label className="text-sm font-semibold text-[#5c3d28] flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4" /> Photos (up to 5) {['return','refund'].includes(afterSaleType) && <span className="text-red-600">(required)</span>}
+                  <div className="h-[140px]">
+                    <label className="text-xs font-semibold text-[#5c3d28] flex items-center gap-1">
+                      <ImageIcon className="h-3 w-3" /> Photos (up to 5) {['return','refund'].includes(afterSaleType) && <span className="text-red-600">(required)</span>}
                     </label>
                     <div
                       onDragOver={(e) => e.preventDefault()}
@@ -1853,31 +1853,13 @@ const Orders = () => {
                         setImageFiles(next);
                         setImagePreviews(next.map(f => URL.createObjectURL(f)));
                       }}
-                      className="mt-2 border-2 border-dashed border-[#d5bfae] rounded-xl p-4 bg-[#f9f7f5] hover:border-[#a4785a] transition-colors"
+                      className="mt-1 border-2 border-dashed border-[#d5bfae] rounded-lg p-2 bg-[#f9f7f5] hover:border-[#a4785a] transition-colors h-[120px] overflow-y-auto"
                     >
-                      <label htmlFor="afterSaleImages" className="flex flex-col items-center justify-center cursor-pointer text-center">
-                        <UploadCloud className="h-8 w-8 text-[#a4785a]" />
-                        <span className="mt-2 text-sm text-[#5c3d28] font-medium">Drag & drop or click to upload</span>
-                        <span className="text-xs text-[#7b5a3b]">Max 5 images • 4MB each • jpg, png</span>
-                        <input
-                          id="afterSaleImages"
-                          type="file"
-                          accept="image/jpeg,image/png"
-                          multiple
-                          className="hidden"
-                          onChange={(e) => {
-                            const files = Array.from(e.target.files || []);
-                            const next = [...imageFiles, ...files].slice(0, 5);
-                            setImageFiles(next);
-                            setImagePreviews(next.map(f => URL.createObjectURL(f)));
-                          }}
-                        />
-                      </label>
-                      {imagePreviews.length > 0 && (
-                        <div className="mt-4 grid grid-cols-3 gap-2">
+                      {imagePreviews.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-1.5">
                           {imagePreviews.map((src, idx) => (
                             <div key={idx} className="relative group">
-                              <img src={src} alt={`evidence-${idx}`} className="w-full h-24 object-cover rounded-lg border border-[#d5bfae]" />
+                              <img src={src} alt={`evidence-${idx}`} className="w-full h-16 object-cover rounded-lg border border-[#d5bfae]" />
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1885,14 +1867,33 @@ const Orders = () => {
                                   setImageFiles(nextFiles);
                                   setImagePreviews(nextFiles.map(f => URL.createObjectURL(f)));
                                 }}
-                                className="absolute top-1 right-1 bg-white/90 border border-[#d5bfae] rounded-full p-1 text-[#5c3d28] opacity-0 group-hover:opacity-100 transition"
+                                className="absolute top-0.5 right-0.5 bg-white/90 border border-[#d5bfae] rounded-full p-0.5 text-[#5c3d28] opacity-0 group-hover:opacity-100 transition z-10"
                                 aria-label="Remove image"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3 w-3" />
                               </button>
                             </div>
                           ))}
                         </div>
+                      ) : (
+                        <label htmlFor="afterSaleImages" className="flex flex-col items-center justify-center cursor-pointer text-center h-full">
+                          <UploadCloud className="h-5 w-5 text-[#a4785a]" />
+                          <span className="mt-1 text-xs text-[#5c3d28] font-medium">Drag & drop or click</span>
+                          <span className="text-xs text-[#7b5a3b]">Max 5 images • 4MB each</span>
+                          <input
+                            id="afterSaleImages"
+                            type="file"
+                            accept="image/jpeg,image/png"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              const next = [...imageFiles, ...files].slice(0, 5);
+                              setImageFiles(next);
+                              setImagePreviews(next.map(f => URL.createObjectURL(f)));
+                            }}
+                          />
+                        </label>
                       )}
                     </div>
                   </div>

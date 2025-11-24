@@ -31,12 +31,19 @@ export const CartProvider = ({ children }) => {
           const responseData = response.data;
           console.log("Cart data received:", responseData);
           
+          // Check if response is HTML error (backend error page)
+          if (typeof responseData === 'string' && (responseData.includes('<html') || responseData.includes('<br />') || responseData.includes('Fatal error'))) {
+            console.error("⚠️ Backend returned HTML error instead of JSON. Is Laravel backend running?");
+            setCartItems([]);
+            return;
+          }
+          
           let cartData = responseData;
           if (Array.isArray(responseData)) {
             cartData = responseData;
-          } else if (Array.isArray(responseData.data)) {
+          } else if (responseData && Array.isArray(responseData.data)) {
             cartData = responseData.data;
-          } else if (responseData.items) {
+          } else if (responseData && responseData.items) {
             cartData = responseData.items;
           }
           
@@ -204,6 +211,15 @@ export const CartProvider = ({ children }) => {
           return; // Success, exit retry loop
         } catch (error) {
           lastError = error;
+          
+          // Check if it's an HTML error from backend
+          if (error.isHtmlError || (error.response?.data && typeof error.response.data === 'string' && error.response.data.includes('<html'))) {
+            console.error('⚠️ Backend server error detected. Please ensure Laravel backend is running on http://localhost:8000');
+            console.error('Error details:', error.message);
+            setCartItems([]);
+            return; // Don't retry for backend errors
+          }
+          
           console.error(`Error fetching cart (${4-retries}/3):`, error);
           
           if (error.code === 'ECONNABORTED' && retries > 1) {

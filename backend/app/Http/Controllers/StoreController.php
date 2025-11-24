@@ -160,67 +160,202 @@ class StoreController extends Controller
 
     public function store(Request $request)
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        $validated = $request->validate([
-            'store_name' => 'required|string|max:255',
-            'store_description' => 'nullable|string',
-            'category' => 'nullable|string|max:255',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240', // 10MB for HD logo images
-            'bir' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:20480', // 20MB for HD document images
-            'dti' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:20480', // 20MB for HD document images
-            'id_image' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:20480', // 20MB for HD document images
-            'id_type' => 'nullable|string|in:UMID,SSS,GSIS,LTO,Postal,Passport,PhilHealth,PhilID,PRC,Alien,Foreign_Passport',
-            'tin_number' => 'nullable|string|max:20',
-            'owner_name' => 'required|string|max:255',
-            'owner_email' => 'required|email|max:255',
-            'owner_phone' => 'nullable|string|max:50',
-            'owner_address' => 'nullable|string',
-        ]);
+            $validated = $request->validate([
+                'store_name' => 'required|string|max:255',
+                'store_description' => 'nullable|string',
+                'category' => 'nullable|string|max:255',
+                'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240', // 10MB for HD logo images
+                'bir' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:20480', // 20MB for HD document images
+                'dti' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:20480', // 20MB for HD document images
+                'id_image' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:20480', // 20MB for HD document images
+                'id_type' => 'nullable|string|in:UMID,SSS,GSIS,LTO,Postal,Passport,PhilHealth,PhilID,PRC,Alien,Foreign_Passport',
+                'tin_number' => 'nullable|string|max:20',
+                'owner_name' => 'required|string|max:255',
+                'owner_email' => 'required|email|max:255',
+                'owner_phone' => 'nullable|string|max:50',
+                'owner_address' => 'nullable|string',
+                'submission_token' => 'nullable|string|max:255', // Made optional to handle missing column
+            ]);
 
-        $seller = Seller::where('user_id', $user->userID)->firstOrFail();
+            // Check if submission_token column exists and if token is provided
+            // Only check for duplicate submissions if column exists and token is provided
+            if (isset($validated['submission_token']) && !empty($validated['submission_token'])) {
+                try {
+                    // Check if column exists in database
+                    $hasSubmissionTokenColumn = Schema::hasColumn('stores', 'submission_token');
+                    
+                    if ($hasSubmissionTokenColumn) {
+                        $existingStore = Store::where('submission_token', $validated['submission_token'])->first();
+                        if ($existingStore) {
+                            return response()->json([
+                                'message' => 'Store submission already processed. Please do not submit multiple times.',
+                                'error' => 'duplicate_submission'
+                            ], 409); // 409 Conflict
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // If checking for column fails, just log and continue
+                    Log::warning('Could not check submission_token column', [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
 
-        $logoPath = null;
-        $birPath = null;
-        $dtiPath = null;
-        $idImagePath = null;
+            $seller = Seller::where('user_id', $user->userID)->firstOrFail();
 
-        if ($request->hasFile('logo')) {
-            $logoPath = $request->file('logo')->store('stores/logos', 'public');
+            $logoPath = null;
+            $birPath = null;
+            $dtiPath = null;
+            $idImagePath = null;
+
+            // Handle file uploads with error handling
+            try {
+                if ($request->hasFile('logo')) {
+                    $logoFile = $request->file('logo');
+                    // Check file size explicitly (in case validation didn't catch it)
+                    if ($logoFile->getSize() > 10 * 1024 * 1024) {
+                        return response()->json([
+                            'message' => 'Logo file is too large. Maximum size is 10MB.',
+                            'errors' => ['logo' => ['The logo file size must not exceed 10MB.']]
+                        ], 422);
+                    }
+                    $logoPath = $logoFile->store('stores/logos', 'public');
+                }
+
+                if ($request->hasFile('bir')) {
+                    $birFile = $request->file('bir');
+                    if ($birFile->getSize() > 20 * 1024 * 1024) {
+                        return response()->json([
+                            'message' => 'BIR Permit file is too large. Maximum size is 20MB.',
+                            'errors' => ['bir' => ['The BIR Permit file size must not exceed 20MB.']]
+                        ], 422);
+                    }
+                    $birPath = $birFile->store('stores/bir', 'public');
+                }
+
+                if ($request->hasFile('dti')) {
+                    $dtiFile = $request->file('dti');
+                    if ($dtiFile->getSize() > 20 * 1024 * 1024) {
+                        return response()->json([
+                            'message' => 'DTI Permit file is too large. Maximum size is 20MB.',
+                            'errors' => ['dti' => ['The DTI Permit file size must not exceed 20MB.']]
+                        ], 422);
+                    }
+                    $dtiPath = $dtiFile->store('stores/dti', 'public');
+                }
+
+                if ($request->hasFile('id_image')) {
+                    $idFile = $request->file('id_image');
+                    if ($idFile->getSize() > 20 * 1024 * 1024) {
+                        return response()->json([
+                            'message' => 'ID Document file is too large. Maximum size is 20MB.',
+                            'errors' => ['id_image' => ['The ID Document file size must not exceed 20MB.']]
+                        ], 422);
+                    }
+                    $idImagePath = $idFile->store('stores/id_images', 'public');
+                }
+            } catch (\Exception $fileError) {
+                Log::error('File upload error in StoreController@store', [
+                    'error' => $fileError->getMessage(),
+                    'trace' => $fileError->getTraceAsString()
+                ]);
+                
+                return response()->json([
+                    'message' => 'Error uploading files. Please check file sizes and formats, then try again.',
+                    'error' => $fileError->getMessage()
+                ], 500);
+            }
+
+            // Create store record
+            try {
+                $storeData = [
+                    'seller_id' => $seller->sellerID,
+                    'user_id' => $user->userID,
+                    'store_name' => $validated['store_name'],
+                    'store_description' => $validated['store_description'] ?? null,
+                    'category' => $validated['category'] ?? null,
+                    'logo_path' => $logoPath,
+                    'bir_path' => $birPath,
+                    'dti_path' => $dtiPath,
+                    'id_image_path' => $idImagePath,
+                    'id_type' => $validated['id_type'] ?? null,
+                    'tin_number' => $validated['tin_number'] ?? null,
+                    'owner_name' => $validated['owner_name'],
+                    'owner_email' => $validated['owner_email'],
+                    'owner_phone' => $validated['owner_phone'] ?? null,
+                    'owner_address' => $validated['owner_address'] ?? null,
+                    'status' => 'pending',
+                ];
+                
+                // Only add submission_token if column exists and token is provided
+                if (isset($validated['submission_token']) && !empty($validated['submission_token'])) {
+                    try {
+                        if (Schema::hasColumn('stores', 'submission_token')) {
+                            $storeData['submission_token'] = $validated['submission_token'];
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning('Could not add submission_token to store data', [
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+                
+                $store = Store::create($storeData);
+
+                Log::info('Store created successfully', [
+                    'store_id' => $store->storeID,
+                    'seller_id' => $seller->sellerID,
+                    'user_id' => $user->userID
+                ]);
+
+                return response()->json($store, 201);
+            } catch (\Exception $dbError) {
+                Log::error('Database error in StoreController@store', [
+                    'error' => $dbError->getMessage(),
+                    'trace' => $dbError->getTraceAsString()
+                ]);
+                
+                // Clean up uploaded files if database insertion fails
+                if ($logoPath) {
+                    \Storage::disk('public')->delete($logoPath);
+                }
+                if ($birPath) {
+                    \Storage::disk('public')->delete($birPath);
+                }
+                if ($dtiPath) {
+                    \Storage::disk('public')->delete($dtiPath);
+                }
+                if ($idImagePath) {
+                    \Storage::disk('public')->delete($idImagePath);
+                }
+                
+                return response()->json([
+                    'message' => 'Error saving store information. Please try again.',
+                    'error' => $dbError->getMessage()
+                ], 500);
+            }
+        } catch (\Illuminate\Validation\ValidationException $validationError) {
+            // Laravel validation errors are automatically formatted
+            Log::warning('Validation error in StoreController@store', [
+                'errors' => $validationError->errors()
+            ]);
+            throw $validationError; // Let Laravel handle validation errors
+        } catch (\Exception $e) {
+            Log::error('Unexpected error in StoreController@store', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'message' => 'An unexpected error occurred while creating your store. Please try again or contact support if the problem persists.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
         }
-
-        if ($request->hasFile('bir')) {
-            $birPath = $request->file('bir')->store('stores/bir', 'public');
-        }
-
-        if ($request->hasFile('dti')) {
-            $dtiPath = $request->file('dti')->store('stores/dti', 'public');
-        }
-
-        if ($request->hasFile('id_image')) {
-            $idImagePath = $request->file('id_image')->store('stores/id_images', 'public');
-        }
-
-        $store = Store::create([
-            'seller_id' => $seller->sellerID,
-            'user_id' => $user->userID,
-            'store_name' => $validated['store_name'],
-            'store_description' => $validated['store_description'] ?? null,
-            'category' => $validated['category'] ?? null,
-            'logo_path' => $logoPath,
-            'bir_path' => $birPath,
-            'dti_path' => $dtiPath,
-            'id_image_path' => $idImagePath,
-            'id_type' => $validated['id_type'] ?? null,
-            'tin_number' => $validated['tin_number'] ?? null,
-            'owner_name' => $validated['owner_name'],
-            'owner_email' => $validated['owner_email'],
-            'owner_phone' => $validated['owner_phone'] ?? null,
-            'owner_address' => $validated['owner_address'] ?? null,
-            'status' => 'pending',
-        ]);
-
-        return response()->json($store, 201);
     }
 
     public function approve(Store $store)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { 
@@ -55,7 +55,7 @@ function ReturnRefundRequests() {
   const itemsPerPage = 10;
 
   // Fetch all return and refund requests
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -71,11 +71,76 @@ function ReturnRefundRequests() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Calculate days since request creation
+  const getDaysSinceCreation = (request) => {
+    // Try multiple date fields in order of preference
+    const dateString = request.created_at || request.date;
+    if (!dateString) return 0;
+    
+    const requestDate = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(requestDate.getTime())) return 0;
+    
+    const currentDate = new Date();
+    // Set both dates to midnight for accurate day calculation
+    currentDate.setHours(0, 0, 0, 0);
+    requestDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = currentDate - requestDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays); // Ensure non-negative
   };
+
+  // Check if request in Pending status for 7+ days
+  const isPendingRequestOver7Days = (request) => {
+    if (request.status?.toLowerCase() !== 'pending') {
+      return false;
+    }
+    const daysSinceCreation = getDaysSinceCreation(request);
+    return daysSinceCreation >= 7;
+  };
+
+  // Auto-cancel requests that have been in Pending status for 7+ days
+  const checkAndAutoCancelExpiredRequests = useCallback(async () => {
+    try {
+      const requestsToCancel = allRequests.filter(request => 
+        request.status?.toLowerCase() === 'pending' &&
+        isPendingRequestOver7Days(request)
+      );
+
+      for (const request of requestsToCancel) {
+        try {
+          const requestId = request.id || request.request_id;
+          await api.put(`/after-sale/admin/requests/${requestId}/status`, {
+            status: 'cancelled',
+            admin_notes: `Auto-cancelled: Request has been in Pending status for 7 days (Created: ${request.created_at})`
+          });
+          console.log(`Auto-cancelled request: ${requestId} - Pending for 7+ days`);
+        } catch (error) {
+          console.error(`Failed to auto-cancel request ${request.id || request.request_id}:`, error);
+        }
+      }
+
+      if (requestsToCancel.length > 0) {
+        await fetchRequests();
+      }
+    } catch (error) {
+      console.error('Error in auto-cancel check:', error);
+    }
+  }, [allRequests, fetchRequests]);
 
   useEffect(() => {
     fetchRequests();
   }, []);
+
+  // Run auto-cancel check on component mount and periodically
+  useEffect(() => {
+    checkAndAutoCancelExpiredRequests();
+    const interval = setInterval(checkAndAutoCancelExpiredRequests, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [checkAndAutoCancelExpiredRequests]);
 
   // Apply filters
   useEffect(() => {
@@ -534,11 +599,16 @@ function ReturnRefundRequests() {
                     <th>Subject</th>
                     <th>Status</th>
                     <th>Created</th>
+                    <th>Days Since</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedRequests.map((request) => (
+                  {paginatedRequests.map((request) => {
+                    const daysSince = getDaysSinceCreation(request);
+                    const willBeAutoCancelled = request.status?.toLowerCase() === 'pending' && daysSince >= 7;
+                    
+                    return (
                     <tr key={request.id || request.request_id}>
                       <td>
                         <span className="font-mono text-xs text-[#a4785a] font-semibold">
@@ -604,6 +674,19 @@ function ReturnRefundRequests() {
                       </td>
                       <td>
                         <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-[#a4785a]" />
+                          <span className="text-sm font-medium text-[#5c3d28]">
+                            {daysSince === 0 ? 'Today' : `${daysSince} day${daysSince !== 1 ? 's' : ''}`}
+                          </span>
+                          {willBeAutoCancelled && (
+                            <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">
+                              Auto-cancel
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
@@ -625,7 +708,8 @@ function ReturnRefundRequests() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -853,6 +937,27 @@ function ReturnRefundRequests() {
                   </div>
                 </div>
               )}
+
+              {/* Days Since Creation */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-[#5c3d28] flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-[#a4785a]" />
+                  Days Since Request Creation
+                </label>
+                <div className="p-3 bg-white rounded-md border border-[#d5bfae]">
+                  <p className="text-lg font-medium text-[#5c3d28]">
+                    {(() => {
+                      const daysSince = getDaysSinceCreation(selectedRequest);
+                      return daysSince === 0 ? 'Today' : `${daysSince} day${daysSince !== 1 ? 's' : ''} ago`;
+                    })()}
+                  </p>
+                  {selectedRequest.status?.toLowerCase() === 'pending' && getDaysSinceCreation(selectedRequest) >= 7 && (
+                    <Badge className="bg-red-100 text-red-800 border-red-200 text-xs mt-2">
+                      ⚠️ Will be auto-cancelled (Pending for 7+ days)
+                    </Badge>
+                  )}
+                </div>
+              </div>
 
               {/* Timestamps */}
               <div className="grid grid-cols-2 gap-4 p-3 bg-white rounded-md border border-[#d5bfae]">

@@ -43,17 +43,110 @@ const VerificationDocuments = ({
     { value: "Foreign_Passport", label: "Foreign Passport" },
   ];
 
+  // File size limits in bytes (20MB for documents, 10MB for logo)
+  const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024; // 20MB
+  const MAX_LOGO_SIZE = 10 * 1024 * 1024; // 10MB
+  
+  // Allowed file types
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml'];
+  const ALLOWED_DOCUMENT_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+  
+  const validateFile = (file, type) => {
+    const errors = {};
+    
+    // Check file type
+    const isDocument = ['birPermit', 'dtiPermit', 'idImage'].includes(type);
+    const allowedTypes = isDocument ? ALLOWED_DOCUMENT_TYPES : ALLOWED_IMAGE_TYPES;
+    
+    if (!allowedTypes.includes(file.type)) {
+      const allowedFormats = isDocument ? 'JPG, PNG, or PDF' : 'JPG, PNG, GIF, or SVG';
+      return {
+        error: `Invalid file type. Please upload ${allowedFormats} files only.`,
+        valid: false
+      };
+    }
+    
+    // Check file size
+    const maxSize = isDocument ? MAX_DOCUMENT_SIZE : MAX_LOGO_SIZE;
+    const maxSizeMB = isDocument ? 20 : 10;
+    
+    if (file.size > maxSize) {
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      return {
+        error: `File size too large (${fileSizeMB}MB). Maximum size is ${maxSizeMB}MB. Please compress or choose a smaller file.`,
+        valid: false
+      };
+    }
+    
+    return { valid: true };
+  };
+
   const handleFileChange = (file, type) => {
-    if (file) {
-      updateStoreData({ [type]: file });
+    if (!file) return;
+    
+    // Validate file immediately
+    const validation = validateFile(file, type);
+    
+    if (!validation.valid) {
+      // Clear the file from store data
+      updateStoreData({ [type]: null });
       
-      // Set preview for images
+      // Clear preview
+      if (type === 'birPermit') {
+        setBirPreview(null);
+      } else if (type === 'dtiPermit') {
+        setDtiPreview(null);
+      } else if (type === 'idImage') {
+        setIdPreview(null);
+      }
+      
+      // Show error
+      setErrors(prev => ({
+        ...prev,
+        [type]: validation.error
+      }));
+      
+      // Clear file input
+      if (type === 'birPermit') {
+        const input = document.getElementById('bir-upload');
+        if (input) input.value = '';
+      } else if (type === 'dtiPermit') {
+        const input = document.getElementById('dti-upload');
+        if (input) input.value = '';
+      } else if (type === 'idImage') {
+        const input = document.getElementById('id-upload');
+        if (input) input.value = '';
+      }
+      
+      return;
+    }
+    
+    // File is valid, proceed
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[type];
+      return newErrors;
+    });
+    
+    updateStoreData({ [type]: file });
+    
+    // Set preview for images
+    if (file.type.startsWith('image/')) {
       if (type === 'birPermit') {
         setBirPreview(URL.createObjectURL(file));
       } else if (type === 'dtiPermit') {
         setDtiPreview(URL.createObjectURL(file));
       } else if (type === 'idImage') {
         setIdPreview(URL.createObjectURL(file));
+      }
+    } else if (file.type === 'application/pdf') {
+      // Clear preview for PDFs
+      if (type === 'birPermit') {
+        setBirPreview(null);
+      } else if (type === 'dtiPermit') {
+        setDtiPreview(null);
+      } else if (type === 'idImage') {
+        setIdPreview(null);
       }
     }
   };
@@ -158,7 +251,7 @@ const VerificationDocuments = ({
                     onChange={(e) => handleFileChange(e.target.files[0], 'birPermit')}
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Accepted formats: JPG, PNG, PDF. Max size: 8MB.
+                    Accepted formats: JPG, PNG, PDF. Max size: 20MB.
                   </p>
                 </div>
               </div>
@@ -199,7 +292,7 @@ const VerificationDocuments = ({
                     onChange={(e) => handleFileChange(e.target.files[0], 'dtiPermit')}
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Accepted formats: JPG, PNG, PDF. Max size: 8MB.
+                    Accepted formats: JPG, PNG, PDF. Max size: 20MB.
                   </p>
                 </div>
               </div>
@@ -240,7 +333,7 @@ const VerificationDocuments = ({
                     onChange={(e) => handleFileChange(e.target.files[0], 'idImage')}
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Accepted formats: JPG, PNG, PDF. Max size: 8MB.
+                    Accepted formats: JPG, PNG, PDF. Max size: 20MB.
                   </p>
                 </div>
               </div>

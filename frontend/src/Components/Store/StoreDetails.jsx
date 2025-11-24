@@ -26,15 +26,53 @@ const StoreDetails = ({
   const [errors, setErrors] = useState({
     name: "",
     description: "",
+    logo: "",
   });
   const [logoPreview, setLogoPreview] = useState(null);
 
+  // File size limits (10MB for logo)
+  const MAX_LOGO_SIZE = 10 * 1024 * 1024; // 10MB
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml'];
+
   const handleLogoChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      updateStoreData({ logo: file });
-      setLogoPreview(URL.createObjectURL(file));
+    if (!e.target.files || !e.target.files[0]) return;
+    
+    const file = e.target.files[0];
+    
+    // Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setErrors(prev => ({
+        ...prev,
+        logo: 'Invalid file type. Please upload JPG, PNG, GIF, or SVG files only.'
+      }));
+      e.target.value = ''; // Clear input
+      updateStoreData({ logo: null });
+      setLogoPreview(null);
+      return;
     }
+    
+    // Validate file size
+    if (file.size > MAX_LOGO_SIZE) {
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      setErrors(prev => ({
+        ...prev,
+        logo: `File size too large (${fileSizeMB}MB). Maximum size is 10MB. Please compress or choose a smaller file.`
+      }));
+      e.target.value = ''; // Clear input
+      updateStoreData({ logo: null });
+      setLogoPreview(null);
+      return;
+    }
+    
+    // File is valid
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.logo;
+      return newErrors;
+    });
+    
+    updateStoreData({ logo: file });
+    setLogoPreview(URL.createObjectURL(file));
   };
 
   const validateForm = () => {
@@ -173,9 +211,11 @@ const StoreDetails = ({
                     onChange={handleLogoChange}
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Recommended: Square image, at least 500x500px. Max size:
-                    2MB.
+                    Recommended: Square image, at least 500x500px. Max size: 10MB. Accepted formats: JPG, PNG, GIF, SVG.
                   </p>
+                  {errors.logo && (
+                    <p className="text-sm text-red-500 mt-1">{errors.logo}</p>
+                  )}
                 </div>
               </div>
             </div>

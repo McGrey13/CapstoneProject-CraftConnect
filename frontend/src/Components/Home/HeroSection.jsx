@@ -119,15 +119,6 @@ const HeroSection = ({
                     alt={slide.title}
                     className="w-full h-full object-cover object-center"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                  <div className="absolute bottom-6 left-6 right-6 sm:bottom-10 sm:left-10 sm:right-10 text-white">
-                    <div className="bg-black/40 backdrop-blur-sm rounded-lg p-3 sm:p-4 shadow-lg inline-block max-w-[90%]">
-                      <h3 className="text-lg sm:text-2xl font-bold leading-snug">{slide.title}</h3>
-                      {slide.subtitle && (
-                        <p className="text-xs sm:text-sm opacity-90 mt-1">{slide.subtitle}</p>
-                      )}
-                    </div>
-                  </div>
                 </div>
               </CarouselItem>
             ))}

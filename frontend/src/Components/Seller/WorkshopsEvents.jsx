@@ -11,7 +11,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import { Calendar, Clock, Users, MapPin, Plus, Upload, X } from "lucide-react";
+import { Calendar, Clock, Users, MapPin, Plus, Upload, X, RefreshCw } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { useWorkAndEvents } from "../../hooks/useWorkAndEvents";
 import { toast } from "sonner"; // You might need to install sonner for notifications
@@ -113,7 +113,7 @@ const WorkshopCard = ({
 };
 
 const WorkshopsEvents = () => {
-  const { workAndEvents, loading, error, createWorkAndEvent, deleteWorkAndEvent } = useWorkAndEvents();
+  const { workAndEvents, loading, error, createWorkAndEvent, deleteWorkAndEvent, fetchWorkAndEvents } = useWorkAndEvents();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -221,11 +221,11 @@ const WorkshopsEvents = () => {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header with craft theme */}
-      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center">
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 overflow-visible">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
+          <div className="flex items-center w-full sm:w-[60%] min-w-0 pr-0 sm:pr-4">
             <Calendar className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 mr-2 sm:mr-3 text-white flex-shrink-0" />
-            <div>
+            <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
                 Workshops & Events
               </h1>
@@ -234,24 +234,32 @@ const WorkshopsEvents = () => {
               </p>
             </div>
           </div>
-          <Button 
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-white text-[#5c3d28] hover:bg-[#faf9f8] shadow-lg hover:shadow-xl 
-                      transition-all duration-200 px-3 py-3 sm:px-4 sm:py-3 
-                      rounded-lg font-medium text-sm sm:text-base 
-                      w-auto sm:w-[180px] h-[48px] flex items-center justify-center mr-40"
-          >
-            <Plus className="h-4 w-4 mr-2" /> 
-            <span className="hidden md:inline">
-              {showCreateForm ? 'Cancel' : 'Create Workshop'}
-            </span>
-            <span className="hidden sm:inline md:hidden">
-              {showCreateForm ? 'Cancel' : 'Create New'}
-            </span>
-            <span className="sm:hidden">
-              {showCreateForm ? 'Cancel' : 'Create'}
-            </span>
-          </Button>
+          <div className="w-full sm:w-auto flex-shrink-0 flex items-center justify-end sm:ml-auto gap-2">
+            <Button 
+              onClick={() => fetchWorkAndEvents()}
+              className="bg-white/90 text-[#5c3d28] hover:bg-white shadow-md hover:shadow-lg 
+                        transition-all duration-200 px-3 py-1.5 
+                        rounded-md font-medium text-xs 
+                        w-auto !min-w-fit flex items-center justify-center whitespace-nowrap
+                        border border-white/30 relative z-10 h-7"
+              title="Refresh"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </Button>
+            <Button 
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="bg-white text-[#5c3d28] hover:bg-[#faf9f8] shadow-md hover:shadow-lg 
+                        transition-all duration-200 px-3 py-1.5 
+                        rounded-md font-medium text-xs 
+                        w-auto !min-w-fit flex items-center justify-center whitespace-nowrap
+                        border border-white/30 relative z-10 h-7"
+            >
+              <Plus className="h-3 w-3 mr-1.5 flex-shrink-0" /> 
+              <span>
+                {showCreateForm ? 'Cancel' : 'Create'}
+              </span>
+            </Button>
+          </div>
         </div>
       </div>
 

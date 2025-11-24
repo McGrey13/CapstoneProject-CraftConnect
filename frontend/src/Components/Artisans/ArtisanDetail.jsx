@@ -70,6 +70,7 @@ const ArtisanDetail = () => {
   const [discountCodes, setDiscountCodes] = useState([]);
   const [workshops, setWorkshops] = useState([]);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [productQuantities, setProductQuantities] = useState({});
   const [addingToCart, setAddingToCart] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -593,6 +594,8 @@ const ArtisanDetail = () => {
           sortBy={sortBy}
           setSortBy={setSortBy}
           getFilteredProducts={getFilteredProducts}
+          showMobileMenu={showMobileMenu}
+          setShowMobileMenu={setShowMobileMenu}
         />
         
         {/* Messenger Popup */}
@@ -649,12 +652,13 @@ const ArtisanDetail = () => {
                   <input
                     type="text"
                     readOnly
-                    value={`${import.meta.env.VITE_FRONTEND_URL || window.location.origin}/artisan/${id}`}
+                    value={`${import.meta.env.VITE_FRONTEND_URL || window.location.origin}${location?.pathname || `/artisans/${id}`}`}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-700"
                   />
                   <Button
                     onClick={copyStoreLink}
-                    className="px-4 py-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold rounded-lg"
+                    className="px-4 py-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold rounded-lg shadow-md"
+                    style={{ color: '#ffffff' }}
                   >
                     Copy
                   </Button>
@@ -670,22 +674,24 @@ const ArtisanDetail = () => {
                   <Button
                     onClick={() => shareViaSocial('facebook')}
                     variant="outline"
-                    className="flex items-center justify-center gap-2 border-2 border-[#1877f2] text-[#1877f2] hover:bg-[#1877f2] hover:text-white transition-all"
+                    className="flex items-center justify-center gap-2 border-2 border-[#1877f2] text-[#1877f2] hover:bg-[#1877f2] hover:text-white transition-all font-semibold"
+                    style={{ color: '#1877f2' }}
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
-                    Facebook
+                    <span style={{ color: '#1877f2' }} className="group-hover:text-white">Facebook</span>
                   </Button>
                   <Button
                     onClick={() => shareViaSocial('instagram')}
                     variant="outline"
-                    className="flex items-center justify-center gap-2 border-2 border-[#E4405F] text-[#E4405F] hover:bg-[#E4405F] hover:text-white transition-all"
+                    className="flex items-center justify-center gap-2 border-2 border-[#E4405F] text-[#E4405F] hover:bg-[#E4405F] hover:text-white transition-all font-semibold"
+                    style={{ color: '#E4405F' }}
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
                     </svg>
-                    Instagram
+                    <span style={{ color: '#E4405F' }} className="group-hover:text-white">Instagram</span>
                   </Button>
                 </div>
               </div>
@@ -693,8 +699,8 @@ const ArtisanDetail = () => {
               <div className="flex justify-end mt-6 pt-4 border-t border-gray-200">
                 <Button
                   onClick={() => setShowShareModal(false)}
-                  variant="outline"
-                  className="px-4 py-2"
+                  className="px-6 py-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold rounded-lg shadow-md"
+                  style={{ color: '#ffffff' }}
                 >
                   Close
                 </Button>
@@ -730,7 +736,9 @@ const ArtisanStorePreview = ({
   setCategoryFilter,
   sortBy,
   setSortBy,
-  getFilteredProducts
+  getFilteredProducts,
+  showMobileMenu = false,
+  setShowMobileMenu = () => {}
 }) => {
   // Use real store customization data from database
   // Prepare store data
@@ -789,6 +797,52 @@ const ArtisanStorePreview = ({
     desktop_columns: storeData?.store?.desktop_columns || 4,
     mobile_columns: storeData?.store?.mobile_columns || 2,
     product_card_style: storeData?.store?.product_card_style || "minimal",
+  };
+
+  // Helper function to blend blue with theme color for button backgrounds
+  const getButtonBackgroundColor = () => {
+    try {
+      // Base blue color - using a more vibrant, visible blue
+      const baseBlue = { r: 59, g: 130, b: 246 }; // #3b82f6 - a nice blue
+      // Extract theme primary color RGB
+      const themeColor = customization.primary_color || "#6366f1";
+      let hex = themeColor.replace('#', '').trim();
+      
+      // Handle 3-character hex colors
+      if (hex.length === 3) {
+        hex = hex.split('').map(char => char + char).join('');
+      }
+      
+      // Ensure we have 6 characters
+      if (hex.length !== 6) {
+        return '#3b82f6'; // Return solid blue hex
+      }
+      
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      
+      // Check if parsing was successful
+      if (isNaN(r) || isNaN(g) || isNaN(b)) {
+        return '#3b82f6'; // Return solid blue hex
+      }
+      
+      // Blend 70% blue with 30% theme color for a subtle theme tint
+      const blendedR = Math.round(baseBlue.r * 0.7 + r * 0.3);
+      const blendedG = Math.round(baseBlue.g * 0.7 + g * 0.3);
+      const blendedB = Math.round(baseBlue.b * 0.7 + b * 0.3);
+      
+      // Convert back to hex for better browser support
+      const toHex = (n) => {
+        const hex = n.toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+      };
+      
+      return `#${toHex(blendedR)}${toHex(blendedG)}${toHex(blendedB)}`;
+    } catch {
+      // Fallback to pure blue if anything goes wrong
+      return '#3b82f6';
+    }
   };
 
   return (
@@ -876,124 +930,180 @@ const ArtisanStorePreview = ({
             </div>
           </div>
         </div>
-        <div className="absolute right-2 sm:right-8 top-2 sm:top-8 flex gap-2 sm:gap-3">
+        <div className="absolute right-2 sm:right-8 top-2 sm:top-8 flex gap-2 sm:gap-3 z-10">
           <div className="sm:hidden">
             <button 
-              className="p-2 rounded-lg shadow bg-white text-gray-700 hover:bg-gray-50 transition-colors"
-              onClick={() => {
-                const modal = document.createElement('div');
-                modal.className = 'fixed inset-0 z-50 flex items-end sm:items-center justify-center';
-                modal.innerHTML = `
-                  <div class="absolute inset-0 bg-black/50" onclick="this.parentElement.remove()"></div>
-                  <div class="relative bg-white w-full max-w-sm mx-4 mb-4 rounded-t-xl sm:rounded-xl shadow-xl overflow-hidden">
-                    <div class="p-4 space-y-3">
-                      <button class="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg text-left" onclick="this.closest('.fixed').remove(); ${onFollow}()">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
-                        </svg>
-                        <span class="font-medium">${isLoading ? 'Loading...' : (isFollowing ? 'Unfollow' : 'Follow')}</span>
-                      </button>
-                      <button class="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg text-left" onclick="this.closest('.fixed').remove(); ${onMessage}()">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd" />
-                        </svg>
-                        <span class="font-medium">Message</span>
-                      </button>
-                      <button class="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg text-left" onclick="this.closest('.fixed').remove(); ${onShare}()">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-                        </svg>
-                        <span class="font-medium">Share</span>
-                      </button>
-                    </div>
-                    <div class="p-4 border-t">
-                      <button class="w-full p-3 text-center text-gray-500 hover:text-gray-600" onclick="this.closest('.fixed').remove()">
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                `;
-                document.body.appendChild(modal);
+              className="p-2.5 rounded-lg shadow-lg bg-white hover:bg-gray-50 transition-all duration-200 border-2 border-white"
+              style={{ 
+                color: '#5c3d28',
+                borderColor: '#ffffff'
               }}
+              onClick={() => setShowMobileMenu(true)}
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: '#5c3d28' }}>
                 <circle cx="12" cy="12" r="1" />
                 <circle cx="12" cy="5" r="1" />
                 <circle cx="12" cy="19" r="1" />
               </svg>
             </button>
           </div>
+          
+          {/* Mobile Menu Modal */}
+          {showMobileMenu && (
+            <div 
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:hidden"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              <div 
+                className="absolute inset-0 bg-black/50"
+                onClick={() => setShowMobileMenu(false)}
+              />
+              <div 
+                className="relative bg-white w-full max-w-sm mx-4 mb-4 rounded-t-xl shadow-xl overflow-hidden animate-fadeIn"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-4 space-y-3">
+                  <button 
+                    className="w-full flex items-center justify-center gap-1 font-semibold px-4 py-2 rounded-full text-base shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ 
+                      backgroundColor: getButtonBackgroundColor(),
+                      color: '#ffffff',
+                      fontWeight: '600',
+                      border: 'none',
+                      opacity: 1
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isLoading) {
+                        e.target.style.opacity = '0.9';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isLoading) {
+                        e.target.style.opacity = '1';
+                      }
+                    }}
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      onFollow();
+                    }}
+                    disabled={isLoading}
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" style={{ color: isFollowing ? '#ff6b6b' : '#ffffff' }}>
+                      <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-semibold" style={{ color: '#ffffff' }}>
+                      {isLoading ? 'Loading...' : (isFollowing ? 'Unfollow' : 'Follow')}
+                    </span>
+                  </button>
+                  <button 
+                    className="w-full flex items-center justify-center gap-1 font-semibold px-4 py-2 rounded-full text-base shadow-lg transition-all duration-200"
+                    style={{ 
+                      backgroundColor: getButtonBackgroundColor(),
+                      color: '#ffffff',
+                      fontWeight: '600',
+                      border: 'none',
+                      opacity: 1
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.opacity = '0.9';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.opacity = '1';
+                    }}
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      onMessage();
+                    }}
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" style={{ color: '#ffffff' }}>
+                      <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-semibold" style={{ color: '#ffffff' }}>Message</span>
+                  </button>
+                  <button 
+                    className="w-full flex items-center justify-center gap-1 font-semibold px-4 py-2 rounded-full text-base shadow-lg transition-all duration-200"
+                    style={{ 
+                      backgroundColor: getButtonBackgroundColor(),
+                      color: '#ffffff',
+                      fontWeight: '600',
+                      border: 'none',
+                      opacity: 1
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.opacity = '0.9';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.opacity = '1';
+                    }}
+                    onClick={() => {
+                      setShowMobileMenu(false);
+                      onShare();
+                    }}
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" style={{ color: '#ffffff' }}>
+                      <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                    </svg>
+                    <span className="font-semibold" style={{ color: '#ffffff' }}>Share</span>
+                  </button>
+                </div>
+                <div className="p-4 border-t border-gray-200">
+                  <button 
+                    className="w-full p-3 text-center font-semibold hover:text-gray-700 transition-colors"
+                    style={{ color: '#5c3d28' }}
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="hidden sm:flex gap-3">
             <button 
-              className="font-semibold px-5 py-2 rounded-lg shadow flex items-center gap-2 border transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 font-semibold px-3 py-1 rounded-full text-base shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl hover:scale-105"
               style={{ 
-                backgroundColor: customization.background_color, 
-                color: customization.primary_color,
-                borderColor: customization.primary_color
-              }}
-              onMouseEnter={(e) => {
-                if (!isLoading) {
-                  e.target.style.backgroundColor = customization.accent_color;
-                  e.target.style.color = customization.text_color;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isLoading) {
-                  e.target.style.backgroundColor = customization.background_color;
-                  e.target.style.color = customization.primary_color;
-                }
+                backgroundColor: getButtonBackgroundColor(),
+                color: '#ffffff',
+                border: 'none',
+                opacity: 1
               }}
               onClick={onFollow}
               disabled={isLoading}
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" style={{ color: isFollowing ? '#ff6b6b' : '#ffffff' }}>
                 <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
               </svg>
-              {isLoading ? 'Loading...' : (isFollowing ? 'Unfollow' : 'Follow')}
+              <span style={{ color: '#ffffff', fontWeight: '600' }}>{isLoading ? 'Loading...' : (isFollowing ? 'Unfollow' : 'Follow')}</span>
             </button>
             <button 
-              className="font-semibold px-5 py-2 rounded-lg shadow flex items-center gap-2 border transition"
+              className="flex items-center gap-1 font-semibold px-3 py-1 rounded-full text-base shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105"
               style={{ 
-                backgroundColor: customization.background_color, 
-                color: customization.primary_color,
-                borderColor: customization.primary_color
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = customization.accent_color;
-                e.target.style.color = customization.text_color;
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = customization.background_color;
-                e.target.style.color = customization.primary_color;
+                backgroundColor: getButtonBackgroundColor(),
+                color: '#ffffff',
+                border: 'none',
+                opacity: 1
               }}
               onClick={onMessage}
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" style={{ color: '#ffffff' }}>
                 <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
               </svg>
-              Message
+              <span style={{ color: '#ffffff', fontWeight: '600' }}>Message</span>
             </button>
             <button 
-              className="font-semibold px-5 py-2 rounded-lg shadow flex items-center gap-2 border transition"
+              className="flex items-center gap-1 font-semibold px-3 py-1 rounded-full text-base shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105"
               style={{ 
-                backgroundColor: customization.background_color, 
-                color: customization.primary_color,
-                borderColor: customization.primary_color
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = customization.accent_color;
-                e.target.style.color = customization.text_color;
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = customization.background_color;
-                e.target.style.color = customization.primary_color;
+                backgroundColor: getButtonBackgroundColor(),
+                color: '#ffffff',
+                border: 'none',
+                opacity: 1
               }}
               onClick={onShare}
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" style={{ color: '#ffffff' }}>
                 <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
               </svg>
-              Share
+              <span style={{ color: '#ffffff', fontWeight: '600' }}>Share</span>
             </button>
           </div>
         </div>

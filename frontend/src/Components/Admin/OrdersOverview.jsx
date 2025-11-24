@@ -68,31 +68,49 @@ function OrdersOverview() {
     }
   };
 
-  // Check if order should be auto-cancelled (seller hasn't updated in 7 days)
-  const isOrderNotUpdatedBySellerIn7Days = (order) => {
-    // Use updated_at if available, otherwise fall back to order date
-    const lastUpdateDate = order.updated_at ? new Date(order.updated_at) : new Date(order.date);
+  // Calculate days since order creation
+  const getDaysSinceCreation = (order) => {
+    // Try multiple date fields in order of preference
+    const dateString = order.date || order.created_at || order.orderDate;
+    if (!dateString) return 0;
+    
+    const orderDate = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(orderDate.getTime())) return 0;
+    
     const currentDate = new Date();
-    const diffTime = Math.abs(currentDate - lastUpdateDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 7;
+    // Set both dates to midnight for accurate day calculation
+    currentDate.setHours(0, 0, 0, 0);
+    orderDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = currentDate - orderDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays); // Ensure non-negative
   };
 
-  // Auto-cancel orders when seller hasn't made any changes in 7 days
+  // Check if order in Processing status for 7+ days
+  const isProcessingOrderOver7Days = (order) => {
+    if (order.status?.toLowerCase() !== 'processing') {
+      return false;
+    }
+    const daysSinceCreation = getDaysSinceCreation(order);
+    return daysSinceCreation >= 7;
+  };
+
+  // Auto-cancel orders that have been in Processing status for 7+ days
   const checkAndAutoCancelExpiredOrders = async () => {
     try {
       const ordersToCancel = allOrders.filter(order => 
-        order.status !== 'Cancelled' && 
-        order.status !== 'Delivered' &&
-        isOrderNotUpdatedBySellerIn7Days(order)
+        order.status?.toLowerCase() === 'processing' &&
+        isProcessingOrderOver7Days(order)
       );
 
       for (const order of ordersToCancel) {
         try {
           await api.post(`/orders-test/${order.id}/cancel`, {
-            reason: 'Auto-cancelled: Seller did not update order within 7 days'
+            reason: 'Auto-cancelled: Order has been in Processing status for 7 days'
           });
-          console.log(`Auto-cancelled order: ${order.id} - Seller did not update within 7 days`);
+          console.log(`Auto-cancelled order: ${order.id} - Processing for 7+ days`);
         } catch (error) {
           console.error(`Failed to auto-cancel order ${order.id}:`, error);
         }
@@ -644,6 +662,7 @@ function OrdersOverview() {
                 <th className="text-left py-4 px-6 font-semibold text-[#5c3d28]">Order ID</th>
                 <th className="text-left py-4 px-6 font-semibold text-[#5c3d28]">Customer</th>
                 <th className="text-left py-4 px-6 font-semibold text-[#5c3d28]">Date</th>
+                <th className="text-left py-4 px-6 font-semibold text-[#5c3d28]">Days Since</th>
                 <th className="text-left py-4 px-6 font-semibold text-[#5c3d28]">Items</th>
                 <th className="text-left py-4 px-6 font-semibold text-[#5c3d28]">Amount</th>
                 <th className="text-left py-4 px-6 font-semibold text-[#5c3d28]">Payment</th>
@@ -652,70 +671,89 @@ function OrdersOverview() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => (
-                <tr key={order.id} className="border-b border-[#e5ded7] hover:bg-[#faf9f8] transition-colors duration-200">
-                  <td className="py-4 px-6 font-mono text-sm font-medium text-[#5c3d28]">{order.id}</td>
-                  <td className="py-4 px-6 text-[#5c3d28]">{order.customer}</td>
-                  <td className="py-4 px-6 text-gray-600">{order.date}</td>
-                  <td className="py-4 px-6">
-                    <Badge variant="outline" className="text-xs border-[#d5bfae] text-[#7b5a3b] bg-[#faf9f8]">
-                        {order.items} item{order.items !== 1 ? 's' : ''}
-                      </Badge>
+                {orders.map((order) => {
+                  const daysSince = getDaysSinceCreation(order);
+                  const canAdminCancel = order.status?.toLowerCase() !== 'cancelled' && 
+                                        order.status?.toLowerCase() !== 'delivered';
+                  
+                  return (
+                  <tr key={order.id} className="border-b border-[#e5ded7] hover:bg-[#faf9f8] transition-colors duration-200">
+                    <td className="py-4 px-6 font-mono text-sm font-medium text-[#5c3d28]">{order.id}</td>
+                    <td className="py-4 px-6 text-[#5c3d28]">{order.customer}</td>
+                    <td className="py-4 px-6 text-gray-600">{order.date}</td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-[#a4785a]" />
+                        <span className="text-sm font-medium text-[#5c3d28]">
+                          {daysSince === 0 ? 'Today' : `${daysSince} day${daysSince !== 1 ? 's' : ''}`}
+                        </span>
+                        {order.status?.toLowerCase() === 'processing' && daysSince >= 7 && (
+                          <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">
+                            Auto-cancel
+                          </Badge>
+                        )}
+                      </div>
                     </td>
-                  <td className="py-4 px-6 font-semibold text-[#a4785a]">{order.amount}</td>
-                  <td className="py-4 px-6">
-                      {getPaymentMethodBadge(order.paymentMethod, order.paymentStatus)}
-                    </td>
-                  <td className="py-4 px-6">
-                      <Badge
-                      className={
-                          order.status === "Delivered"
-                          ? "bg-green-100 text-green-800 border-green-200"
-                          : order.status === "Processing" || order.status === "Packing"
-                          ? "bg-blue-100 text-blue-800 border-blue-200"
-                            : order.status === "Shipped"
-                          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                            : order.status === "Pending"
-                          ? "bg-gray-100 text-gray-800 border-gray-200"
-                          : "bg-red-100 text-red-800 border-red-200"
-                        }
-                      variant="outline"
-                      >
-                        {order.status}
-                      </Badge>
-                    </td>
-                  <td className="py-4 px-6">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                        <button className="p-2 rounded-md hover:bg-[#faf9f8] text-[#5c3d28] hover:text-[#a4785a] transition-colors">
-                            <MoreHorizontal className="h-4 w-4" />
-                        </button>
-                        </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-white border border-[#d5bfae] shadow-lg rounded-lg">
-                        <DropdownMenuItem 
-                          onClick={() => handleViewOrder(order)}
-                          className="text-[#5c3d28] hover:bg-[#faf9f8] cursor-pointer"
+                    <td className="py-4 px-6">
+                      <Badge variant="outline" className="text-xs border-[#d5bfae] text-[#7b5a3b] bg-[#faf9f8]">
+                          {order.items} item{order.items !== 1 ? 's' : ''}
+                        </Badge>
+                      </td>
+                    <td className="py-4 px-6 font-semibold text-[#a4785a]">{order.amount}</td>
+                    <td className="py-4 px-6">
+                        {getPaymentMethodBadge(order.paymentMethod, order.paymentStatus)}
+                      </td>
+                    <td className="py-4 px-6">
+                        <Badge
+                        className={
+                            order.status === "Delivered"
+                            ? "bg-green-100 text-green-800 border-green-200"
+                            : order.status === "Processing" || order.status === "Packing"
+                            ? "bg-blue-100 text-blue-800 border-blue-200"
+                              : order.status === "Shipped"
+                            ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                              : order.status === "Pending"
+                            ? "bg-gray-100 text-gray-800 border-gray-200"
+                            : "bg-red-100 text-red-800 border-red-200"
+                          }
+                        variant="outline"
                         >
-                          <Eye className="h-4 w-4 mr-2 text-[#a4785a]" />
-                            View Details
-                          </DropdownMenuItem>
-                          {order.canCancel && (
-                            <DropdownMenuItem 
-                              onClick={() => {
-                                setOrderToCancel(order);
-                                setCancelDialogOpen(true);
-                              }}
-                            className="text-red-600 hover:bg-red-50 cursor-pointer"
-                            >
-                              <X className="h-4 w-4 mr-2" />
-                              Cancel Order
+                          {order.status}
+                        </Badge>
+                      </td>
+                    <td className="py-4 px-6">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                          <button className="p-2 rounded-md hover:bg-[#faf9f8] text-[#5c3d28] hover:text-[#a4785a] transition-colors">
+                              <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                          </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-white border border-[#d5bfae] shadow-lg rounded-lg">
+                          <DropdownMenuItem 
+                            onClick={() => handleViewOrder(order)}
+                            className="text-[#5c3d28] hover:bg-[#faf9f8] cursor-pointer"
+                          >
+                            <Eye className="h-4 w-4 mr-2 text-[#a4785a]" />
+                              View Details
                             </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))}
+                            {canAdminCancel && (
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  setOrderToCancel(order);
+                                  setCancelDialogOpen(true);
+                                }}
+                              className="text-red-600 hover:bg-red-50 cursor-pointer"
+                              >
+                                <X className="h-4 w-4 mr-2" />
+                                Cancel Order
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -759,6 +797,23 @@ function OrdersOverview() {
                 <div className="bg-gradient-to-r from-[#faf9f8] to-[#fff4ea] rounded-lg p-4 border border-[#e5ded7]">
                   <h3 className="font-semibold text-[#7b5a3b] text-sm mb-1">Total Amount</h3>
                   <p className="text-lg font-bold text-[#a4785a]">{selectedOrder.amount}</p>
+                </div>
+                <div className="bg-gradient-to-r from-[#faf9f8] to-[#fff4ea] rounded-lg p-4 border border-[#e5ded7] col-span-2">
+                  <h3 className="font-semibold text-[#7b5a3b] text-sm mb-1 flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-[#a4785a]" />
+                    Days Since Order Creation
+                  </h3>
+                  <p className="text-lg font-medium text-[#5c3d28]">
+                    {(() => {
+                      const daysSince = getDaysSinceCreation(selectedOrder);
+                      return daysSince === 0 ? 'Today' : `${daysSince} day${daysSince !== 1 ? 's' : ''} ago`;
+                    })()}
+                  </p>
+                  {selectedOrder.status?.toLowerCase() === 'processing' && getDaysSinceCreation(selectedOrder) >= 7 && (
+                    <Badge className="bg-red-100 text-red-800 border-red-200 text-xs mt-2">
+                      ⚠️ Will be auto-cancelled (Processing for 7+ days)
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -831,7 +886,8 @@ function OrdersOverview() {
                 >
                   Close
                 </button>
-                {selectedOrder.canCancel && (
+                {selectedOrder.status?.toLowerCase() !== 'cancelled' && 
+                 selectedOrder.status?.toLowerCase() !== 'delivered' && (
                   <button 
                     onClick={() => {
                       setViewModalOpen(false);

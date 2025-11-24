@@ -20,6 +20,7 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
   const [hasVariations, setHasVariations] = useState(false);
   const [variations, setVariations] = useState([]); // Array of {label: '', quantity: '', price: ''}
   const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [bulkAddData, setBulkAddData] = useState({
     baseLabel: '',
     selectedSizes: [],
@@ -294,6 +295,13 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
       alert('Please select a main category');
       return;
     }
+
+    // Prevent duplicate submissions
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
     
     const normalizedBasePrice =
       hasVariations && totalVariationQuantity > 0
@@ -305,10 +313,14 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
         : parseFloat(price || '0');
     const normalizedBasePriceValue = Number.isFinite(normalizedBasePrice) ? normalizedBasePrice : 0;
 
+    // Generate unique token for this submission to prevent duplicates
+    const uniqueToken = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+
     const formData = new FormData();
     formData.append('productName', title);
     formData.append('productDescription', description);
     formData.append('productPrice', normalizedBasePriceValue.toString());
+    formData.append('submission_token', uniqueToken);
     
     // If product has sizes, set quantity to 0 (will be calculated from variations)
     // Otherwise use the stock input
@@ -387,6 +399,9 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
       resetForm();
     } catch (err) {
       console.error('AddProductModal save failed:', err);
+      alert('Failed to add product. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -441,7 +456,8 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
             </div>
             <button
               onClick={onClose}
-              className="bg-white text-black rounded-lg sm:rounded-xl p-1.5 sm:p-2 shadow-md transition-all duration-200"
+              disabled={isSubmitting}
+              className="bg-white text-black rounded-lg sm:rounded-xl p-1.5 sm:p-2 shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Close modal"
               type="button"
             >
@@ -967,18 +983,42 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                   <button
                     type="submit"
                     onClick={() => setPublishStatus('draft')}
-                    className="w-full border-2 border-[#e5ded7] text-[#5c3d28] bg-[#faf9f8] hover:bg-white hover:border-[#a4785a] py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base md:text-lg transition-all duration-200"
+                    disabled={isSubmitting}
+                    className="w-full border-2 border-[#e5ded7] text-[#5c3d28] bg-[#faf9f8] hover:bg-white hover:border-[#a4785a] py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base md:text-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Save as Draft
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Saving...
+                      </>
+                    ) : (
+                      'Save as Draft'
+                    )}
                   </button>
 
                   <button
                     type="submit"
                     onClick={() => setPublishStatus('published')}
-                    className="w-full bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg hover:from-[#8a6b4a] hover:to-[#6b4a2f] transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl shadow-xl flex items-center justify-center gap-2 sm:gap-3 group"
+                    disabled={isSubmitting}
+                    className="w-full bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg hover:from-[#8a6b4a] hover:to-[#6b4a2f] transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl shadow-xl flex items-center justify-center gap-2 sm:gap-3 group disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
-                    <Plus className="h-5 w-5 sm:h-6 sm:w-6 group-hover:rotate-90 transition-transform duration-300" />
-                    Publish
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 sm:h-6 sm:w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Publishing...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-5 w-5 sm:h-6 sm:w-6 group-hover:rotate-90 transition-transform duration-300" />
+                        Publish
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -1190,6 +1230,27 @@ export const AddProductModal = ({ isOpen, onClose, onSave }) => {
                   Add Variations
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Modal */}
+      {isSubmitting && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="flex flex-col items-center">
+              <svg className="animate-spin h-16 w-16 text-[#a4785a] mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <h3 className="text-2xl font-bold text-[#5c3d28] mb-2">Adding Product</h3>
+              <p className="text-[#7b5a3b] text-center">
+                Please wait while we process your product. This may take a few moments...
+              </p>
+              <p className="text-sm text-[#7b5a3b] mt-4 text-center">
+                ⚠️ Please do not close this page or click the button again.
+              </p>
             </div>
           </div>
         </div>

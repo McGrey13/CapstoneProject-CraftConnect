@@ -509,6 +509,81 @@ class Work_and_EventsController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Register customer for a workshop/event
+     */
+    public function registerForEvent(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated. Please login to register for events.'
+            ], 401);
+        }
+
+        try {
+            $workAndEvent = Work_and_Events::where('works_and_events_id', $id)->first();
+
+            if (!$workAndEvent) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Event not found'
+                ], 404);
+            }
+
+            // Check if event is still available
+            if ($workAndEvent->status === 'cancelled' || $workAndEvent->status === 'completed') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This event is no longer available for registration'
+                ], 400);
+            }
+
+            // Check if there are available spots
+            if ($workAndEvent->participants <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No available spots remaining for this event'
+                ], 400);
+            }
+
+            // Decrement participants count
+            $workAndEvent->participants = max(0, $workAndEvent->participants - 1);
+            $workAndEvent->save();
+
+            Log::info('Customer registered for event:', [
+                'event_id' => $workAndEvent->works_and_events_id,
+                'event_title' => $workAndEvent->title,
+                'user_id' => $user->userID,
+                'remaining_participants' => $workAndEvent->participants
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully registered for the event!',
+                'data' => [
+                    'works_and_events_id' => $workAndEvent->works_and_events_id,
+                    'title' => $workAndEvent->title,
+                    'participants' => $workAndEvent->participants,
+                    'link' => $workAndEvent->link
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error registering for event:', [
+                'error' => $e->getMessage(),
+                'id' => $id,
+                'user_id' => $user->userID ?? null
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to register for event',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
     
 
 

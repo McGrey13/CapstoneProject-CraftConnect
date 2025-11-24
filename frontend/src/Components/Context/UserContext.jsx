@@ -51,19 +51,25 @@ export const UserProvider = ({ children }) => {
     }
 
     sessionExpiryHandledRef.current = true;
+    
+    // Stop session check interval immediately
     if (sessionIntervalRef.current) {
       clearInterval(sessionIntervalRef.current);
       sessionIntervalRef.current = null;
     }
 
+    // Clear user state immediately to stop session checks
+    setUser(null);
+    
+    // Show modal
     setSessionModalVisible(true);
 
-    try {
-      await logout({ preserveSessionModal: true, skipSessionReset: true });
-    } catch (error) {
+    // Logout in background (don't wait for it to complete)
+    logout({ preserveSessionModal: true, skipSessionReset: true }).catch(error => {
       console.error('Session expiry logout error:', error);
+      // Even if logout fails, ensure state is cleared
       clearStoredAuthState();
-    }
+    });
   };
 
   // Check if user is authenticated on app load
@@ -74,6 +80,22 @@ export const UserProvider = ({ children }) => {
     
     setIsCheckingAuth(true);
     console.log('🔍 Checking authentication status...');
+    
+    // Check if we're on login page with session=expired parameter
+    // If so, clear all auth data before checking
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('session') === 'expired') {
+      console.log('🚫 Session expired parameter detected - clearing all auth data');
+      clearStoredAuthState();
+      localStorage.clear();
+      sessionStorage.clear();
+      setUser(null);
+      setLoading(false);
+      setIsCheckingAuth(false);
+      // Clean URL
+      window.history.replaceState(null, null, window.location.pathname);
+      return;
+    }
     
     // First check if we have a saved user in localStorage
     const savedUser = localStorage.getItem('user_data');
@@ -191,6 +213,15 @@ export const UserProvider = ({ children }) => {
       skipSessionReset = false,
     } = options;
 
+    // Stop session check interval immediately
+    if (sessionIntervalRef.current) {
+      clearInterval(sessionIntervalRef.current);
+      sessionIntervalRef.current = null;
+    }
+
+    // Clear user state immediately to stop any session checks
+    setUser(null);
+
     try {
       // Call logout endpoint - cookies will be cleared automatically
       await api.post('/auth/logout', {}, {
@@ -209,6 +240,7 @@ export const UserProvider = ({ children }) => {
       
       console.log('✅ User logged out successfully - all auth data cleared');
 
+      // Ensure interval is stopped (redundant but safe)
       if (sessionIntervalRef.current) {
         clearInterval(sessionIntervalRef.current);
         sessionIntervalRef.current = null;
@@ -229,6 +261,16 @@ export const UserProvider = ({ children }) => {
     try {
       console.log('📝 Attempting registration with data:', userData);
       
+      // Log field values (without passwords for security)
+      console.log('📋 Registration fields:', {
+        userName: userData.userName || '(empty)',
+        userEmail: userData.userEmail || '(empty)',
+        userPassword: userData.userPassword ? `***${userData.userPassword.length} chars***` : '(empty)',
+        userPassword_confirmation: userData.userPassword_confirmation ? `***${userData.userPassword_confirmation.length} chars***` : '(empty)',
+        userContactNumber: userData.userContactNumber || '(empty)',
+        role: userData.role || '(empty)'
+      });
+      
       const response = await api.post('/auth/register', userData, {
         withCredentials: true
       });
@@ -245,6 +287,13 @@ export const UserProvider = ({ children }) => {
         data: error.response?.data,
         message: error.message
       });
+      
+      // Log validation errors in detail
+      if (error.response?.status === 422 && error.response?.data?.errors) {
+        console.error('🔴 Validation errors:', JSON.stringify(error.response.data.errors, null, 2));
+        console.error('📝 Error message:', error.response.data.message);
+      }
+      
       throw error;
     }
   };
@@ -333,7 +382,17 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    // If no user, ensure interval is stopped and return early
     if (!user) {
+      if (sessionIntervalRef.current) {
+        clearInterval(sessionIntervalRef.current);
+        sessionIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // If session expiry is already being handled, don't start new interval
+    if (sessionExpiryHandledRef.current) {
       if (sessionIntervalRef.current) {
         clearInterval(sessionIntervalRef.current);
         sessionIntervalRef.current = null;
@@ -344,6 +403,26 @@ export const UserProvider = ({ children }) => {
     ensureSessionTimer();
 
     const checkSession = () => {
+      // Don't check if expiry is already being handled
+      if (sessionExpiryHandledRef.current) {
+        if (sessionIntervalRef.current) {
+          clearInterval(sessionIntervalRef.current);
+          sessionIntervalRef.current = null;
+        }
+        return;
+      }
+
+      // Check if user data still exists in localStorage (user state might be cleared)
+      const savedUser = localStorage.getItem('user_data');
+      if (!savedUser) {
+        // User was logged out, stop checking
+        if (sessionIntervalRef.current) {
+          clearInterval(sessionIntervalRef.current);
+          sessionIntervalRef.current = null;
+        }
+        return;
+      }
+
       const stored = Number(localStorage.getItem('session_start_time'));
       if (!stored || Number.isNaN(stored)) {
         resetSessionTimer();
@@ -383,9 +462,28 @@ export const UserProvider = ({ children }) => {
       {children}
       <SessionExpiryModal
         open={sessionModalVisible}
-        onClose={() => setSessionModalVisible(false)}
-        onLogin={() => {
+        onClose={() => {
           setSessionModalVisible(false);
+          // Ensure user is logged out when dismissing
+          if (user) {
+            logout().then(() => {
+              window.location.href = '/login?session=expired';
+            });
+          }
+        }}
+        onLogin={async () => {
+          setSessionModalVisible(false);
+          // Ensure complete logout before redirecting
+          try {
+            await logout();
+          } catch (error) {
+            console.error('Logout error on login redirect:', error);
+            // Clear state even if logout API call fails
+            clearStoredAuthState();
+            localStorage.clear();
+            sessionStorage.clear();
+          }
+          // Force redirect to login page
           window.location.href = '/login?session=expired';
         }}
       />

@@ -29,8 +29,11 @@ class BackfillOrderNumbers extends Command
     {
         $this->info('🔄 Starting to backfill order numbers...');
 
-        // Get all orders without order_number
-        $ordersWithoutNumber = Order::whereNull('order_number')->get();
+        // Get all orders without order_number (null or empty string)
+        $ordersWithoutNumber = Order::where(function($query) {
+            $query->whereNull('order_number')
+                  ->orWhere('order_number', '');
+        })->get();
 
         if ($ordersWithoutNumber->isEmpty()) {
             $this->info('✅ All orders already have order numbers!');
@@ -43,8 +46,9 @@ class BackfillOrderNumbers extends Command
         $bar->start();
 
         foreach ($ordersWithoutNumber as $order) {
-            // Generate order number based on order creation date
-            $orderNumber = $this->generateOrderNumber($order->created_at);
+            // Generate order number based on orderDate if available, otherwise use created_at
+            $dateToUse = $order->orderDate ?? $order->created_at;
+            $orderNumber = $this->generateOrderNumber($dateToUse);
             
             // Update the order
             $order->update(['order_number' => $orderNumber]);

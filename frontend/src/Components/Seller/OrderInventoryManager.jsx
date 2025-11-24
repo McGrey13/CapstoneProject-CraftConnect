@@ -1589,7 +1589,16 @@ const InventoryTab_DEPRECATED = () => {
     });
   };
 
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [showProductSuccess, setShowProductSuccess] = useState(false);
+
   const handleAddProduct = async (formData) => {
+    // Prevent duplicate submissions
+    if (isAddingProduct) {
+      return;
+    }
+
+    setIsAddingProduct(true);
     try {
       console.log("Adding new product:", Object.fromEntries(formData));
 
@@ -1605,14 +1614,28 @@ const InventoryTab_DEPRECATED = () => {
       if (response.data) {
         const result = response.data;
         console.log("Product added successfully:", result.message || "Product added successfully");
-        alert("Product added successfully!");
         
+        // Hide loading modal first
+        setIsAddingProduct(false);
+        
+        // Show success modal
+        setShowProductSuccess(true);
+        
+        // Close the add dialog
         setIsAddDialogOpen(false);
         resetForm();
-        fetchProducts(); // Refresh the list
+        
+        // Refresh the product list
+        fetchProducts();
+        
+        // Auto-close success modal after 3 seconds
+        setTimeout(() => {
+          setShowProductSuccess(false);
+        }, 3000);
       }
     } catch (error) {
       console.error("Error adding product:", error);
+      setIsAddingProduct(false); // Hide loading modal on error
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         alert('Request timed out. This may happen with large image uploads. Please try again with smaller images or fewer images at once.');
       } else if (error.response?.status === 422) {
@@ -2631,18 +2654,70 @@ const InventoryTab_DEPRECATED = () => {
           
           {/* Add Product Button */}
           <Button 
-            className="h-7 sm:h-8 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200 text-[10px] sm:text-xs px-2 sm:px-3"
+            className="h-8 sm:h-10 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] shadow-md hover:shadow-lg transition-all duration-200 px-3 sm:px-4 font-semibold"
             onClick={() => setIsAddDialogOpen(true)}
+            style={{ color: '#ffffff' }}
           >
-            <Plus className="mr-1 h-3 w-3" /> Add Product
+            <Plus className="mr-1.5 h-4 w-4" style={{ color: '#ffffff' }} /> 
+            <span className="text-xs sm:text-sm" style={{ color: '#ffffff' }}>Add Product</span>
           </Button>
           
           {/* Add Product Modal */}
           <AddProductModal 
             isOpen={isAddDialogOpen} 
-            onClose={() => setIsAddDialogOpen(false)} 
+            onClose={() => setIsAddDialogOpen(false)}
             onSave={handleAddProduct}
           />
+
+          {/* Loading Modal for Product Addition */}
+          {isAddingProduct && (
+            <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+                <div className="flex flex-col items-center">
+                  <svg className="animate-spin h-16 w-16 text-[#a4785a] mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <h3 className="text-2xl font-bold text-[#5c3d28] mb-2">Adding Product</h3>
+                  <p className="text-[#7b5a3b] text-center">
+                    Please wait while we process your product. This may take a few moments...
+                  </p>
+                  <p className="text-sm text-[#7b5a3b] mt-4 text-center">
+                    ⚠️ Please do not close this page or click the button again.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Success Modal for Product Addition */}
+          {showProductSuccess && (
+            <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowProductSuccess(false)}>
+              <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
+                <div className="flex flex-col items-center">
+                  <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4 animate-bounce">
+                    <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-[#5c3d28] mb-2">Product Added Successfully!</h3>
+                  <p className="text-[#7b5a3b] text-center mb-6">
+                    Your product has been added and is now being processed. You can view it in your inventory list.
+                  </p>
+                  <button
+                    onClick={() => setShowProductSuccess(false)}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] rounded-lg transition-all font-semibold shadow-md text-white"
+                    style={{ 
+                      color: '#ffffff',
+                      fontWeight: '600'
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       

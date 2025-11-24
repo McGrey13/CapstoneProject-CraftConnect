@@ -263,6 +263,8 @@ Route::middleware([])->group(function () {
     // Public work and events routes (for customers to view)
     Route::get('/work-and-events/public', [Work_and_EventsController::class, 'getPublicWorkAndEvents']);
     Route::get('/work-and-events/public/{id}', [Work_and_EventsController::class, 'getPublicWorkAndEventById'])->whereNumber('id');
+    // Register for event (requires authentication)
+    Route::post('/work-and-events/public/{id}/register', [Work_and_EventsController::class, 'registerForEvent'])->whereNumber('id')->middleware('auth:sanctum');
     
     // Payment success/failed routes (public - for PayMongo redirects)
     Route::get('/payment/success', [PaymentController::class, 'success']);

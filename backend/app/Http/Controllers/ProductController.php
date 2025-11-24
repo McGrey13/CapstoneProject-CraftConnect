@@ -238,7 +238,32 @@ class ProductController extends Controller
             'variations.*.quantity' => 'nullable|integer|min:0',
             'variations.*.price' => 'nullable|numeric|min:0',
             'variations.*.sku' => 'nullable|string|max:100',
+            'submission_token' => 'nullable|string|max:255', // Made optional to handle missing column
         ]);
+
+        // Check if submission_token column exists and if token is provided
+        // Only check for duplicate submissions if column exists and token is provided
+        if (isset($data['submission_token']) && !empty($data['submission_token'])) {
+            try {
+                // Check if column exists in database
+                $hasSubmissionTokenColumn = \Illuminate\Support\Facades\Schema::hasColumn('products', 'submission_token');
+                
+                if ($hasSubmissionTokenColumn) {
+                    $existingProduct = Product::where('submission_token', $data['submission_token'])->first();
+                    if ($existingProduct) {
+                        return response()->json([
+                            'message' => 'Product submission already processed. Please do not submit multiple times.',
+                            'error' => 'duplicate_submission'
+                        ], 409); // 409 Conflict
+                    }
+                }
+            } catch (\Exception $e) {
+                // If checking for column fails, just log and continue
+                Log::warning('Could not check submission_token column in products table', [
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
         
         $sellerId = $seller->sellerID;
         Log::info('Seller ID:', ['seller_id' => $sellerId]);
@@ -333,7 +358,24 @@ class ProductController extends Controller
                 ], 422);
             }
             
-            $product = Product::create($data);
+            // Remove submission_token from data if column doesn't exist
+            $productData = $data;
+            if (isset($productData['submission_token'])) {
+                try {
+                    if (!\Illuminate\Support\Facades\Schema::hasColumn('products', 'submission_token')) {
+                        unset($productData['submission_token']);
+                        Log::info('Removed submission_token from product data - column does not exist');
+                    }
+                } catch (\Exception $e) {
+                    // If check fails, remove it to be safe
+                    unset($productData['submission_token']);
+                    Log::warning('Removed submission_token from product data due to error checking column', [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            
+            $product = Product::create($productData);
             Log::info('Product created successfully:', [
                 'product_id' => $product->product_id,
                 'sku' => $product->sku,
@@ -1587,15 +1629,34 @@ class ProductController extends Controller
             }
 
             // Get approved products from followed sellers (excluding drafts)
-            $products = Product::with('seller.user')
-                ->whereIn('seller_id', $followedSellerIds)
-                ->where('approval_status', 'approved')
-                ->where('publish_status', 'published')
-                ->whereHas('seller.user', function($q) {
-                    $q->where('status', 'active'); // Only show products from active sellers
-                })
-                ->orderByRaw('FIELD(seller_id, ' . implode(',', $followedSellerIds->toArray()) . ') DESC')
-                ->get();
+            // SECURITY FIX: Use parameterized query to prevent SQL injection
+            // Create placeholders for the FIELD() function safely
+            $sellerIdArray = $followedSellerIds->toArray();
+            if (empty($sellerIdArray)) {
+                // If no followed sellers, return empty collection
+                $products = collect([]);
+            } else {
+                // Validate all IDs are integers to prevent injection
+                $sellerIdArray = array_filter(array_map('intval', $sellerIdArray), function($id) {
+                    return $id > 0;
+                });
+                
+                if (empty($sellerIdArray)) {
+                    $products = collect([]);
+                } else {
+                    // Use parameterized query with placeholders
+                    $placeholders = implode(',', array_fill(0, count($sellerIdArray), '?'));
+                    $products = Product::with('seller.user')
+                        ->whereIn('seller_id', $sellerIdArray)
+                        ->where('approval_status', 'approved')
+                        ->where('publish_status', 'published')
+                        ->whereHas('seller.user', function($q) {
+                            $q->where('status', 'active'); // Only show products from active sellers
+                        })
+                        ->orderByRaw("FIELD(seller_id, {$placeholders}) DESC", $sellerIdArray)
+                        ->get();
+                }
+            }
 
             // Transform products to include full image URLs
             $productsWithImages = $products->map(function ($product) {

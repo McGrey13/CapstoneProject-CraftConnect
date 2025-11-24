@@ -43,8 +43,10 @@ class ProductValidationService
         'jewelry',
         'metalwork',
         'beaded accessories',
+        'beadwork',
         'bracelets',
         'necklaces',
+        'earrings',
         'handmade accessories',
         
         // Footwear (Liliw, Biñan)
@@ -272,10 +274,10 @@ class ProductValidationService
             'categories' => ['weaving', 'upcycling', 'home décor', 'accessories', 'upcycled weaving', 'eco craft'],
             'province' => 'laguna'
         ],
-        // Cabuyao City, Laguna - Clay Pots & Cement Craft / Embroidery (especially flowers)
+        // Cabuyao City, Laguna - Clay Pots & Cement Craft / Embroidery / Crochet / Beadwork (especially flowers, bracelets, earrings, animals, and all crochet items)
         'cabuyao' => [
-            'keywords' => ['clay pot', 'garden pot', 'clay planter', 'cement', 'plant stand', 'home décor', 'landscaper', 'garden craft', 'processed food', 'sweet', 'jam', 'preserved food', 'cottage industry', 'clay pots', 'cement craft', 'plant pot', 'jar', 'sculpture', 'embroidery', 'embroidered', 'flower embroidery', 'embroidered flower', 'floral embroidery', 'flower design', 'floral design', 'thread', 'stitch', 'needlework'],
-            'categories' => ['pottery', 'cement craft', 'home décor', 'food craft', 'embroidery', 'textiles'],
+            'keywords' => ['clay pot', 'garden pot', 'clay planter', 'cement', 'plant stand', 'home décor', 'landscaper', 'garden craft', 'processed food', 'sweet', 'jam', 'preserved food', 'cottage industry', 'clay pots', 'cement craft', 'plant pot', 'jar', 'sculpture', 'embroidery', 'embroidered', 'flower embroidery', 'embroidered flower', 'floral embroidery', 'flower design', 'floral design', 'thread', 'stitch', 'needlework', 'crochet', 'crocheted', 'crochet flower', 'crochet flowers', 'crocheted flower', 'crocheted flowers', 'crochet item', 'crochet items', 'crochet animal', 'crochet animals', 'crocheted animal', 'crocheted animals', 'amigurumi', 'crochet toy', 'crochet toys', 'crocheted toy', 'crocheted toys', 'crochet doll', 'crochet dolls', 'crocheted doll', 'crocheted dolls', 'crochet bear', 'crochet cat', 'crochet dog', 'crochet rabbit', 'crochet bunny', 'crochet bird', 'crochet birdie', 'crochet penguin', 'crochet elephant', 'crochet giraffe', 'crochet lion', 'crochet tiger', 'crochet panda', 'crochet whale', 'crochet octopus', 'crochet fish', 'crochet turtle', 'crochet frog', 'crochet pig', 'crochet cow', 'crochet sheep', 'crochet horse', 'crochet unicorn', 'crochet dragon', 'crochet monster', 'crochet character', 'crochet bag', 'crochet bags', 'crocheted bag', 'crocheted bags', 'crochet purse', 'crochet wallet', 'crochet hat', 'crochet beanie', 'crochet scarf', 'crochet shawl', 'crochet blanket', 'crochet blanket', 'crochet pillow', 'crochet cushion', 'crochet coaster', 'crochet coasters', 'crochet basket', 'crochet baskets', 'crochet plant holder', 'crochet plant hanger', 'crochet keychain', 'crochet keychains', 'crochet bookmark', 'crochet bookmarks', 'crochet garland', 'crochet bunting', 'crochet decoration', 'crochet decorations', 'crochet home decor', 'crochet home décor', 'crochet wall hanging', 'crochet rug', 'crochet mat', 'crochet doily', 'crochet doilies', 'crochet table runner', 'crochet placemat', 'crochet pot holder', 'crochet dishcloth', 'crochet washcloth', 'crochet towel', 'crochet towel topper', 'crochet soap holder', 'crochet tissue box cover', 'crochet phone case', 'crochet laptop sleeve', 'crochet case', 'crochet cover', 'crochet accessory', 'crochet accessories', 'crochet jewelry', 'crochet necklace', 'crochet bracelet', 'crochet earring', 'crochet earrings', 'crochet ring', 'crochet brooch', 'crochet pin', 'crochet applique', 'crochet appliqué', 'crochet patch', 'crochet motif', 'crochet granny square', 'crochet pattern', 'beadwork', 'beaded', 'bead', 'beads', 'beadwork bracelet', 'beadwork bracelets', 'beaded bracelet', 'beaded bracelets', 'beadwork earring', 'beadwork earrings', 'beaded earring', 'beaded earrings', 'bead jewelry', 'bead accessory', 'bead accessories'],
+            'categories' => ['pottery', 'cement craft', 'home décor', 'food craft', 'embroidery', 'textiles', 'crochet', 'beadwork', 'beaded accessories', 'bracelets', 'earrings', 'jewelry', 'handmade accessories', 'toys', 'amigurumi', 'handmade toys'],
             'province' => 'laguna'
         ],
         // Nagcarlan, Laguna - Small-scale Handicrafts / Decorative Items
@@ -290,10 +292,10 @@ class ProductValidationService
             'categories' => ['natural-fiber weaving'],
             'province' => 'laguna'
         ],
-        // Majayjay, Laguna - Crochet & Handwoven Items / Food delicacies
+        // Majayjay, Laguna - Crochet & Handwoven Items / Food delicacies (all crochet items including animals)
         'majayjay' => [
-            'keywords' => ['crochet', 'handwoven', 'bag', 'table runner', 'textile craft', 'longganisa', 'espasol', 'delicacy', 'culinary'],
-            'categories' => ['textile craft', 'culinary crafts'],
+            'keywords' => ['crochet', 'crocheted', 'crochet flower', 'crochet flowers', 'crocheted flower', 'crocheted flowers', 'crochet item', 'crochet items', 'crochet animal', 'crochet animals', 'crocheted animal', 'crocheted animals', 'amigurumi', 'crochet toy', 'crochet toys', 'crocheted toy', 'crocheted toys', 'crochet doll', 'crochet dolls', 'crocheted doll', 'crocheted dolls', 'crochet bear', 'crochet cat', 'crochet dog', 'crochet rabbit', 'crochet bunny', 'crochet bird', 'crochet birdie', 'crochet penguin', 'crochet elephant', 'crochet giraffe', 'crochet lion', 'crochet tiger', 'crochet panda', 'crochet whale', 'crochet octopus', 'crochet fish', 'crochet turtle', 'crochet frog', 'crochet pig', 'crochet cow', 'crochet sheep', 'crochet horse', 'crochet unicorn', 'crochet dragon', 'crochet monster', 'crochet character', 'crochet bag', 'crochet bags', 'crocheted bag', 'crocheted bags', 'crochet purse', 'crochet wallet', 'crochet hat', 'crochet beanie', 'crochet scarf', 'crochet shawl', 'crochet blanket', 'crochet blanket', 'crochet pillow', 'crochet cushion', 'crochet coaster', 'crochet coasters', 'crochet basket', 'crochet baskets', 'crochet plant holder', 'crochet plant hanger', 'crochet keychain', 'crochet keychains', 'crochet bookmark', 'crochet bookmarks', 'crochet garland', 'crochet bunting', 'crochet decoration', 'crochet decorations', 'crochet home decor', 'crochet home décor', 'crochet wall hanging', 'crochet rug', 'crochet mat', 'crochet doily', 'crochet doilies', 'crochet table runner', 'crochet placemat', 'crochet pot holder', 'crochet dishcloth', 'crochet washcloth', 'crochet towel', 'crochet towel topper', 'crochet soap holder', 'crochet tissue box cover', 'crochet phone case', 'crochet laptop sleeve', 'crochet case', 'crochet cover', 'crochet accessory', 'crochet accessories', 'crochet jewelry', 'crochet necklace', 'crochet bracelet', 'crochet earring', 'crochet earrings', 'crochet ring', 'crochet brooch', 'crochet pin', 'crochet applique', 'crochet appliqué', 'crochet patch', 'crochet motif', 'crochet granny square', 'crochet pattern', 'handwoven', 'bag', 'table runner', 'textile craft', 'longganisa', 'espasol', 'delicacy', 'culinary'],
+            'categories' => ['textile craft', 'culinary crafts', 'crochet', 'textiles', 'toys', 'amigurumi', 'handmade toys', 'handmade accessories'],
             'province' => 'laguna'
         ],
         // Magdalena, Laguna - Wooden Household Items (spoons, bowls, chopping boards) - Local hardwood

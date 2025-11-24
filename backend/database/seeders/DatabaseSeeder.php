@@ -77,7 +77,7 @@ class DatabaseSeeder extends Seeder
 
             [
                 'userName' => 'Jamiah Sophia M. Guinto',
-                'userEmail' => 'jamiahguinto@example.com',
+                'userEmail' => ' 3',
                 'role' => 'seller',
                 'userContactNumber' => '09678901234',
                 'userAddress' => 'San Isidro',

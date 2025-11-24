@@ -113,6 +113,7 @@ const CreateStore = () => {
     
   ];
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalSteps = 5;
   const progressPercentage = (currentStep / totalSteps) * 100;
@@ -134,11 +135,77 @@ const CreateStore = () => {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
 
+  // File size limits
+  const MAX_LOGO_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024; // 20MB
+
+  const validateFilesBeforeSubmit = () => {
+    const errors = [];
+
+    // Validate logo
+    if (storeData.logo) {
+      if (storeData.logo.size > MAX_LOGO_SIZE) {
+        const sizeMB = (storeData.logo.size / (1024 * 1024)).toFixed(2);
+        errors.push(`Store logo is too large (${sizeMB}MB). Maximum size is 10MB.`);
+      }
+    }
+
+    // Validate BIR permit
+    if (storeData.birPermit) {
+      if (storeData.birPermit.size > MAX_DOCUMENT_SIZE) {
+        const sizeMB = (storeData.birPermit.size / (1024 * 1024)).toFixed(2);
+        errors.push(`BIR Permit is too large (${sizeMB}MB). Maximum size is 20MB.`);
+      }
+    }
+
+    // Validate DTI permit
+    if (storeData.dtiPermit) {
+      if (storeData.dtiPermit.size > MAX_DOCUMENT_SIZE) {
+        const sizeMB = (storeData.dtiPermit.size / (1024 * 1024)).toFixed(2);
+        errors.push(`DTI Permit is too large (${sizeMB}MB). Maximum size is 20MB.`);
+      }
+    }
+
+    // Validate ID image
+    if (storeData.idImage) {
+      if (storeData.idImage.size > MAX_DOCUMENT_SIZE) {
+        const sizeMB = (storeData.idImage.size / (1024 * 1024)).toFixed(2);
+        errors.push(`ID Document is too large (${sizeMB}MB). Maximum size is 20MB.`);
+      }
+    }
+
+    return errors;
+  };
+
   const handleSubmit = async () => {
     if (!storeData.agreedToTerms) {
       setError("You must agree to the terms and conditions");
       return;
     }
+
+    // Prevent duplicate submissions
+    if (isSubmitting) {
+      return;
+    }
+
+    // Validate files before submission
+    const fileErrors = validateFilesBeforeSubmit();
+    if (fileErrors.length > 0) {
+      setError(fileErrors.join('\n'));
+      // Navigate to step 3 (documents) if there are file errors
+      if (fileErrors.some(err => err.includes('logo'))) {
+        setCurrentStep(1); // Go to Store Details for logo
+      } else {
+        setCurrentStep(3); // Go to Documents step
+      }
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    // Generate unique token for this submission
+    const uniqueToken = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 
     const formData = new FormData();
     formData.append('store_name', storeData.storeName);
@@ -157,6 +224,7 @@ const CreateStore = () => {
     if (storeData.ownerCity) formData.append('owner_city', storeData.ownerCity);
     if (storeData.ownerProvince) formData.append('owner_province', storeData.ownerProvince);
     if (storeData.ownerRegion) formData.append('owner_region', storeData.ownerRegion);
+    formData.append('submission_token', uniqueToken);
 
     try {
       await createStore(formData);
@@ -164,16 +232,45 @@ const CreateStore = () => {
       // Stay on verification pending page - no redirect
     } catch (err) {
       console.error('Failed to create store', err);
+      console.error('Error response:', err.response?.data);
+      
       const backendErrors = err.response?.data;
-      if (backendErrors?.errors && typeof backendErrors.errors === 'object') {
-        const formatted = Object.entries(backendErrors.errors)
-          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-          .join('\n');
-        setError(formatted || backendErrors.message || 'Failed to submit store. Please review your inputs.');
-      } else {
-        setError(backendErrors?.message || 'Failed to submit store. Please try again.');
+      let errorMessage = 'Failed to submit store. Please try again.';
+      
+      // Handle validation errors (422)
+      if (err.response?.status === 422 && backendErrors?.errors) {
+        const errorMessages = [];
+        
+        // Format field errors
+        Object.entries(backendErrors.errors).forEach(([field, messages]) => {
+          const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          const messageArray = Array.isArray(messages) ? messages : [messages];
+          errorMessages.push(`${fieldName}: ${messageArray.join(', ')}`);
+        });
+        
+        if (errorMessages.length > 0) {
+          errorMessage = errorMessages.join('\n');
+        } else {
+          errorMessage = backendErrors.message || 'Please check your inputs and try again.';
+        }
+      } 
+      // Handle file size errors
+      else if (err.response?.status === 413 || err.response?.status === 500) {
+        if (backendErrors?.message) {
+          errorMessage = backendErrors.message;
+        } else {
+          errorMessage = 'File size too large or server error. Please ensure all files are under the size limits (10MB for logo, 20MB for documents) and try again.';
+        }
       }
-      setCurrentStep(1); // Return to first step if there's an error
+      // Handle other errors
+      else if (backendErrors?.message) {
+        errorMessage = backendErrors.message;
+      }
+      
+      setError(errorMessage);
+      // Don't go back to step 1 - stay on current step so user can see the error
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -361,15 +458,27 @@ const CreateStore = () => {
             <div className="flex justify-between mt-8">
               <button
                 onClick={handleBack}
-                className="px-6 py-2 border border-amber-700 text-amber-700 rounded-lg hover:bg-amber-50"
+                disabled={isSubmitting}
+                className="px-6 py-2 border border-amber-700 text-amber-700 rounded-lg hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {"Back"}
               </button>
               <button
                 onClick={handleSubmit}
-                className="px-6 py-2 bg-amber-700 text-black rounded-lg hover:bg-amber-800"
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-amber-700 text-black rounded-lg hover:bg-amber-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {"Submit Store"}
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Store"
+                )}
               </button>
             </div>
           </div>
@@ -445,6 +554,55 @@ const CreateStore = () => {
         renderSuccessScreen()
       )}
       </div>
+
+      {/* Error Modal */}
+      {error && !isSubmitting && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setError(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-[#5c3d28]">Submission Error</h3>
+              </div>
+              <div className="mb-6">
+                <p className="text-[#7b5a3b] whitespace-pre-line">{error}</p>
+              </div>
+              <button
+                onClick={() => setError(null)}
+                className="w-full px-6 py-3 bg-amber-700 text-white rounded-lg hover:bg-amber-800 transition-colors font-semibold shadow-md"
+                style={{ color: '#ffffff' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Modal */}
+      {isSubmitting && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="flex flex-col items-center">
+              <svg className="animate-spin h-16 w-16 text-amber-700 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <h3 className="text-2xl font-bold text-[#5c3d28] mb-2">Submitting Store</h3>
+              <p className="text-[#7b5a3b] text-center">
+                Please wait while we process your store submission. This may take a few moments...
+              </p>
+              <p className="text-sm text-[#7b5a3b] mt-4 text-center">
+                ⚠️ Please do not close this page or click the submit button again.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

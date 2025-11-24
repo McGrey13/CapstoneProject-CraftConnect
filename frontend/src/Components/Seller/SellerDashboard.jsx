@@ -116,10 +116,12 @@ const SellerDashboard = () => {
         console.log('Top rated products from API:', data.topRatedProducts);
         
         // Even if transaction_summary is empty, we still have orders and products
+        // Note: total_gross_amount will be overridden by orders fallback to match analytics
         setDashboardData((prev) => ({
           ...prev,
           ...data,
           // Ensure transaction_summary always exists with defaults
+          // total_gross_amount will be calculated from orders in fetchOrdersFallback to match analytics
           transaction_summary: data.transaction_summary || (prev?.transaction_summary || {
             total_transactions: 0,
             successful_transactions: 0,
@@ -186,6 +188,7 @@ const SellerDashboard = () => {
 
       // Merge with existing dashboard data or create new
       setDashboardData((prev) => {
+        // Calculate total revenue from ALL orders (matching analytics calculation)
         const totalGross = normalized.reduce((s, o) => s + (o.amount || 0), 0);
         const newOrders = normalized.slice(0, 5).map((o) => ({
           id: o.id?.toString().startsWith('ORD-') ? o.id.toString() : `ORD-${o.id}`,
@@ -198,28 +201,23 @@ const SellerDashboard = () => {
           ...(prev || {}),
           transaction_summary: {
             ...(prev?.transaction_summary || {}),
-            // Only update if we don't have transaction data, or if orders show more
-            total_transactions: prev?.transaction_summary?.total_transactions || normalized.length,
-            successful_transactions: prev?.transaction_summary?.successful_transactions || normalized.length,
-            total_gross_amount: prev?.transaction_summary?.total_gross_amount || Math.round(totalGross * 100) / 100,
+            // Always use orders-based calculation to match analytics
+            total_transactions: normalized.length,
+            successful_transactions: normalized.length,
+            // Use orders total (matching analytics) instead of transactions
+            total_gross_amount: Math.round(totalGross * 100) / 100,
             total_admin_fee: prev?.transaction_summary?.total_admin_fee || Math.round(totalGross * 0.02 * 100) / 100,
             total_seller_amount: prev?.transaction_summary?.total_seller_amount || Math.round(totalGross * 0.98 * 100) / 100,
-            average_transaction: prev?.transaction_summary?.average_transaction || (normalized.length ? Math.round((totalGross / normalized.length) * 100) / 100 : 0),
+            average_transaction: normalized.length ? Math.round((totalGross / normalized.length) * 100) / 100 : 0,
             commission_rate: prev?.transaction_summary?.commission_rate || '2%',
             payment_methods: prev?.transaction_summary?.payment_methods || [],
-            // Use calculated values from orders if backend doesn't provide them or if calculated is higher
+            // Use calculated values from orders
             pending_payments: {
-              count: (prev?.transaction_summary?.pending_payments?.count ?? 0) > 0 
-                ? prev.transaction_summary.pending_payments.count 
-                : pendingPayments.length,
-              total_amount: (prev?.transaction_summary?.pending_payments?.total_amount ?? 0) > 0
-                ? prev.transaction_summary.pending_payments.total_amount
-                : Math.round(pendingAmount * 100) / 100,
+              count: pendingPayments.length,
+              total_amount: Math.round(pendingAmount * 100) / 100,
             },
-            // Use calculated online payment count from orders if backend doesn't provide it
-            online_payment_count: (prev?.transaction_summary?.online_payment_count ?? 0) > 0
-              ? prev.transaction_summary.online_payment_count
-              : onlinePayments.length,
+            // Use calculated online payment count from orders
+            online_payment_count: onlinePayments.length,
           },
           // Use backend orders if available, otherwise use fallback
           recentOrders: (prev?.recentOrders && prev.recentOrders.length > 0)
@@ -315,111 +313,6 @@ const SellerDashboard = () => {
           icon={<Clock className="h-4 w-4 text-primary" />}
         />
       </div>
-
-      {/* Payment Method Breakdown */}
-      {dashboardData?.transaction_summary?.payment_methods && dashboardData.transaction_summary.payment_methods.length > 0 && (
-        <Card className="mt-6 border-[#e5ded7] bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
-            <CardTitle className="text-[#5c3d28] flex items-center">
-              <CreditCard className="h-5 w-5 mr-2 text-[#a4785a]" />
-              Payment Method Breakdown
-            </CardTitle>
-            <CardDescription className="text-[#7b5a3b]">
-              Revenue breakdown by payment method
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-3">
-              {dashboardData.transaction_summary.payment_methods.map((method, index) => (
-                <div key={index} className="flex items-center justify-between p-4 border-2 border-[#e5ded7] rounded-xl hover:border-[#a4785a] hover:shadow-md transition-all duration-200 bg-gradient-to-r from-white to-[#faf9f8]">
-                  <div className="flex items-center space-x-4">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-lg">
-                      {method.method === 'gcash' && <CreditCard className="h-6 w-6 text-white" />}
-                      {method.method === 'paymaya' && <CreditCard className="h-6 w-6 text-white" />}
-                      {method.method === 'cod' && <DollarSign className="h-6 w-6 text-white" />}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-[#5c3d28]">{method.display_name}</div>
-                      <div className="text-sm text-[#7b5a3b]">
-                        {method.transaction_count} transactions
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-lg text-[#a4785a]">₱{method.total_amount.toLocaleString()}</div>
-                    <div className="text-sm text-[#7b5a3b] font-medium">
-                      {method.percentage}% of total
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Commission Details */}
-      {dashboardData?.transaction_summary && (
-        <Card className="mt-6 border-[#e5ded7] bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="border-b border-[#e5ded7] bg-gradient-to-r from-[#faf9f8] to-white">
-            <CardTitle className="text-[#5c3d28] flex items-center">
-              <DollarSign className="h-5 w-5 mr-2 text-[#a4785a]" />
-              Commission & Revenue Details
-            </CardTitle>
-            <CardDescription className="text-[#7b5a3b]">
-              Detailed breakdown of your earnings and platform fees
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="p-6 border-2 border-[#e5ded7] rounded-xl bg-gradient-to-br from-green-50 to-white hover:border-green-400 hover:shadow-lg transition-all duration-300">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg">
-                    <TrendingUp className="h-6 w-6 text-white" />
-                  </div>
-                  <span className="font-semibold text-[#5c3d28]">Total Revenue</span>
-                </div>
-                <div className="text-3xl font-bold text-green-600 mb-2">
-                  ₱{dashboardData.transaction_summary.total_gross_amount?.toLocaleString() || "0.00"}
-                </div>
-                <div className="text-sm text-[#7b5a3b] font-medium">
-                  {dashboardData.transaction_summary.total_transactions || 0} transactions
-                </div>
-              </div>
-              
-              <div className="p-6 border-2 border-[#e5ded7] rounded-xl bg-gradient-to-br from-blue-50 to-white hover:border-blue-400 hover:shadow-lg transition-all duration-300">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
-                    <Percent className="h-6 w-6 text-white" />
-                  </div>
-                  <span className="font-semibold text-[#5c3d28]">Platform Fee</span>
-                </div>
-                <div className="text-3xl font-bold text-blue-600 mb-2">
-                  ₱{dashboardData.transaction_summary.total_admin_fee?.toLocaleString() || "0.00"}
-                </div>
-                <div className="text-sm text-[#7b5a3b] font-medium">
-                  {dashboardData.transaction_summary.commission_rate} commission rate
-                </div>
-              </div>
-              
-              <div className="p-6 border-2 border-[#e5ded7] rounded-xl bg-gradient-to-br from-[#a4785a]/10 to-white hover:border-[#a4785a] hover:shadow-lg transition-all duration-300">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center shadow-lg">
-                    <DollarSign className="h-6 w-6 text-white" />
-                  </div>
-                  <span className="font-semibold text-[#5c3d28]">Your Earnings</span>
-                </div>
-                <div className="text-3xl font-bold bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] bg-clip-text text-transparent mb-2">
-                  ₱{dashboardData.transaction_summary.total_seller_amount?.toLocaleString() || "0.00"}
-                </div>
-                <div className="text-sm text-[#7b5a3b] font-medium">
-                  After commission deduction
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Bottom Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
