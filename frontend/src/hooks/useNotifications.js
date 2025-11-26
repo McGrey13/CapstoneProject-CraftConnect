@@ -139,14 +139,32 @@ const useNotifications = () => {
 
   // Poll for new notifications (for real-time updates)
   useEffect(() => {
-    fetchUnreadCount();
+    // Only start polling if token exists
+    const token = getToken();
+    if (!token) {
+      setUnreadCount(0);
+      return;
+    }
 
-    // Set up polling every 30 seconds
-    const interval = setInterval(() => {
+    // Wait a bit to ensure auth check completes
+    const timer = setTimeout(() => {
       fetchUnreadCount();
+    }, 300);
+
+    // Set up polling every 30 seconds, but check token each time
+    const interval = setInterval(() => {
+      const currentToken = getToken();
+      if (currentToken) {
+        fetchUnreadCount();
+      } else {
+        setUnreadCount(0);
+      }
     }, 30000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, [fetchUnreadCount]);
 
   return {

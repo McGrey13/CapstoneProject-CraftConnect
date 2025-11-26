@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
 import api from "../../api";
@@ -13,6 +13,12 @@ const CategoryGrid = () => {
   const [categoryFilters, setCategoryFilters] = useState([
     { id: "all", name: "All", queryParam: "" }
   ]);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(true);
+  const [isSticky, setIsSticky] = useState(false);
+  const scrollContainerRef = useRef(null);
+  const categoryBarRef = useRef(null);
+  const headingRef = useRef(null);
   const buildCategoryId = (name = "") =>
     name
       .toLowerCase()
@@ -25,6 +31,72 @@ const CategoryGrid = () => {
       setShowScrollHint(false);
     }, 3000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Check scroll position and update arrow visibility
+  const checkScrollPosition = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  // Scroll functions
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({
+        left: -300,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({
+        left: 300,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Check scroll position on mount and when categories change
+  useEffect(() => {
+    checkScrollPosition();
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScrollPosition);
+      // Check on resize
+      window.addEventListener('resize', checkScrollPosition);
+      return () => {
+        container.removeEventListener('scroll', checkScrollPosition);
+        window.removeEventListener('resize', checkScrollPosition);
+      };
+    }
+  }, [categoryFilters]);
+
+  // Handle scroll to make category bar sticky
+  useEffect(() => {
+    const handleScroll = () => {
+      if (headingRef.current && categoryBarRef.current) {
+        const headingBottom = headingRef.current.getBoundingClientRect().bottom;
+        const navbarHeight = 65;
+        // When heading scrolls past the top, make category bar fixed
+        if (headingBottom <= navbarHeight) {
+          setIsSticky(true);
+        } else {
+          setIsSticky(false);
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Check initial state
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   // Helper function to convert image URLs to relative paths
@@ -160,15 +232,18 @@ const CategoryGrid = () => {
 
   return (
     <div className="w-full bg-[#fefefe] py-8">
-      <div className="max-w-7xl mx-auto px-4 text-center mb-8">
+      <div ref={headingRef} className="max-w-7xl mx-auto px-4 text-center mb-8">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Explore Local Craft Stores</h2>
         <p className="text-sm md:text-base text-gray-600 max-w-2xl mx-auto mb-4">
           Discover talented artisans and their unique craft stores
         </p>
       </div>
 
-      {/* Category Filter Bar */}
-      <div className="mb-8 bg-white sticky top-[65px] z-40">
+      {/* Category Filter Bar - Fixed at top when scrolling */}
+      <div 
+        ref={categoryBarRef} 
+        className={`${isSticky ? 'fixed top-[65px] left-0 right-0 w-full' : 'relative'} z-[100] bg-white shadow-lg border-b-2 border-gray-300 mb-8`}
+      >
         <div className="max-w-7xl mx-auto px-4">
           {/* Mobile Dropdown */}
           <div className="lg:hidden relative py-3">
@@ -191,25 +266,69 @@ const CategoryGrid = () => {
           </div>
 
           {/* Tablet & Desktop Categories */}
-          <div className="hidden lg:flex items-center justify-center gap-3 py-3 w-full overflow-x-auto scrollbar-hide pb-2">
-            {categoryFilters.map((category) => (
+          <div className="hidden lg:block py-3 relative category-scroll-wrapper">
+            {/* Left Arrow Button */}
+            {showLeftArrow && (
               <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`py-2 px-3 xl:px-4 font-medium text-xs xl:text-sm transition-all duration-200 flex items-center gap-1.5 xl:gap-2 whitespace-nowrap flex-shrink-0 rounded-full ${
-                  selectedCategory === category.id
-                    ? 'text-white bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] shadow-md'
-                    : 'text-[#5c3d28] hover:text-[#a4785a] hover:bg-[#a4785a]/10 border border-gray-200'
-                }`}
+                onClick={scrollLeft}
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-white hover:bg-gradient-to-r hover:from-[#a4785a] hover:to-[#7b5a3b] border-2 border-[#a4785a] rounded-full p-2.5 shadow-lg transition-all duration-200 hover:shadow-xl group hover:scale-110"
+                aria-label="Scroll left"
               >
-                {category.name}
+                <svg 
+                  className="w-5 h-5 text-[#a4785a] group-hover:text-white transition-colors" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
               </button>
-            ))}
+            )}
+
+            {/* Right Arrow Button */}
+            {showRightArrow && (
+              <button
+                onClick={scrollRight}
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-white hover:bg-gradient-to-r hover:from-[#a4785a] hover:to-[#7b5a3b] border-2 border-[#a4785a] rounded-full p-2.5 shadow-lg transition-all duration-200 hover:shadow-xl group hover:scale-110"
+                aria-label="Scroll right"
+              >
+                <svg 
+                  className="w-5 h-5 text-[#a4785a] group-hover:text-white transition-colors" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            )}
+
+            <div 
+              ref={scrollContainerRef}
+              className="w-full category-scroll-container scrollbar-hide"
+              onScroll={checkScrollPosition}
+            >
+              <div className="flex items-center gap-3 pb-2 pl-12 pr-12">
+                {categoryFilters.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={`py-2.5 px-5 xl:px-6 font-medium text-sm xl:text-base transition-all duration-200 flex items-center gap-2 whitespace-nowrap flex-shrink-0 rounded-full ${
+                      selectedCategory === category.id
+                        ? 'text-white bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] shadow-md'
+                        : 'text-[#5c3d28] hover:text-[#a4785a] hover:bg-[#a4785a]/10 border border-gray-200 bg-white'
+                    }`}
+                  >
+                    {category.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 py-8">
 
         {loading ? (
           <div className="flex justify-center items-center h-40">

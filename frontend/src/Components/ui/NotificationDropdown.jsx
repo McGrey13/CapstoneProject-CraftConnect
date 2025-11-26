@@ -37,12 +37,16 @@ const NotificationDropdown = ({ className = '' }) => {
     deleteAllRead,
   } = useNotifications();
 
-  // Fetch notifications when dropdown opens
+  // Fetch notifications when dropdown opens (only if user is authenticated)
   useEffect(() => {
-    if (isOpen) {
-      fetchNotifications({ perPage: 10, read: 'all' });
+    if (isOpen && user) {
+      // Check token before making API call
+      const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+      if (token) {
+        fetchNotifications({ perPage: 10, read: 'all' });
+      }
     }
-  }, [isOpen, fetchNotifications]);
+  }, [isOpen, fetchNotifications, user]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

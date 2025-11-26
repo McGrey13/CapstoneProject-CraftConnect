@@ -211,6 +211,9 @@ api.interceptors.response.use(
     // Gate refresh to bearer-token flow only; cookie-based auth should use secureApi
     const existingToken = getToken();
     if (!existingToken) {
+      // No token exists - silently reject to prevent console spam
+      // Mark error as handled to prevent further processing
+      error._handled = true;
       return Promise.reject(error);
     }
       // Prevent infinite refresh loops
@@ -263,15 +266,33 @@ api.interceptors.response.use(
         }
       } catch (refreshError) {
         processQueue(refreshError, null);
-        // Refresh failed, redirect to login
-        console.log('Token refresh failed, redirecting to login');
-        setToken(null); // Clear token
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = '/login';
+        // Refresh failed - silently handle 401 errors
+        if (refreshError.response?.status === 401) {
+          // Token is invalid, clear auth state silently
+          setToken(null);
+          localStorage.removeItem('user_data');
+          sessionStorage.removeItem('auth_token');
+          // Don't redirect or log - let components handle it
+        } else {
+          // Only log non-401 errors
+          console.log('Token refresh failed, redirecting to login');
+          setToken(null);
+          localStorage.clear();
+          sessionStorage.clear();
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
+      }
+    }
+
+    // Silently handle 401 errors when no token exists
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      const existingToken = getToken();
+      if (!existingToken) {
+        // Mark as handled to prevent console logging
+        error._handled = true;
       }
     }
 

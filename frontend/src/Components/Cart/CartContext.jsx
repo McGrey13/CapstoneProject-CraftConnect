@@ -10,14 +10,14 @@ export const CartProvider = ({ children }) => {
   const addToCartTimeoutRef = useRef(null);
 
   const fetchCart = async () => {
-    if (!isAuthenticated || (user?.role && user.role !== 'customer')) {
-      console.log("Cart disabled for current user, clearing cart", { isAuthenticated, role: user?.role });
+    // Check token before making API call
+    const token = getToken();
+    if (!isAuthenticated || !token || (user?.role && user.role !== 'customer')) {
       setCartItems([]);
       return;
     }
 
     try {
-      console.log("Fetching cart...", { token: getToken() });
       
       // Add retry logic for timeout errors
       let retries = 3;
@@ -212,6 +212,12 @@ export const CartProvider = ({ children }) => {
         } catch (error) {
           lastError = error;
           
+          // Silently handle 401 errors - don't log or retry
+          if (error.response?.status === 401) {
+            setCartItems([]);
+            return; // Don't retry for auth errors
+          }
+          
           // Check if it's an HTML error from backend
           if (error.isHtmlError || (error.response?.data && typeof error.response.data === 'string' && error.response.data.includes('<html'))) {
             console.error('⚠️ Backend server error detected. Please ensure Laravel backend is running on http://localhost:8000');
@@ -233,10 +239,15 @@ export const CartProvider = ({ children }) => {
       }
       
       // If we get here, all retries failed
-      console.error("All retries failed for cart:", lastError);
+      if (lastError && lastError.response?.status !== 401) {
+        console.error("All retries failed for cart:", lastError);
+      }
       setCartItems([]);
     } catch (error) {
-      console.error("Failed to fetch cart:", error);
+      // Silently handle 401 errors
+      if (error.response?.status !== 401) {
+        console.error("Failed to fetch cart:", error);
+      }
       setCartItems([]);
     }
   };

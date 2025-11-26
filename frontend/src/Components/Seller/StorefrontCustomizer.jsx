@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Button } from "../ui/button";
+import api from "../../api";
 import {
   Palette,
   Key,
@@ -98,7 +99,7 @@ const StorefrontCustomizer = () => {
   const [storeData, setStoreData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
+  const [previewMode, setPreviewMode] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [authError, setAuthError] = useState(false);
@@ -552,18 +553,9 @@ const handleImageUpload = (type, file) => {
         </div>
         <div className="flex gap-1 sm:gap-2 justify-end">
           <Button
-            variant={previewMode ? "default" : "outline"}
-            onClick={() => setPreviewMode(!previewMode)}
-            className="flex items-center gap-1 text-[10px] sm:text-base py-1 px-2 sm:px-4 sm:py-2 h-7 sm:h-auto"
-          >
-            {previewMode ? <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" /> : <Eye className="h-3 w-3 sm:h-4 sm:w-4" />}
-            <span className="hidden sm:inline">{previewMode ? "Edit Mode" : "Customer View"}</span>
-            <span className="sm:hidden">{previewMode ? "Edit" : "View"}</span>
-          </Button>
-          <Button
             onClick={saveCustomization}
             disabled={saving}
-            className="flex items-center gap-1 text-[10px] sm:text-base py-1 px-2 sm:px-4 sm:py-2 h-7 sm:h-auto"
+            className="flex items-center gap-1 text-[10px] sm:text-base py-1 px-2 sm:px-4 sm:py-2 h-7 sm:h-auto bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white"
           >
             <Save className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">{saving ? "Saving..." : "Save Changes"}</span>
@@ -574,41 +566,20 @@ const handleImageUpload = (type, file) => {
 
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div className="w-full lg:w-2/3">
-          <Card className="p-2 sm:p-6 bg-white border border-dashed border-gray-200">
-            {previewMode ? (
-              <div className="overflow-x-hidden">
-                <StorePreview 
-                  storeData={storeData} 
-                  customization={customization}
-                  imagePreviews={imagePreviews}
-                  setPreviewMode={setPreviewMode}
-                  discountCodes={discountCodes}
-                />
-              </div>
-            ) : (
-            <div className="text-center py-12 sm:py-20">
-                <div className="max-w-md mx-auto px-4">
-                  <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                    <Eye className="h-8 w-8 sm:h-12 sm:w-12 text-white" />
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4">Preview Your Store</h3>
-                  <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
-                    Toggle "Customer View" to see how your store looks to customers
-                  </p>
-                  <Button
-                    onClick={() => setPreviewMode(true)}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base"
-                  >
-                    <Eye className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                    View Customer Experience
-                  </Button>
-                </div>
+          <Card className="p-2 sm:p-6 bg-white border border-dashed border-gray-200 min-h-[600px]">
+            <div className="overflow-x-hidden -m-2 sm:-m-6">
+              <StorePreview 
+                storeData={storeData} 
+                customization={customization}
+                imagePreviews={imagePreviews}
+                setPreviewMode={setPreviewMode}
+                discountCodes={discountCodes}
+              />
             </div>
-            )}
           </Card>
         </div>
 
-        <div className="w-full lg:w-1/3 space-y-6">
+        <div className="w-full lg:w-1/3 space-y-6 lg:sticky lg:top-4 lg:self-start">
           <Tabs defaultValue="branding">
             <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-[#faf9f8] to-white p-2 min-h-[80px] sm:min-h-[90px] rounded-lg border-2 border-[#e5ded7] shadow-md">
               <TabsTrigger 
@@ -986,18 +957,79 @@ const handleImageUpload = (type, file) => {
 
 // Store Preview Component with StoreView Design
 const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode, discountCodes = [] }) => {
-  // Debug logging
-  console.log("🔍 StorePreview - storeData:", storeData);
-  console.log("🔍 StorePreview - logo_url:", storeData?.logo_url);
-  console.log("🔍 StorePreview - imagePreviews:", imagePreviews);
+  const [products, setProducts] = useState([]);
+  const [workshops, setWorkshops] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const sellerId = storeData?.seller?.sellerID;
+  
+  // Fetch real products and workshops
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!sellerId) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        // Fetch seller details with products (same as ArtisanDetail)
+        const res = await api.get(`/sellers/${sellerId}/details`);
+        if (res.data && res.data.products) {
+          const mappedProducts = (res.data.products || []).map((p, index) => {
+            let quantity = 0;
+            if (p.productQuantity !== undefined && p.productQuantity !== null) {
+              quantity = Number(p.productQuantity) || 0;
+            } else if (p.quantity !== undefined && p.quantity !== null) {
+              quantity = Number(p.quantity) || 0;
+            }
+            
+            return {
+              id: p.id || p.product_id || `product-${index}`,
+              name: p.productName,
+              title: p.productName,
+              price: `₱${Number(p.productPrice).toFixed(2)}`,
+              image: p.productImage || "",
+              is_featured: p.is_featured || false,
+              category: p.category || "Handcrafted",
+              rating: p.rating || p.average_rating || 0,
+              quantity: quantity,
+              created_at: p.created_at || null,
+              isNew: p.created_at ? new Date(p.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : false,
+              discount: null,
+              oldPrice: null,
+            };
+          });
+          setProducts(mappedProducts);
+        }
+        
+        // Fetch workshops & events (same as ArtisanDetail)
+        const workshopsRes = await api.get('/work-and-events/public');
+        if (workshopsRes.data) {
+          const payload = workshopsRes.data;
+          const list = Array.isArray(payload?.data) ? payload.data : [];
+          const filtered = list
+            .filter((item) => String(item?.seller?.sellerID ?? item?.seller_id) === String(sellerId))
+            .filter((item) => item !== null && item !== undefined);
+          setWorkshops(filtered);
+        }
+      } catch (error) {
+        console.error('Error fetching preview data:', error);
+        setProducts([]);
+        setWorkshops([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [sellerId]);
   
   // Use real store data from database
   const store = {
     name: storeData?.store?.store_name || "Your Store",
-    logo: storeData?.logo_url || imagePreviews.logo || null, // Use saved logo URL first, then preview
+    logo: storeData?.logo_url || imagePreviews.logo || null,
     banner: storeData?.background_url || imagePreviews.background || "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80",
-    rating: storeData?.seller?.average_rating || 0, // Real rating from database
-    followers: storeData?.seller?.followers_count || 0, // Real followers count from database
+    rating: storeData?.seller?.average_rating || 0,
+    followers: storeData?.seller?.followers_count || 0,
     location: [
       storeData?.store?.owner_address,
       storeData?.seller?.user?.userCity, 
@@ -1005,187 +1037,33 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
     ].filter(Boolean).join(', ') || 
     storeData?.store?.owner_address || 
     "Location not specified",
-    isOnline: storeData?.seller?.user?.is_online || false, // Online/offline status
+    isOnline: storeData?.seller?.user?.is_online || false,
     description: storeData?.store?.store_description || "Add a description to tell your customers about your store and what makes it special...",
     categories: storeData?.store?.category ? [storeData.store.category] : ["Handcrafted", "Artisan", "Unique"],
   };
 
-  // Use mock products for preview instead of real products
-  const mockProducts = [
-    {
-      id: 1,
-      name: "Product 1",
-      price: "₱299.99",
-      image: null, // No image - will show placeholder
-      category: "Category 1",
-      rating: 4.5,
-      isNew: true,
-      discount: null,
-      oldPrice: null,
-    },
-    {
-      id: 2,
-      name: "Product 2",
-      price: "₱189.99",
-      image: null, // No image - will show placeholder
-      category: "Category 2",
-      rating: 4.8,
-      isNew: true,
-      discount: 15,
-      oldPrice: "₱223.99",
-    },
-    {
-      id: 3,
-      name: "Product 3",
-      price: "₱459.99",
-      image: null, // No image - will show placeholder
-      category: "Category 3",
-      rating: 4.3,
-      isNew: false,
-      discount: null,
-      oldPrice: null,
-    },
-    {
-      id: 4,
-      name: "Product 4",
-      price: "₱399.99",
-      image: null, // No image - will show placeholder
-      category: "Category 4",
-      rating: 4.7,
-      isNew: false,
-      discount: 20,
-      oldPrice: "₱499.99",
-    },
-    {
-      id: 5,
-      name: "Product 5",
-      price: "₱249.99",
-      image: null, // No image - will show placeholder
-      category: "Category 5",
-      rating: 4.4,
-      isNew: false,
-      discount: null,
-      oldPrice: null,
-    },
-    {
-      id: 6,
-      name: "Product 6",
-      price: "₱329.99",
-      image: null, // No image - will show placeholder
-      category: "Category 6",
-      rating: 4.6,
-      isNew: false,
-      discount: null,
-      oldPrice: null,
-    },
-  ];
+  // Transform products to match display format
+  const displayProducts = products.map((product) => ({
+    id: product.id,
+    name: product.name || product.title,
+    title: product.title || product.name,
+    price: product.price,
+    image: product.image || null,
+    category: product.category || "Handcrafted",
+    rating: product.rating || 0,
+    is_featured: product.is_featured || false,
+    quantity: product.quantity || 0,
+    created_at: product.created_at || null,
+    isNew: product.isNew || false,
+    discount: product.discount || null,
+    oldPrice: product.oldPrice || null,
+  }));
 
-  // Mock data for Featured Products
-  const mockFeaturedProducts = [
-    {
-      id: 1,
-      name: "Featured Product 1",
-      price: "₱1,299.00",
-      image: null,
-      category: "Category 1",
-      rating: 4.9,
-      badge: "Best Seller",
-    },
-    {
-      id: 2,
-      name: "Featured Product 2",
-      price: "₱899.00",
-      image: null,
-      category: "Category 2",
-      rating: 4.8,
-      badge: "Featured",
-    },
-    {
-      id: 3,
-      name: "Featured Product 3",
-      price: "₱1,599.00",
-      image: null,
-      category: "Category 3",
-      rating: 4.7,
-      badge: "New",
-    },
-    {
-      id: 4,
-      name: "Featured Product 4",
-      price: "₱699.00",
-      image: null,
-      category: "Category 4",
-      rating: 4.6,
-      badge: "Popular",
-    },
-  ];
-
-  // Mock data for Workshops & Events
-  const mockWorkshopsAndEvents = [
-    {
-      id: 1,
-      title: "Workshop & Event 1",
-      date: "October 15, 2023",
-      time: "2:00 PM - 5:00 PM",
-      price: "₱1,200.00",
-      image: null,
-      spots: "10 spots",
-      type: "Workshop",
-    },
-    {
-      id: 2,
-      title: "Workshop & Event 2",
-      date: "October 20, 2023",
-      time: "9:00 AM - 6:00 PM",
-      price: "Free Entry",
-      image: null,
-      spots: "Open to All",
-      type: "Event",
-    },
-    {
-      id: 3,
-      title: "Workshop & Event 3",
-      date: "November 5, 2023",
-      time: "10:00 AM - 1:00 PM",
-      price: "₱1,500.00",
-      image: null,
-      spots: "8 spots",
-      type: "Workshop",
-    },
-    {
-      id: 4,
-      title: "Workshop & Event 4",
-      date: "November 18, 2023",
-      time: "6:00 PM - 9:00 PM",
-      price: "₱200.00",
-      image: null,
-      spots: "30 attendees",
-      type: "Event",
-    },
-    {
-      id: 5,
-      title: "Workshop & Event 5",
-      date: "December 10, 2023",
-      time: "9:00 AM - 4:00 PM",
-      price: "₱2,000.00",
-      image: null,
-      spots: "6 spots",
-      type: "Workshop",
-    },
-    {
-      id: 6,
-      title: "Workshop & Event 6",
-      date: "December 15, 2023",
-      time: "10:00 AM - 8:00 PM",
-      price: "₱50.00",
-      image: null,
-      spots: "500 attendees",
-      type: "Event",
-    },
-  ];
-
-  // Use mock products for the preview
-  const products = mockProducts;
+  // Featured products are those marked as is_featured
+  const featuredProducts = displayProducts.filter(p => p.is_featured === true);
+  
+  // Regular products (non-featured)
+  const regularProducts = displayProducts.filter(p => !p.is_featured);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: customization.background_color }}>
@@ -1585,7 +1463,12 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {mockFeaturedProducts.map((product) => (
+          {loading ? (
+            <div className="col-span-full text-center py-20">
+              <p className="text-lg" style={{ color: customization.text_color }}>Loading products...</p>
+            </div>
+          ) : featuredProducts.length > 0 ? (
+          featuredProducts.map((product) => (
             <div
               key={product.id}
               className="rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 relative group cursor-pointer"
@@ -1599,13 +1482,14 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
                     color: customization.text_color
                   }}
                 >
-                  {product.badge}
+                  Featured
                 </span>
               </div>
+              )}
               {product.image ? (
                 <img
                   src={product.image}
-                  alt={product.name}
+                  alt={product.name || product.title}
                   className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               ) : (
@@ -1633,13 +1517,27 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
                     fontSize: `${customization.heading_size}px`
                   }}
                 >
-                  {product.name}
+                  {product.name || product.title}
                 </h3>
                 <div className="flex items-center gap-1 mb-2">
-                  {[...Array(Math.floor(product.rating))].map((_, i) => (
+                  {[...Array(Math.floor(product.rating || 0))].map((_, i) => (
                     <span key={i} className="text-yellow-500">★</span>
                   ))}
-                  <span className="text-xs ml-1" style={{ color: customization.text_color }}>({product.rating})</span>
+                  <span className="text-xs ml-1" style={{ color: customization.text_color }}>({product.rating || 0})</span>
+                </div>
+                {/* Quantity Available */}
+                <div className="mb-2">
+                  <span 
+                    className={`text-xs font-medium px-2 py-1 rounded ${
+                      product.quantity > 0 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {product.quantity > 0 
+                      ? `${product.quantity} available` 
+                      : 'Out of Stock'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span 
@@ -1663,7 +1561,14 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
                 </div>
               </div>
             </div>
-          ))}
+          ))
+          ) : (
+            <div className="col-span-full text-center py-20">
+              <p className="text-lg" style={{ color: customization.text_color }}>
+                No featured products available yet.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1770,8 +1675,8 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
             <p className="text-lg" style={{ color: customization.text_color }}>
               No products available yet.
             </p>
-        </div>
-      )}
+          </div>
+        )}
       </div>
 
       {/* Workshops & Events Section */}
@@ -1799,24 +1704,25 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {mockWorkshopsAndEvents.map((item) => (
+          {loading ? (
+            <div className="col-span-full text-center py-20">
+              <p className="text-lg" style={{ color: customization.text_color }}>Loading workshops...</p>
+            </div>
+          ) : workshops.length > 0 ? (
+          workshops.map((item, idx) => (
             <div
-              key={item.id}
+              key={item.works_and_events_id || item.id || `workshop-${idx}`}
               className="rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 relative"
               style={{ backgroundColor: customization.background_color }}
             >
               <div className="absolute top-3 right-3 z-10">
-                <span className={`font-bold px-2 py-1 rounded-full text-xs shadow ${
-                  item.type === 'Workshop' 
-                    ? 'bg-blue-200 text-blue-800' 
-                    : 'bg-green-200 text-green-800'
-                }`}>
-                  {item.type}
+                <span className="font-bold px-2 py-1 rounded-full text-xs shadow bg-blue-200 text-blue-800">
+                  Workshop
                 </span>
               </div>
-              {item.image ? (
+              {item.image_url ? (
                 <img
-                  src={item.image}
+                  src={item.image_url}
                   alt={item.title}
                   className="w-full h-48 object-cover"
                 />
@@ -1842,8 +1748,10 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
                   {item.title}
                 </h3>
                 <div className="flex items-center gap-2 text-sm mb-2" style={{ color: customization.text_color }}>
-                  <Calendar className="w-4 h-4" />
-                  <span>{item.date}</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>{new Date(item.date).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm mb-2" style={{ color: customization.text_color }}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1853,8 +1761,10 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
                   <span>{item.time}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm mb-4" style={{ color: customization.text_color }}>
-                  <Users className="w-4 h-4" />
-                  <span>{item.spots}</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span>{item.participants} participants</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span 
@@ -1864,7 +1774,7 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
                       fontSize: `${customization.heading_size * 1.2}px`
                     }}
                   >
-                    {item.price}
+                    {item.link ? 'View Details' : 'Free Entry'}
                   </span>
                   <button 
                     className="font-semibold px-4 py-2 rounded-lg hover:transition"
@@ -1873,12 +1783,17 @@ const StorePreview = ({ storeData, customization, imagePreviews, setPreviewMode,
                       color: customization.text_color
                     }}
                   >
-                    {item.type === 'Workshop' ? 'Book Now' : 'Join Event'}
+                    Book Now
                   </button>
                 </div>
               </div>
             </div>
-          ))}
+          ))
+          ) : (
+            <div className="col-span-full text-center py-10" style={{ color: customization.text_color }}>
+              No workshops or events yet.
+            </div>
+          )}
         </div>
       </div>
     </div>

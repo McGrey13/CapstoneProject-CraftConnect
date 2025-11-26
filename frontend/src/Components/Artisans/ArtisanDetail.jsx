@@ -520,19 +520,26 @@ const ArtisanDetail = () => {
   // Check follow status
   useEffect(() => {
     const checkFollowStatus = async () => {
+      // Only check if user is authenticated
+      const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+      if (!token || !id) {
+        return;
+      }
+
       try {
         const response = await api.get(`/sellers/${id}/follow-status`);
         if (response.data) {
           setIsFollowing(response.data.is_following);
         }
       } catch (error) {
-        console.error('Error checking follow status:', error);
+        // Silently handle 401 errors
+        if (error.response?.status !== 401) {
+          console.error('Error checking follow status:', error);
+        }
       }
     };
 
-    if (id) {
-      checkFollowStatus();
-    }
+    checkFollowStatus();
   }, [id]);
 
   if (loading) {
@@ -1334,7 +1341,7 @@ const ArtisanStorePreview = ({
             .map((product, index) => (
             <div
               key={product.id || `featured-product-${index}`}
-              className="rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 relative group cursor-pointer"
+              className="rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 relative group cursor-pointer flex flex-col"
               style={{ backgroundColor: customization.background_color }}
             >
               {product.is_featured && (
@@ -1366,7 +1373,7 @@ const ArtisanStorePreview = ({
                   </div>
                 </div>
               )}
-              <div className="p-4">
+              <div className="p-4 flex flex-col flex-grow">
                 <div 
                   className="text-xs font-bold mb-1 uppercase tracking-wide"
                   style={{ color: customization.primary_color }}
@@ -1374,14 +1381,21 @@ const ArtisanStorePreview = ({
                   Handcrafted
                 </div>
                 <h3 
-                  className="font-bold text-lg mb-2 group-hover:transition"
+                  className="font-bold text-lg mb-2 group-hover:transition line-clamp-2 min-h-[3rem] max-h-[3rem] overflow-hidden"
                   style={{ 
                     color: customization.text_color,
                     fontFamily: customization.heading_font,
-                    fontSize: `${customization.heading_size}px`
+                    fontSize: `${customization.heading_size}px`,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    wordBreak: 'break-word'
                   }}
+                  title={product.title}
                 >
-                  {product.title}
+                  {product.title && product.title.length > 60 
+                    ? `${product.title.substring(0, 60)}...` 
+                    : product.title}
                 </h3>
                 <div className="flex items-center gap-1 mb-2">
                   {[...Array(5)].map((_, i) => (
@@ -1537,45 +1551,54 @@ const ArtisanStorePreview = ({
   </div>
                   </div>
                 )}
-                <div
-                  className="text-xs font-bold mb-1 uppercase inline-block px-2 py-1 rounded transition"
-                  style={{ 
-                    letterSpacing: 1,
-                    color: customization.primary_color,
-                    backgroundColor: `${customization.accent_color}20`
-                  }}
-                >
-                  {product.category}
-                </div>
-                <h3 
-                  className="font-semibold text-lg mb-2 transition"
-                  style={{ 
-                    color: customization.text_color,
-                    fontFamily: customization.heading_font,
-                    fontSize: `${customization.heading_size * 1.1}px`
-                  }}
-                >
-                  {product.name}
-                </h3>
-                <div className="flex items-center gap-1 mb-2">
-                  {[...Array(Math.floor(product.rating))].map((_, i) => (
-                    <span key={i} className="text-yellow-500 drop-shadow">★</span>
-                  ))}
-                  {product.rating % 1 !== 0 && <span className="text-yellow-500 drop-shadow">★</span>}
-                  <span className="text-xs ml-1" style={{ color: customization.text_color }}>({product.rating})</span>
-                </div>
-                <div className="flex items-end gap-2 mb-3">
-                  <span 
-                    className="font-bold text-xl transition"
+                <div className="flex flex-col flex-grow">
+                  <div
+                    className="text-xs font-bold mb-1 uppercase inline-block px-2 py-1 rounded transition"
                     style={{ 
+                      letterSpacing: 1,
                       color: customization.primary_color,
-                      fontSize: `${customization.heading_size * 1.3}px`
+                      backgroundColor: `${customization.accent_color}20`
                     }}
                   >
-                    {product.price}
-                  </span>
-                  {product.oldPrice && <span className="text-gray-400 line-through text-sm">{product.oldPrice}</span>}
-            </div>
+                    {product.category}
+                  </div>
+                  <h3 
+                    className="font-semibold text-lg mb-2 transition line-clamp-2 min-h-[3rem] max-h-[3rem] overflow-hidden"
+                    style={{ 
+                      color: customization.text_color,
+                      fontFamily: customization.heading_font,
+                      fontSize: `${customization.heading_size * 1.1}px`,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      wordBreak: 'break-word'
+                    }}
+                    title={product.name}
+                  >
+                    {product.name && product.name.length > 60 
+                      ? `${product.name.substring(0, 60)}...` 
+                      : product.name}
+                  </h3>
+                  <div className="flex items-center gap-1 mb-2">
+                    {[...Array(Math.floor(product.rating))].map((_, i) => (
+                      <span key={i} className="text-yellow-500 drop-shadow">★</span>
+                    ))}
+                    {product.rating % 1 !== 0 && <span className="text-yellow-500 drop-shadow">★</span>}
+                    <span className="text-xs ml-1" style={{ color: customization.text_color }}>({product.rating})</span>
+                  </div>
+                  <div className="flex items-end gap-2 mb-3">
+                    <span 
+                      className="font-bold text-xl transition"
+                      style={{ 
+                        color: customization.primary_color,
+                        fontSize: `${customization.heading_size * 1.3}px`
+                      }}
+                    >
+                      {product.price}
+                    </span>
+                    {product.oldPrice && <span className="text-gray-400 line-through text-sm">{product.oldPrice}</span>}
+                  </div>
+                </div>
                 {/* Quantity Available */}
                 <div className="mb-2">
                   <span 

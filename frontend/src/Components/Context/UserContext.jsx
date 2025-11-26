@@ -122,7 +122,11 @@ export const UserProvider = ({ children }) => {
     // If we have neither a saved user nor a bearer token, skip calling profile
     // This avoids unnecessary 401s before login
     const hasBearerToken = !!getToken();
-    if (!savedUser && !hasBearerToken) {
+    if (!hasBearerToken) {
+      // No token - clear saved user if exists and return early
+      if (savedUser) {
+        clearStoredAuthState();
+      }
       setLoading(false);
       setIsCheckingAuth(false);
       return;
@@ -148,18 +152,15 @@ export const UserProvider = ({ children }) => {
       setSessionModalVisible(false);
       sessionExpiryHandledRef.current = false;
     } catch (error) {
-      console.error('❌ Authentication check failed:', error);
-      
-      // Only clear user if we get a definite 401 (Unauthorized) AND we don't have a saved user
+      // Silently handle 401 errors - don't log to console
       if (error.response?.status === 401) {
-        console.log('🚫 401 Unauthorized - clearing stored authentication data');
+        // Clear stored auth data on 401 - token is invalid
         clearStoredAuthState();
+        // Don't log 401 errors as they're expected when not authenticated
       } else {
-        // For network errors or other issues, keep the saved user
-        console.log('⚠️ Network/Server error, keeping saved user if exists');
-        if (!savedUser) {
-          setUser(null);
-        }
+        console.error('❌ Authentication check failed:', error);
+        // For network errors, clear auth state
+        clearStoredAuthState();
       }
     } finally {
       setLoading(false);

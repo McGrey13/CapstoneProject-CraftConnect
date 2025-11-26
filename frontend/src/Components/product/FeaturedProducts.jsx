@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ArrowLeft, ArrowRight, Filter, X, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { getStorageUrl } from "../../utils/backendUrl";
 import {
   Select,
   SelectContent,
@@ -13,6 +12,7 @@ import {
 import ProductCard from "./ProductCard";
 import api from "../../api";
 import { useFavorites } from "../favorites/FavoritesContext";
+import "../Home/CategoryGrid.css";
 
 const FALLBACK_PRODUCT_IMAGE = null;
 
@@ -32,18 +32,37 @@ const FeaturedProducts = ({
   const [showFavoriteModal, setShowFavoriteModal] = useState(false);
   const [modalType, setModalType] = useState('cart'); // 'cart' or 'favorite'
   const { favorites, toggleFavorite } = useFavorites();
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(true);
+  const scrollContainerRef = useRef(null);
 
   // Helper function to convert image URLs to proper format
   const fixImageUrl = (url) => {
     if (!url || url === '') return null;
     
-    // If it's already a full URL, return as is
+    // If it's already a full URL, return as is (but ensure it's correct)
     if (url.startsWith('http://') || url.startsWith('https://')) {
+      // If it's a Laravel URL but wrong port, fix it
+      if (url.includes('localhost') && !url.includes(':8000')) {
+        return url.replace(/localhost(:\d+)?/, 'localhost:8000');
+      }
       return url;
     }
     
-    // Use utility function for storage URLs
-    return getStorageUrl(url);
+    // Handle storage paths - Laravel storage URLs
+    if (url.includes('storage/')) {
+      // Remove leading slash if present
+      const cleanPath = url.startsWith('/') ? url.substring(1) : url;
+      return `http://localhost:8000/${cleanPath}`;
+    }
+    
+    // Handle other relative paths
+    if (url.startsWith('/')) {
+      return `http://localhost:8000${url}`;
+    }
+    
+    // Default: assume it's a storage path
+    return `http://localhost:8000/storage/${url}`;
   };
 
   const fetchProducts = useCallback(async () => {
@@ -219,8 +238,13 @@ const FeaturedProducts = ({
         return reviewCountB - reviewCountA;
       });
       
+      // Filter to only featured products
+      const featuredProductsOnly = sortedData.filter(product => {
+        return product.is_featured === true || product.is_featured === 1 || product.is_featured === 'true';
+      });
+      
       // Transform the API data to match our component's structure
-      const transformedProducts = sortedData.map(product => {
+      const transformedProducts = featuredProductsOnly.map(product => {
         // Check if product is recommended - use the isRecommended flag from merged data first
         const productId = product.id || product.product_id;
         const productIdStr = String(productId);
@@ -350,7 +374,67 @@ const FeaturedProducts = ({
     };
   }, [products.length, fetchProducts]);
 
-  const categories = ["All", "Miniatures & Souvenirs", "Rubber Stamp Engraving", "Traditional Accessories", "Statuary & Sculpture", "Basketry & Weaving"];
+  // Dynamically extract categories from products
+  const categories = useMemo(() => {
+    const uniqueCategories = new Set();
+    
+    // Extract all unique categories from products
+    products.forEach(product => {
+      if (product.category && product.category.trim() !== '') {
+        uniqueCategories.add(product.category);
+      }
+    });
+    
+    // Convert to array, sort alphabetically, and add "All" at the beginning
+    const sortedCategories = Array.from(uniqueCategories).sort((a, b) => 
+      a.localeCompare(b, undefined, { sensitivity: 'base' })
+    );
+    
+    return ["All", ...sortedCategories];
+  }, [products]);
+
+  // Check scroll position and update arrow visibility for category filter
+  const checkScrollPosition = useCallback(() => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  }, []);
+
+  // Scroll functions for category filter
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({
+        left: -300,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({
+        left: 300,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Check scroll position on mount and when categories change
+  useEffect(() => {
+    checkScrollPosition();
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScrollPosition);
+      window.addEventListener('resize', checkScrollPosition);
+      return () => {
+        container.removeEventListener('scroll', checkScrollPosition);
+        window.removeEventListener('resize', checkScrollPosition);
+      };
+    }
+  }, [categories, checkScrollPosition]);
+
   const itemsPerPage = 6; // 3 products per row × 2 rows
 
   const filteredProducts = products.filter((product) => {
@@ -492,23 +576,68 @@ const FeaturedProducts = ({
     </select>
   </div>
 
-  {/* Desktop Tabs */}
+  {/* Desktop Tabs with Scrollable Arrows */}
   <div className="hidden sm:block w-full">
-    <Tabs defaultValue="All" value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="flex flex-wrap justify-center gap-2 bg-transparent">
-        {categories.map((category) => (
-          <TabsTrigger
-            key={category}
-            value={category}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-lg transition-all duration-200 whitespace-nowrap
-                       hover:text-white hover:bg-gradient-to-r hover:from-[#a4785a] hover:to-[#7b5a3b] hover:border-[#a4785a] hover:shadow-md hover:scale-105
-                       data-[state=active]:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:border-[#a4785a] data-[state=active]:font-semibold data-[state=active]:shadow-md"
+    <div className="relative">
+      {/* Left Arrow Button */}
+      {showLeftArrow && (
+        <button
+          onClick={scrollLeft}
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-white hover:bg-gradient-to-r hover:from-[#a4785a] hover:to-[#7b5a3b] border-2 border-[#a4785a] rounded-full p-2.5 shadow-lg transition-all duration-200 hover:shadow-xl group hover:scale-110"
+          aria-label="Scroll left"
+        >
+          <svg 
+            className="w-5 h-5 text-[#a4785a] group-hover:text-white transition-colors" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
           >
-            {category}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      )}
+
+      {/* Right Arrow Button */}
+      {showRightArrow && (
+        <button
+          onClick={scrollRight}
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-white hover:bg-gradient-to-r hover:from-[#a4785a] hover:to-[#7b5a3b] border-2 border-[#a4785a] rounded-full p-2.5 shadow-lg transition-all duration-200 hover:shadow-xl group hover:scale-110"
+          aria-label="Scroll right"
+        >
+          <svg 
+            className="w-5 h-5 text-[#a4785a] group-hover:text-white transition-colors" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
+
+      <Tabs defaultValue="All" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div 
+          ref={scrollContainerRef}
+          className="overflow-x-auto scrollbar-hide"
+          onScroll={checkScrollPosition}
+          style={{ scrollBehavior: 'smooth' }}
+        >
+          <TabsList className="flex gap-2 bg-transparent pl-12 pr-12">
+            {categories.map((category) => (
+              <TabsTrigger
+                key={category}
+                value={category}
+                className="px-4 py-2 text-sm border border-gray-300 rounded-full transition-all duration-200 whitespace-nowrap flex-shrink-0
+                           hover:text-white hover:bg-gradient-to-r hover:from-[#a4785a] hover:to-[#7b5a3b] hover:border-[#a4785a] hover:shadow-md hover:scale-105
+                           data-[state=active]:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#a4785a] data-[state=active]:to-[#7b5a3b] data-[state=active]:border-[#a4785a] data-[state=active]:font-semibold data-[state=active]:shadow-md"
+              >
+                {category}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+      </Tabs>
+    </div>
   </div>
 
   {/* Sort Filter - placed BELOW on mobile */}
@@ -534,150 +663,135 @@ const FeaturedProducts = ({
         No products found in this category.
       </div>
     ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {paginatedProducts.map((product) => (
           <div
             key={product.id}
-            className="relative h-[300px] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group bg-gray-100"
+            className="relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer group border border-gray-200 flex flex-col"
             onClick={() => window.location.href = `/product/${product.id}`}
           >
-            {/* Background Image / Placeholder */}
-            {product.image ? (
-            <img 
-                src={product.image}
-              alt={product.title}
-              className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
-              onLoad={(e) => {
-                const overlay = e.target.parentElement.querySelector('.image-overlay');
-                if (overlay) {
-                    overlay.style.opacity = '1';
-                }
-              }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-              />
-            ) : (
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-[#f3e7db] via-[#f7eee4] to-[#efe1d2] flex flex-col items-center justify-center text-[#7b5a3b]">
-                <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center shadow-inner">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2h-3l-1-1h-6l-1 1H5a2 2 0 00-2 2z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
+            {/* Product Image */}
+            <div className="relative w-full h-48 bg-gray-100 overflow-hidden">
+              {product.image ? (
+                <img 
+                  src={product.image}
+                  alt={product.title}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#f3e7db] via-[#f7eee4] to-[#efe1d2] flex flex-col items-center justify-center text-[#7b5a3b]">
+                  <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center shadow-inner">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2h-3l-1-1h-6l-1 1H5a2 2 0 00-2 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  </div>
+                  <p className="mt-3 text-sm font-medium">Image not available</p>
                 </div>
-                <p className="mt-3 text-sm font-medium">Image not available</p>
-              </div>
-            )}
-            
-            {/* Dark Overlay - only show when image loads successfully */}
-            <div className="image-overlay absolute inset-0 bg-gradient-to-t from-[#2f1f16]/70 via-[#2f1f16]/20 to-transparent opacity-0 transition-opacity duration-300 pointer-events-none" />
-            
-            {/* Content Overlay */}
-            <div className="content-overlay absolute inset-0 flex flex-col justify-between p-4 text-gray-800">
-              {/* Top Section - Badges */}
-              <div className="flex justify-between items-start">
-                <div className="flex gap-2">
-                  {(() => {
-                    const shouldShow = product.isRecommended === true || product.isRecommended === 'true' || product.isRecommended;
-                    if (shouldShow) {
-                      console.log('✅ FeaturedProducts - Showing Recommended badge for product:', product.id, product.title, { isRecommended: product.isRecommended });
-                    }
-                    return shouldShow ? (
-                      <span className="bg-gradient-to-r from-[#b88668] to-[#7b5a3b] text-white px-2 py-1 rounded-md text-xs font-semibold shadow-md border border-white/40">
-                        Recommended
-                    </span>
-                    ) : null;
-                  })()}
-                  {product.isNew && (
-                    <span className="bg-blue-500 text-white px-2 py-1 rounded-md text-xs font-medium">
-                      New
-                    </span>
-                  )}
-                  {product.isFeatured && !product.isRecommended && (
-                    <span className="bg-amber-500 text-white px-2 py-1 rounded-md text-xs font-medium">
-                      Featured
-                    </span>
-                  )}
+              )}
+              
+              {/* Featured Badge - Top Left */}
+              {product.isFeatured && (
+                <div className="absolute top-3 left-3 z-10">
+                  <span className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white px-2 py-1 rounded-full text-xs font-semibold shadow-md">
+                    Featured
+                  </span>
                 </div>
-                
-                {/* Favorite Button */}
+              )}
+              
+              {/* Favorite Button - Top Right */}
+              <div className="absolute top-3 right-3 z-10">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="favorite-btn bg-white/80 hover:bg-white/90 rounded-full p-2 h-8 w-8"
+                  className="favorite-btn bg-white/90 hover:bg-white rounded-full p-2 h-8 w-8 shadow-md"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleFavoriteWithAuth(product);
                   }}
                 >
                   <Heart 
-                    className={`h-4 w-4 ${
+                    className={`h-5 w-5 ${
                       favorites.some(fav => fav.id === product.id) 
                         ? "text-red-500 fill-red-500" 
-                        : "text-gray-600"
+                        : "text-gray-400"
                     }`} 
                   />
                 </Button>
               </div>
-
-              {/* Bottom Section - Product Details */}
-              <div className="space-y-3">
-                {/* Product Name & Category */}
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-1 line-clamp-2">
-                    {product.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 opacity-90">
-                    {product.category}
-                  </p>
-                </div>
-
-                {/* Artisan/Store Info */}
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  {product.storeLogo && (
-                    <img 
-                      src={product.storeLogo} 
-                      alt={product.storeName || product.artisanName} 
-                      className="w-5 h-5 rounded-full object-cover border border-white/30"
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                  )}
-                  <span className="truncate">{product.storeName || product.artisanName}</span>
-                </div>
-
-                {/* Rating & Price */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <svg
-                        key={i}
-                        className={`w-4 h-4 ${i < Math.floor(product.rating) ? "text-yellow-400" : "text-gray-400"}`}
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    ))}
-                    <span className="ml-1 text-sm text-gray-800">{product.rating}</span>
-                  </div>
-                  
-                  <div className="text-xl font-bold text-gray-800">
-                    ₱{product.price.toFixed(2)}
-                  </div>
-                </div>
-
-                {/* Add to Cart Button */}
-                <Button
-                  className="w-full bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold py-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAddToCartWithAuth(product);
+            </div>
+            
+            {/* Content Section */}
+            <div className="p-4 flex flex-col flex-grow">
+              {/* Product Name & Category */}
+              <div className="mb-2">
+                <h3 
+                  className="text-base font-bold text-gray-900 mb-1 line-clamp-2 min-h-[2.5rem] max-h-[2.5rem] overflow-hidden"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    wordBreak: 'break-word'
                   }}
+                  title={product.title}
                 >
-                  <ShoppingCart className="h-4 w-4" />
-                  Add to Cart
-                </Button>
+                  {product.title && product.title.length > 50 
+                    ? `${product.title.substring(0, 50)}...` 
+                    : product.title}
+                </h3>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
+                  {product.category}
+                </p>
               </div>
+
+              {/* Artisan/Store Info */}
+              <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
+                {product.storeLogo && (
+                  <img 
+                    src={product.storeLogo} 
+                    alt={product.storeName || product.artisanName} 
+                    className="w-4 h-4 rounded-full object-cover border border-gray-200"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                )}
+                <span className="truncate font-medium">{product.storeName || product.artisanName}</span>
+              </div>
+
+              {/* Rating & Price */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <svg
+                      key={i}
+                      className={`w-4 h-4 ${i < Math.floor(product.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                  <span className="ml-1 text-sm font-semibold text-gray-700">{product.rating || 0}</span>
+                </div>
+                
+                <div className="text-lg font-bold text-gray-900">
+                  ₱{product.price.toFixed(2)}
+                </div>
+              </div>
+
+              {/* Add to Cart Button */}
+              <Button
+                className="w-full bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg mt-auto"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddToCartWithAuth(product);
+                }}
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Add to Cart
+              </Button>
             </div>
           </div>
         ))}

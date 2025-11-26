@@ -218,6 +218,17 @@ const CustomerMessengerPopup = ({
     }
   };
 
+  const getTimeAgo = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -251,23 +262,23 @@ const CustomerMessengerPopup = ({
 
   return (
     <div 
-      className="fixed bottom-20 sm:bottom-24 right-4 sm:right-6 z-50 w-[480px] sm:w-[600px] lg:w-[700px] h-[600px] sm:h-[700px] lg:h-[750px] max-h-[90vh] bg-white rounded-xl shadow-2xl border border-[#e5ded7] overflow-hidden flex flex-col"
+      className="fixed bottom-4 right-4 z-50 w-[750px] h-[600px] bg-white rounded-2xl shadow-2xl border-2 border-[#e5ded7] overflow-hidden flex flex-col"
     >
       <div className="flex flex-1 overflow-hidden">
         {/* Conversation List */}
-        <div className="w-48 sm:w-56 lg:w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
-          <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b]">
-            <h3 className="font-semibold text-white flex items-center text-base">
-              <MessageCircle className="h-5 w-5 mr-2" />
-              <span className="truncate">Chats</span>
+        <div className="w-56 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+          <div className="p-3 border-b border-gray-200 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b]">
+            <h3 className="font-semibold text-white flex items-center text-sm">
+              <MessageCircle className="h-3 w-3 mr-2" />
+              <span className="truncate">My Chats ({conversations.length})</span>
             </h3>
           </div>
           
           <div className="flex-1 overflow-y-auto">
             {conversations.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">
-                <MessageCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                <p className="text-sm font-medium">No conversations yet</p>
+              <div className="p-4 text-center text-gray-500">
+                <MessageCircle className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">No conversations yet</p>
               </div>
             ) : (
               conversations.map((conversation) => {
@@ -280,33 +291,42 @@ const CustomerMessengerPopup = ({
                   <button
                     key={conversation.conversation_id}
                     onClick={() => handleConversationClick(conversation)}
-                    className={`w-full p-3.5 text-left border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                    className={`w-full p-4 text-left border-b border-gray-100 hover:bg-gray-50 transition-colors ${
                       isActive ? 'bg-[#f8f1ec] border-r-2 border-[#a4785a]' : ''
                     }`}
                   >
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-start space-x-3">
                       <div className="flex-shrink-0">
                         {convAvatar ? (
                           <img 
                             src={convAvatar.startsWith('http') ? convAvatar : getStorageUrl(convAvatar)} 
                             alt={convSellerName}
-                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            className="w-10 h-10 rounded-full object-cover border border-gray-200"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-200 text-gray-600 border-2 border-gray-300">
-                            <User className="h-6 w-6" />
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-200 text-gray-600">
+                            <User className="h-5 w-5" />
                           </div>
                         )}
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-semibold truncate text-gray-900 mb-1`}>
-                          {convSellerName}
-                        </p>
-                        {latestMessage && (
-                          <p className="text-xs truncate text-gray-500 leading-relaxed">
-                            {latestMessage.message ? (latestMessage.message.length > 30 ? latestMessage.message.substring(0, 30) + '...' : latestMessage.message) : '📎 Attachment'}
+                        <div className="flex items-center justify-between mb-1">
+                          <p className={`text-sm font-medium truncate text-gray-900`}>
+                            {convSellerName}
                           </p>
+                        </div>
+                        
+                        {latestMessage && (
+                          <>
+                            <p className="text-xs truncate mb-1 text-gray-500">
+                              {latestMessage.message || '📎 Attachment'}
+                            </p>
+                            <div className="flex items-center text-xs text-gray-400">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {getTimeAgo(latestMessage.created_at)}
+                            </div>
+                          </>
                         )}
                       </div>
                     </div>
@@ -320,29 +340,29 @@ const CustomerMessengerPopup = ({
         {/* Chat Area */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
-          <div className="flex justify-between items-center bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white px-5 py-4 flex-shrink-0">
+          <div className="flex justify-between items-center bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white px-6 py-4 flex-shrink-0">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               {sellerAvatar ? (
                 <img 
                   src={sellerAvatar.startsWith('http') ? sellerAvatar : getStorageUrl(sellerAvatar)} 
                   alt={sellerName}
-                  className="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-white/30"
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 border-2 border-white/30">
-                  <User className="h-6 w-6" />
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <User className="h-5 w-5" />
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-base truncate">{sellerName || 'Select a conversation'}</h3>
+                <h3 className="font-semibold text-sm truncate">{sellerName || 'Select a conversation'}</h3>
                 {conversationId && (
-                  <p className="text-xs text-white/90 mt-0.5">Online</p>
+                  <p className="text-xs text-white/80">Online</p>
                 )}
               </div>
             </div>
             <button
               onClick={onClose}
-              className="text-white hover:text-gray-200 transition-all duration-200 focus:outline-none flex-shrink-0 ml-3"
+              className="text-white hover:text-gray-200 transition-all duration-200 focus:outline-none flex-shrink-0"
             >
               <div className="hover:bg-white/20 rounded-full p-2 transition-all duration-200">
                 <X className="h-5 w-5" />
@@ -351,29 +371,27 @@ const CustomerMessengerPopup = ({
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-gradient-to-br from-[#faf9f8] to-white">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-br from-[#faf9f8] to-white">
             {!conversationId ? (
               <div className="flex items-center justify-center h-full text-[#7b5a3b]">
-                <div className="text-center px-6">
-                  <div className="p-6 bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10 rounded-full w-24 h-24 mx-auto mb-5 flex items-center justify-center">
-                    <MessageCircle className="h-12 w-12 text-[#a4785a]" />
+                <div className="text-center">
+                  <div className="p-4 bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10 rounded-full w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                    <MessageCircle className="h-8 w-8 text-[#a4785a]" />
                   </div>
-                  <p className="text-base font-semibold mb-2">No conversation selected</p>
-                  <p className="text-sm text-gray-600">Choose a conversation from the left to start chatting</p>
+                  <p className="text-sm">No conversation selected. Choose a conversation from the left to start chatting</p>
                 </div>
               </div>
             ) : isLoading && messages.length === 0 ? (
               <div className="flex justify-center items-center h-full">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#a4785a]"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#a4785a]"></div>
               </div>
             ) : messages.length === 0 ? (
               <div className="flex items-center justify-center h-full text-[#7b5a3b]">
-                <div className="text-center px-6">
-                  <div className="p-6 bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10 rounded-full w-24 h-24 mx-auto mb-5 flex items-center justify-center">
-                    <MessageCircle className="h-12 w-12 text-[#a4785a]" />
+                <div className="text-center">
+                  <div className="p-4 bg-gradient-to-r from-[#a4785a]/10 to-[#7b5a3b]/10 rounded-full w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                    <MessageCircle className="h-8 w-8 text-[#a4785a]" />
                   </div>
-                  <p className="text-base font-semibold">No messages yet</p>
-                  <p className="text-sm text-gray-600 mt-2">Start the conversation!</p>
+                  <p className="text-sm">No messages yet. Start the conversation!</p>
                 </div>
               </div>
             ) : (
@@ -391,32 +409,32 @@ const CustomerMessengerPopup = ({
                       className={`flex ${isCustomerMessage ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[80%] rounded-xl p-4 shadow-sm ${
+                        className={`max-w-[70%] rounded-lg p-3 ${
                           isCustomerMessage
                             ? 'bg-blue-500 text-white rounded-br-none'
-                            : 'bg-white text-gray-900 rounded-bl-none border border-gray-200'
+                            : 'bg-gray-200 text-gray-900 rounded-bl-none'
                         }`}
                       >
                         {!isCustomerMessage && (
-                          <div className="text-xs mb-2">
-                            <span className="px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 font-medium text-xs">
+                          <div className="text-xs mb-1">
+                            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700">
                               {message.message_type}
                             </span>
                           </div>
                         )}
                         
-                        {message.message && <p className="break-words text-sm font-normal leading-relaxed">{message.message}</p>}
+                        {message.message && <p className="break-words text-sm font-medium">{message.message}</p>}
                         
                         {message.attachments && message.attachments.length > 0 && message.attachments.map((a, i) => {
                           const imageUrl = getStorageUrl(a.messageAttachment);
                           return (
-                            <div key={i} className="mt-3">
+                            <div key={i} className="mt-2">
                               {a.file_type === "image" ? (
                                 <div className="relative group cursor-pointer" onClick={() => handleImageClick(imageUrl)}>
                                   <img 
                                     src={imageUrl} 
                                     alt="attachment" 
-                                    className="max-w-full rounded-lg shadow-md max-h-64 object-contain transition-transform duration-200 group-hover:scale-105"
+                                    className="max-w-full rounded-lg shadow max-h-64 object-contain transition-transform duration-200 group-hover:scale-105"
                                     loading="lazy"
                                   />
                                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors duration-200 flex items-center justify-center">
@@ -436,14 +454,14 @@ const CustomerMessengerPopup = ({
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
                                           d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                   </svg>
-                                  {a.file_type.toUpperCase()}
+                                  {a.file_type.toUpperCase()} Attachment
                                 </a>
                               )}
                             </div>
                           );
                         })}
                         
-                        <div className={`text-xs mt-2 opacity-70 ${isCustomerMessage ? 'text-right' : 'text-left'}`}>
+                        <div className="text-xs mt-1 opacity-75 text-right">
                           {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
@@ -457,27 +475,27 @@ const CustomerMessengerPopup = ({
 
           {/* Message Input */}
           {conversationId && (
-            <div className="flex flex-col gap-3 border-t border-[#e5ded7] pt-3 px-4 pb-3 bg-white flex-shrink-0">
-              <div className="flex gap-2.5">
+            <div className="flex flex-col gap-2 border-t border-[#e5ded7] pt-3 px-3 pb-3 bg-white flex-shrink-0">
+              <div className="flex gap-2">
                 <select 
                   value={messageType} 
                   onChange={e => setMessageType(e.target.value)} 
-                  className="border border-[#d5bfae] rounded-lg px-3 py-2.5 bg-white text-sm focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] text-[#5c3d28] outline-none font-medium"
+                  className="border border-[#d5bfae] rounded-lg px-3 py-2 bg-white text-xs focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] text-[#5c3d28] outline-none"
                   disabled={!conversationId}
                 >
                   <option value="general">General</option>
-                  <option value="product_customize">Customize</option>
+                  <option value="product_customize">Product Customize</option>
                   <option value="after_sale">After Sale</option>
                   <option value="order_update">Order</option>
                   <option value="damage_report">Damage</option>
                 </select>
 
                 {file && (
-                  <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[#f8f1ec] rounded-lg border border-[#e5ded7]">
-                    <span className="text-sm truncate text-[#5c3d28] max-w-[120px] font-medium">{file.name}</span>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-[#f8f1ec] rounded-lg border border-[#e5ded7]">
+                    <span className="text-xs truncate text-[#5c3d28]">{file.name}</span>
                     <button 
                       onClick={() => setFile(null)}
-                      className="text-red-500 hover:text-red-700 text-lg font-bold leading-none"
+                      className="text-red-500 hover:text-red-700"
                       title="Remove file"
                     >
                       ×
@@ -486,18 +504,18 @@ const CustomerMessengerPopup = ({
                 )}
               </div>
 
-              <div className="flex gap-2.5 items-center">
+              <div className="flex gap-2 items-center">
                 <input
                   type="text"
                   value={newMessage}
                   onChange={e => setNewMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type a message..."
-                  className="flex-1 border border-[#d5bfae] rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] text-[#5c3d28] placeholder:text-[#7b5a3b]/50 outline-none"
+                  className="flex-1 border border-[#d5bfae] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#a4785a] focus:border-[#a4785a] text-[#5c3d28] placeholder:text-[#7b5a3b]/50 outline-none"
                   disabled={isLoading || !conversationId}
                 />
 
-                <label className="cursor-pointer flex-shrink-0" title="Attach file">
+                <label className="cursor-pointer" title="Attach file">
                   <input
                     type="file"
                     onChange={e => setFile(e.target.files[0])}
@@ -505,7 +523,7 @@ const CustomerMessengerPopup = ({
                     accept="image/*,.pdf,.doc,.docx"
                     disabled={!conversationId}
                   />
-                  <div className={`w-11 h-11 flex items-center justify-center border border-[#d5bfae] rounded-lg hover:bg-[#f8f1ec] text-lg transition-colors ${!conversationId ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <div className={`w-9 h-9 flex items-center justify-center border border-[#d5bfae] rounded-lg hover:bg-[#f8f1ec] text-lg transition-colors ${!conversationId ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     📎
                   </div>
                 </label>
@@ -513,17 +531,22 @@ const CustomerMessengerPopup = ({
                 <button
                   onClick={sendMessage}
                   disabled={(!newMessage.trim() && !file) || isLoading || !conversationId}
-                  className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white px-4 py-3 rounded-lg text-sm font-medium hover:from-[#8f674a] hover:to-[#6a4a32] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-md transition-all flex-shrink-0"
+                  className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white px-4 py-2 rounded-lg text-sm hover:from-[#8f674a] hover:to-[#6a4a32] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-md transition-all"
                 >
                   {isLoading ? (
-                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
-                      <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" className="opacity-75" />
-                    </svg>
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                        <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" className="opacity-75" />
+                      </svg>
+                      Sending...
+                    </>
                   ) : (
-                    <MessageCircle className="h-4 w-4" />
+                    <>
+                      <MessageCircle className="h-4 w-4" />
+                      Send
+                    </>
                   )}
-                  <span className="hidden sm:inline">Send</span>
                 </button>
               </div>
             </div>
