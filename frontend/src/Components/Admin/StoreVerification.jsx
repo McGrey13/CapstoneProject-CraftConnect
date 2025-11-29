@@ -161,9 +161,9 @@ const StoreVerification = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      pending: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
-      approved: { color: 'bg-green-100 text-green-800', text: 'Approved' },
-      rejected: { color: 'bg-red-100 text-red-800', text: 'Rejected' }
+      pending: { color: 'bg-[#f5f0eb] text-[#7b5a3b] border border-[#d5bfae]', text: 'Pending' },
+      approved: { color: 'bg-[#d5bfae] text-[#5c3d28] border border-[#a4785a]', text: 'Approved' },
+      rejected: { color: 'bg-[#f5f0eb] text-[#7b5a3b] border border-[#d5bfae]', text: 'Rejected' }
     };
     
     const config = statusConfig[status] || statusConfig.pending;
@@ -189,11 +189,11 @@ const StoreVerification = () => {
         <>
           {/* Action Bar */}
           {sellerDetails && sellerDetails.store.status === 'pending' && (
-            <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 border-2 border-amber-200 rounded-2xl p-6 shadow-lg">
+            <div className="bg-gradient-to-r from-[#f5f0eb] via-[#ede5dc] to-[#f5f0eb] border-2 border-[#d5bfae] rounded-2xl p-6 shadow-lg">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-amber-100 rounded-xl shadow-sm">
-                    <AlertTriangle className="h-6 w-6 text-amber-600" />
+                  <div className="p-3 bg-[#d5bfae] rounded-xl shadow-sm">
+                    <AlertTriangle className="h-6 w-6 text-[#5c3d28]" />
                   </div>
                   <div>
                     <h4 className="font-bold text-[#5c3d28] text-lg">Pending Verification</h4>
@@ -205,7 +205,7 @@ const StoreVerification = () => {
                     variant="outline"
                     size="lg"
                     onClick={() => onReject(sellerDetails.store)}
-                    className="bg-white hover:bg-red-50 text-red-600 border-2 border-red-200 hover:border-red-300 shadow-md hover:shadow-lg transition-all duration-300 font-semibold px-6"
+                    className="bg-white hover:bg-[#f5f0eb] text-[#5c3d28] border-2 border-[#d5bfae] hover:border-[#a4785a] shadow-md hover:shadow-lg transition-all duration-300 font-semibold px-6"
                   >
                     <XCircle className="h-5 w-5 mr-2" />
                     Reject Store
@@ -213,7 +213,7 @@ const StoreVerification = () => {
                   <Button
                     size="lg"
                     onClick={() => handleApprove(sellerDetails.store.storeID)}
-                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-6"
+                    className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-6"
                   >
                     <CheckCircle className="h-5 w-5 mr-2" />
                     Approve Store
@@ -311,11 +311,11 @@ const StoreVerification = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 pt-4">
-                      <div className="text-center bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-200">
-                        <Shield className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                      <div className="text-center bg-gradient-to-br from-[#f5f0eb] to-[#ede5dc] rounded-xl p-4 border-2 border-[#d5bfae]">
+                        <Shield className="h-6 w-6 text-[#a4785a] mx-auto mb-2" />
                         <span className="text-xs font-semibold text-[#7b5a3b] block mb-2">Account Status</span>
                         <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold shadow-sm ${
-                          sellerDetails.seller.user.is_verified ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
+                          sellerDetails.seller.user.is_verified ? 'bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white' : 'bg-[#d5bfae] text-[#5c3d28]'
                         }`}>
                           {sellerDetails.seller.user.is_verified ? '✓ Verified' : 'Unverified'}
                         </span>
@@ -324,7 +324,7 @@ const StoreVerification = () => {
                         <Store className="h-6 w-6 text-[#a4785a] mx-auto mb-2" />
                         <span className="text-xs font-semibold text-[#7b5a3b] block mb-2">Seller Status</span>
                         <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold shadow-sm ${
-                          sellerDetails.seller.is_verified ? 'bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white' : 'bg-amber-500 text-white'
+                          sellerDetails.seller.is_verified ? 'bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white' : 'bg-[#d5bfae] text-[#5c3d28]'
                         }`}>
                           {sellerDetails.seller.is_verified ? '✓ Verified' : 'Pending'}
                         </span>
@@ -398,9 +398,9 @@ const StoreVerification = () => {
                           <span className="text-xs font-semibold text-[#7b5a3b] uppercase tracking-wider block mb-3">Verification Status</span>
                           <div className="flex items-center gap-3">
                             <span className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-base font-bold shadow-lg ${
-                              sellerDetails.store.status === 'approved' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' :
-                              sellerDetails.store.status === 'rejected' ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white' :
-                              'bg-gradient-to-r from-amber-500 to-yellow-500 text-white'
+                              sellerDetails.store.status === 'approved' ? 'bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white' :
+                              sellerDetails.store.status === 'rejected' ? 'bg-[#d5bfae] text-[#5c3d28]' :
+                              'bg-[#f5f0eb] text-[#7b5a3b] border-2 border-[#d5bfae]'
                             }`}>
                               {sellerDetails.store.status === 'approved' && <CheckCircle className="h-5 w-5" />}
                               {sellerDetails.store.status === 'rejected' && <XCircle className="h-5 w-5" />}
@@ -413,14 +413,14 @@ const StoreVerification = () => {
                     </div>
 
                     {sellerDetails.store.rejection_reason && (
-                      <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-6 border-2 border-red-200 shadow-sm">
+                      <div className="bg-gradient-to-br from-[#f5f0eb] to-[#ede5dc] rounded-xl p-6 border-2 border-[#d5bfae] shadow-sm">
                         <div className="flex items-start gap-4">
                           <div className="p-2.5 bg-white rounded-lg shadow-sm">
-                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                            <AlertTriangle className="h-5 w-5 text-[#a4785a]" />
                           </div>
                           <div className="flex-1">
-                            <span className="text-xs font-semibold text-red-600 uppercase tracking-wider block mb-3">Rejection Reason</span>
-                            <p className="text-red-900 font-medium leading-relaxed bg-white p-4 rounded-lg border border-red-200">{sellerDetails.store.rejection_reason}</p>
+                            <span className="text-xs font-semibold text-[#5c3d28] uppercase tracking-wider block mb-3">Rejection Reason</span>
+                            <p className="text-[#5c3d28] font-medium leading-relaxed bg-white p-4 rounded-lg border border-[#d5bfae]">{sellerDetails.store.rejection_reason}</p>
                           </div>
                         </div>
                       </div>
@@ -464,13 +464,13 @@ const StoreVerification = () => {
               
               {documents.bir_permit && (
                 <div className="bg-white rounded-2xl p-6 shadow-lg border border-[#d5bfae] hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                  <div className="flex items-center gap-3 mb-5 pb-4 border-b-2 border-green-200">
-                    <div className="p-2.5 bg-green-100 rounded-xl">
-                      <Building2 className="h-5 w-5 text-green-600" />
+                  <div className="flex items-center gap-3 mb-5 pb-4 border-b-2 border-[#d5bfae]">
+                    <div className="p-2.5 bg-[#f5f0eb] rounded-xl">
+                      <Building2 className="h-5 w-5 text-[#a4785a]" />
                     </div>
                     <h4 className="font-bold text-[#5c3d28] text-lg">BIR Permit</h4>
                   </div>
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6 flex items-center justify-center min-h-[280px]">
+                  <div className="bg-gradient-to-br from-[#f5f0eb] to-[#ede5dc] border-2 border-[#d5bfae] rounded-xl p-6 flex items-center justify-center min-h-[280px]">
                     {documents.bir_permit.type === 'image' ? (
                       <img 
                         src={documents.bir_permit.url} 
@@ -480,13 +480,13 @@ const StoreVerification = () => {
                     ) : (
                       <div className="flex flex-col items-center space-y-5">
                         <div className="p-6 bg-white rounded-2xl shadow-md">
-                          <FileText className="h-20 w-20 text-green-500" />
+                          <FileText className="h-20 w-20 text-[#a4785a]" />
                         </div>
                         <a 
                           href={documents.bir_permit.url} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-3 px-6 py-3.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold text-base"
+                          className="inline-flex items-center gap-3 px-6 py-3.5 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white rounded-xl hover:from-[#8f674a] hover:to-[#6a4c34] shadow-lg hover:shadow-xl transition-all duration-300 font-semibold text-base"
                         >
                           <Download className="h-5 w-5" />
                           View BIR Permit PDF
@@ -582,16 +582,16 @@ const StoreVerification = () => {
     <div className="space-y-8">
       {/* Page Header */}
       {/* Test Button - Remove in production */}
-      <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+      <Card className="bg-gradient-to-br from-[#f5f0eb] to-[#ede5dc] border-[#d5bfae]">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-purple-700 mb-1">Test Notification</div>
-              <div className="text-xs text-purple-600">Click to test the toast notification</div>
+              <div className="text-sm font-semibold text-[#5c3d28] mb-1">Test Notification</div>
+              <div className="text-xs text-[#7b5a3b]">Click to test the toast notification</div>
             </div>
             <Button
               onClick={() => showToast('Store approved and seller verified successfully!', 'success')}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+              className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               Test Success Toast
@@ -602,56 +602,57 @@ const StoreVerification = () => {
   
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-all duration-300">
+        <Card className="bg-gradient-to-br from-[#f5f0eb] to-[#ede5dc] border-[#d5bfae] hover:shadow-lg transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-blue-700">{stats.total_stores || 0}</div>
-                <div className="text-sm text-blue-600 font-medium">Total Stores</div>
+                <div className="text-3xl font-bold text-[#5c3d28]">{stats.total_stores || 0}</div>
+                <div className="text-sm text-[#7b5a3b] font-medium">Total Stores</div>
               </div>
-              <div className="p-3 bg-blue-200 rounded-full">
-                <Store className="h-6 w-6 text-blue-700" />
+              <div className="p-3 bg-[#d5bfae] rounded-full">
+                <Store className="h-6 w-6 text-[#5c3d28]" />
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hover:shadow-lg transition-all duration-300">
+        <Card className="bg-gradient-to-br from-[#f5f0eb] to-[#ede5dc] border-[#d5bfae] hover:shadow-lg transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-yellow-700">{stats.pending_stores || 0}</div>
-                <div className="text-sm text-yellow-600 font-medium">Pending Review</div>
+                <div className="text-3xl font-bold text-[#7b5a3b]">{stats.pending_stores || 0}</div>
+                <div className="text-sm text-[#7b5a3b] font-medium">Pending Review</div>
               </div>
-              <div className="p-3 bg-yellow-200 rounded-full">
+              <div className="p-3 bg-[#d5bfae] rounded-full">
+                <Clock className="h-6 w-6 text-[#a4785a]" />
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-all duration-300">
+        <Card className="bg-gradient-to-br from-[#f5f0eb] to-[#ede5dc] border-[#d5bfae] hover:shadow-lg transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-green-700">{stats.approved_stores || 0}</div>
-                <div className="text-sm text-green-600 font-medium">Approved</div>
+                <div className="text-3xl font-bold text-[#5c3d28]">{stats.approved_stores || 0}</div>
+                <div className="text-sm text-[#7b5a3b] font-medium">Approved</div>
               </div>
-              <div className="p-3 bg-green-200 rounded-full">
-                <CheckCircle className="h-6 w-6 text-green-700" />
+              <div className="p-3 bg-[#d5bfae] rounded-full">
+                <CheckCircle className="h-6 w-6 text-[#a4785a]" />
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 hover:shadow-lg transition-all duration-300">
+        <Card className="bg-gradient-to-br from-[#f5f0eb] to-[#ede5dc] border-[#d5bfae] hover:shadow-lg transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-red-700">{stats.rejected_stores || 0}</div>
-                <div className="text-sm text-red-600 font-medium">Rejected</div>
+                <div className="text-3xl font-bold text-[#5c3d28]">{stats.rejected_stores || 0}</div>
+                <div className="text-sm text-[#7b5a3b] font-medium">Rejected</div>
               </div>
-              <div className="p-3 bg-red-200 rounded-full">
-                <XCircle className="h-6 w-6 text-red-700" />
+              <div className="p-3 bg-[#d5bfae] rounded-full">
+                <XCircle className="h-6 w-6 text-[#a4785a]" />
               </div>
             </div>
           </CardContent>
@@ -659,24 +660,24 @@ const StoreVerification = () => {
       </div>
 
       {/* Filters */}
-      <Card className="bg-white shadow-sm border-gray-200">
+      <Card className="bg-white shadow-sm border-[#d5bfae]">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#7b5a3b] h-5 w-5" />
                 <Input
                   placeholder="Search stores, owners..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+                  className="pl-12 h-12 border-[#d5bfae] focus:border-[#a4785a] focus:ring-[#a4785a] rounded-lg"
                 />
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Filter className="h-5 w-5 text-gray-500" />
+              <Filter className="h-5 w-5 text-[#7b5a3b]" />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-48 h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg">
+                <SelectTrigger className="w-full md:w-48 h-12 border-[#d5bfae] focus:border-[#a4785a] focus:ring-[#a4785a] rounded-lg">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -688,87 +689,87 @@ const StoreVerification = () => {
             </Select>
             </div>
           </div>
-          <div className="mt-3 text-xs text-gray-500 flex items-center gap-2">
+          <div className="mt-3 text-xs text-[#7b5a3b] flex items-center gap-2">
           </div>
         </CardContent>
       </Card>
 
       {/* Stores Table */}
-      <Card className="shadow-lg border-gray-200">
+      <Card className="shadow-lg border-[#d5bfae]">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+              <thead className="bg-gradient-to-r from-[#f5f0eb] to-[#ede5dc] border-b border-[#d5bfae]">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-[#5c3d28] uppercase tracking-wider">
                     <div className="flex items-center gap-2">
                       <Store className="h-4 w-4" />
                     Store
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-[#5c3d28] uppercase tracking-wider">
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4" />
                     Owner
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-[#5c3d28] uppercase tracking-wider">
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4" />
                     Status
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-[#5c3d28] uppercase tracking-wider">
                     <div className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
                     TIN
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-[#5c3d28] uppercase tracking-wider">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                     Created
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-[#5c3d28] uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-[#d5bfae]">
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan="6" className="px-6 py-4 text-center text-[#7b5a3b]">
                       Loading...
                     </td>
                   </tr>
                 ) : stores.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan="6" className="px-6 py-4 text-center text-[#7b5a3b]">
                       No stores found
                     </td>
                   </tr>
                 ) : (
                   stores.map((store) => (
-                    <tr key={store.storeID} className="hover:bg-blue-50 transition-colors duration-200 border-b border-gray-100">
+                    <tr key={store.storeID} className="hover:bg-[#f5f0eb] transition-colors duration-200 border-b border-[#d5bfae]">
                       <td className="px-6 py-6 whitespace-nowrap">
                         <div className="flex items-center">
                           {store.logo_url ? (
                             <img 
-                              className="h-12 w-12 rounded-full object-cover mr-4 border-2 border-gray-200" 
+                              className="h-12 w-12 rounded-full object-cover mr-4 border-2 border-[#d5bfae]" 
                               src={store.logo_url} 
                               alt={store.store_name}
                             />
                           ) : (
-                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mr-4 border-2 border-gray-200">
-                              <Store className="h-6 w-6 text-gray-500" />
+                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#f5f0eb] to-[#ede5dc] flex items-center justify-center mr-4 border-2 border-[#d5bfae]">
+                              <Store className="h-6 w-6 text-[#7b5a3b]" />
                             </div>
                           )}
                           <div>
-                            <div className="text-sm font-semibold text-gray-900 mb-1">
+                            <div className="text-sm font-semibold text-[#5c3d28] mb-1">
                               {store.store_name}
                             </div>
-                            <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full inline-block">
+                            <div className="text-xs text-[#7b5a3b] bg-[#f5f0eb] px-2 py-1 rounded-full inline-block border border-[#d5bfae]">
                               {store.category}
                             </div>
                           </div>
@@ -776,12 +777,12 @@ const StoreVerification = () => {
                       </td>
                       <td className="px-6 py-6 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                            <User className="h-4 w-4 text-blue-600" />
+                          <div className="h-8 w-8 rounded-full bg-[#f5f0eb] flex items-center justify-center mr-3 border border-[#d5bfae]">
+                            <User className="h-4 w-4 text-[#a4785a]" />
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-gray-900">{store.owner_name}</div>
-                            <div className="text-xs text-gray-500 flex items-center">
+                            <div className="text-sm font-medium text-[#5c3d28]">{store.owner_name}</div>
+                            <div className="text-xs text-[#7b5a3b] flex items-center">
                               <Mail className="h-3 w-3 mr-1" />
                               {store.owner_email}
                             </div>
@@ -792,12 +793,12 @@ const StoreVerification = () => {
                         {getStatusBadge(store.status)}
                       </td>
                       <td className="px-6 py-6 whitespace-nowrap">
-                        <div className="text-sm font-mono text-gray-700 bg-gray-100 px-2 py-1 rounded">
+                        <div className="text-sm font-mono text-[#5c3d28] bg-[#f5f0eb] px-2 py-1 rounded border border-[#d5bfae]">
                         {store.tin_number || 'N/A'}
                         </div>
                       </td>
                       <td className="px-6 py-6 whitespace-nowrap">
-                        <div className="text-sm text-gray-600 flex items-center">
+                        <div className="text-sm text-[#7b5a3b] flex items-center">
                           <Calendar className="h-4 w-4 mr-2" />
                         {new Date(store.created_at).toLocaleDateString()}
                         </div>
@@ -808,7 +809,7 @@ const StoreVerification = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => viewDocuments(store)}
-                            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300 transition-all duration-200"
+                            className="bg-[#f5f0eb] hover:bg-[#ede5dc] text-[#5c3d28] border-[#d5bfae] hover:border-[#a4785a] transition-all duration-200"
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           View
@@ -819,7 +820,7 @@ const StoreVerification = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => handleApprove(store.storeID)}
-                                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300 transition-all duration-200"
+                                className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white border-0 transition-all duration-200"
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
                               Approve
@@ -831,7 +832,7 @@ const StoreVerification = () => {
                                 setSelectedStore(store);
                                 setShowRejectDialog(true);
                               }}
-                                className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200 hover:border-red-300 transition-all duration-200"
+                                className="bg-[#f5f0eb] hover:bg-[#ede5dc] text-[#5c3d28] border-[#d5bfae] hover:border-[#a4785a] transition-all duration-200"
                             >
                               <XCircle className="h-4 w-4 mr-1" />
                               Reject
@@ -904,10 +905,10 @@ const StoreVerification = () => {
 
       {/* Reject Dialog */}
       <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <AlertDialogContent className="max-w-2xl bg-white rounded-2xl shadow-2xl border-2 border-red-100">
+        <AlertDialogContent className="max-w-2xl bg-white rounded-2xl shadow-2xl border-2 border-[#d5bfae]">
           <AlertDialogHeader className="space-y-4">
             <div className="flex items-center gap-4">
-              <div className="p-4 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl shadow-lg">
+              <div className="p-4 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-lg">
                 <XCircle className="h-8 w-8 text-white" />
               </div>
               <div>
@@ -919,13 +920,13 @@ const StoreVerification = () => {
             </div>
           </AlertDialogHeader>
           <div className="py-6">
-            <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-6 border-2 border-red-200">
+            <div className="bg-gradient-to-br from-[#f5f0eb] to-[#ede5dc] rounded-xl p-6 border-2 border-[#d5bfae]">
               <label className="block mb-3 text-sm font-bold text-[#5c3d28] uppercase tracking-wider flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <AlertTriangle className="h-4 w-4 text-[#a4785a]" />
                 Rejection Reason
               </label>
               <textarea
-                className="w-full p-4 border-2 border-red-200 rounded-xl focus:border-red-400 focus:ring-4 focus:ring-red-100 transition-all duration-200 bg-white text-[#5c3d28] placeholder-[#7b5a3b] font-medium resize-none"
+                className="w-full p-4 border-2 border-[#d5bfae] rounded-xl focus:border-[#a4785a] focus:ring-4 focus:ring-[#f5f0eb] transition-all duration-200 bg-white text-[#5c3d28] placeholder-[#7b5a3b] font-medium resize-none"
                 rows="6"
                 placeholder="Example: The submitted business documents are unclear or expired. Please resubmit clear, valid documents..."
                 value={rejectReason}
@@ -943,7 +944,7 @@ const StoreVerification = () => {
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleReject}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 border-0"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 border-0"
             >
               <XCircle className="h-4 w-4 mr-2 inline" />
               Confirm Rejection

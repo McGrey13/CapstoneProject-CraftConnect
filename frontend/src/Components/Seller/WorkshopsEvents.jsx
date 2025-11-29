@@ -11,13 +11,12 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import { Calendar, Clock, Users, MapPin, Plus, Upload, X, RefreshCw } from "lucide-react";
+import { Calendar, Clock, Users, MapPin, Plus, Upload, X, RefreshCw, Edit } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { useWorkAndEvents } from "../../hooks/useWorkAndEvents";
-import { toast } from "sonner"; // You might need to install sonner for notifications
+import { toast } from "sonner";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import ErrorState from "../ui/ErrorState";
-import EmptyState from "../ui/EmptyState";
 
 // Status badge styling
 const statusStyles = {
@@ -39,13 +38,14 @@ const WorkshopCard = ({
   onDelete,
 }) => {
   return (
-    <Card className="rounded-lg sm:rounded-xl md:rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2 border-[#e5ded7] bg-white">
+    <Card className="rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 border-[#e5ded7] bg-white group">
       <div
-        className="h-40 sm:h-48 w-full bg-cover bg-center relative"
+        className="h-48 w-full bg-cover bg-center relative overflow-hidden"
         style={{ backgroundImage: `url(${image || '/placeholder-workshop.jpg'})` }}
       >
-        <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
-          <Badge className={`text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-lg ${statusStyles[status] || statusStyles.upcoming}`}>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+        <div className="absolute top-3 right-3">
+          <Badge className={`text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm ${statusStyles[status] || statusStyles.upcoming}`}>
             {status === "upcoming"
               ? "Upcoming"
               : status === "in-progress"
@@ -58,63 +58,67 @@ const WorkshopCard = ({
           </Badge>
         </div>
       </div>
-      <CardHeader className="py-3 sm:py-4 md:py-5 px-3 sm:px-4 md:px-6 border-b border-[#e5ded7]">
-        <CardTitle className="text-base sm:text-lg md:text-xl font-bold text-[#5c3d28]">{title}</CardTitle>
-        <CardDescription className="text-xs sm:text-sm text-[#7b5a3b] mt-1">
+      <CardHeader className="py-4 px-5 border-b border-[#e5ded7] bg-gradient-to-br from-white to-[#faf9f8]">
+        <CardTitle className="text-lg font-bold text-[#5c3d28] line-clamp-2">{title}</CardTitle>
+        <CardDescription className="text-sm text-[#7b5a3b] mt-1">
           Craft Workshop Event
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2 sm:space-y-3 px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm text-[#7b5a3b]">
-        <div className="flex items-center gap-2 sm:gap-3 p-2 hover:bg-[#faf9f8] rounded-lg transition-colors">
-          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center flex-shrink-0">
-            <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+      <CardContent className="space-y-2.5 px-5 py-4 text-sm text-[#7b5a3b]">
+        <div className="flex items-center gap-3 p-2.5 hover:bg-[#faf9f8] rounded-lg transition-colors cursor-default">
+          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] flex items-center justify-center flex-shrink-0 shadow-md">
+            <Calendar className="w-4 h-4 text-white" />
           </div>
-          <span className="font-medium truncate">{new Date(date).toLocaleDateString()}</span>
+          <span className="font-medium truncate">
+            {date ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD'}
+          </span>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 p-2 hover:bg-[#faf9f8] rounded-lg transition-colors">
-          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-            <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+        <div className="flex items-center gap-3 p-2.5 hover:bg-[#faf9f8] rounded-lg transition-colors cursor-default">
+          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
+            <Clock className="w-4 h-4 text-white" />
           </div>
           <span className="font-medium truncate">{time}</span>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 p-2 hover:bg-[#faf9f8] rounded-lg transition-colors">
-          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+        <div className="flex items-center gap-3 p-2.5 hover:bg-[#faf9f8] rounded-lg transition-colors cursor-default">
+          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-md">
+            <MapPin className="w-4 h-4 text-white" />
           </div>
           <span className="font-medium truncate">{location}</span>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 p-2 hover:bg-[#faf9f8] rounded-lg transition-colors">
-          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center flex-shrink-0">
-            <Users className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+        <div className="flex items-center gap-3 p-2.5 hover:bg-[#faf9f8] rounded-lg transition-colors cursor-default">
+          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center flex-shrink-0 shadow-md">
+            <Users className="w-4 h-4 text-white" />
           </div>
           <span className="font-medium truncate">{participants} participants</span>
         </div>
       </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row justify-between sm:justify-center gap-3 sm:gap-4 px-4 md:px-6 py-4 bg-[#faf9f8] border-t border-[#e5ded7]">
-  <Button
-    variant="ghost"
-    size="sm"
-    className="flex-1 sm:flex-none rounded-lg text-[#a4785a] border border-[#e5ded7] hover:bg-white hover:text-[#5c3d28] transition-all duration-200 text-xs sm:text-sm px-4 py-2"
-    onClick={() => onEdit && onEdit()}
-  >
-    Edit
-  </Button>
-  <Button
-    size="sm"
-    className="flex-1 sm:flex-none rounded-lg bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md hover:shadow-lg transition-all duration-200 text-xs sm:text-sm px-4 py-2"
-    onClick={() => onDelete && onDelete()}
-  >
-    Delete
-  </Button>
-</CardFooter>
-
+      <CardFooter className="flex gap-3 px-5 py-4 bg-[#faf9f8] border-t border-[#e5ded7]">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 rounded-lg text-[#a4785a] border-2 border-[#d5bfae] hover:bg-white hover:text-[#5c3d28] hover:border-[#a4785a] transition-all duration-200 text-sm px-4 py-2.5 font-medium shadow-sm hover:shadow-md"
+          onClick={() => onEdit && onEdit()}
+        >
+          <Edit className="w-4 h-4 mr-2" />
+          Edit
+        </Button>
+        <Button
+          size="sm"
+          className="flex-1 rounded-lg bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md hover:shadow-lg transition-all duration-200 text-sm px-4 py-2.5 font-medium"
+          onClick={() => onDelete && onDelete()}
+        >
+          <X className="w-4 h-4 mr-2" />
+          Delete
+        </Button>
+      </CardFooter>
     </Card>
   );
 };
 
 const WorkshopsEvents = () => {
-  const { workAndEvents, loading, error, createWorkAndEvent, deleteWorkAndEvent, fetchWorkAndEvents } = useWorkAndEvents();
+  const { workAndEvents, loading, error, createWorkAndEvent, updateWorkAndEvent, deleteWorkAndEvent, fetchWorkAndEvents } = useWorkAndEvents();
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingWorkshop, setEditingWorkshop] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -163,28 +167,58 @@ const WorkshopsEvents = () => {
         }
       });
 
-      const result = await createWorkAndEvent(submitData);
-      
-      if (result.success) {
-        toast.success('Workshop created successfully!');
-        setShowCreateForm(false);
-        setFormData({
-          title: '',
-          description: '',
-          location: '',
-          date: '',
-          time: '',
-          participants: '',
-          status: 'upcoming',
-          link: '',
-          image: null,
-        });
-        setImagePreview(null);
+      if (editingWorkshop) {
+        const result = await updateWorkAndEvent(editingWorkshop.works_and_events_id, submitData);
+        if (result.success) {
+          toast.success('Workshop updated successfully!');
+          setShowCreateForm(false);
+          setEditingWorkshop(null);
+          resetForm();
+        }
+      } else {
+        const result = await createWorkAndEvent(submitData);
+        if (result.success) {
+          toast.success('Workshop created successfully!');
+          setShowCreateForm(false);
+          resetForm();
+        }
       }
     } catch (error) {
-      toast.error(error.message || 'Failed to create workshop');
-      console.error('Error creating workshop:', error);
+      toast.error(error.message || (editingWorkshop ? 'Failed to update workshop' : 'Failed to create workshop'));
+      console.error('Error saving workshop:', error);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      location: '',
+      date: '',
+      time: '',
+      participants: '',
+      status: 'upcoming',
+      link: '',
+      image: null,
+    });
+    setImagePreview(null);
+  };
+
+  const handleEdit = (workshop) => {
+    setEditingWorkshop(workshop);
+    setFormData({
+      title: workshop.title || '',
+      description: workshop.description || '',
+      location: workshop.location || '',
+      date: workshop.date || '',
+      time: workshop.time || '',
+      participants: workshop.participants || '',
+      status: workshop.status || 'upcoming',
+      link: workshop.link || '',
+      image: null,
+    });
+    setImagePreview(workshop.image_url || null);
+    setShowCreateForm(true);
   };
 
   const handleDelete = async (id) => {
@@ -221,43 +255,58 @@ const WorkshopsEvents = () => {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header with craft theme */}
-      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 overflow-visible">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
-          <div className="flex items-center w-full sm:w-[60%] min-w-0 pr-0 sm:pr-4">
-            <Calendar className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 mr-2 sm:mr-3 text-white flex-shrink-0" />
+      <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-2xl shadow-xl p-6 md:p-8 overflow-visible">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
+          <div className="flex items-center w-full sm:w-auto min-w-0">
+            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mr-3 md:mr-4 flex-shrink-0">
+              <Calendar className="h-5 w-5 md:h-6 md:w-6 text-white" />
+            </div>
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">
                 Workshops & Events
               </h1>
-              <p className="text-white/90 mt-1 text-sm sm:text-base md:text-lg">
+              <p className="text-white/90 text-sm md:text-base">
                 Create and manage engaging workshops and events for your customers
               </p>
             </div>
           </div>
-          <div className="w-full sm:w-auto flex-shrink-0 flex items-center justify-end sm:ml-auto gap-2">
+          <div className="w-full sm:w-auto flex items-center justify-end gap-3">
             <Button 
               onClick={() => fetchWorkAndEvents()}
-              className="bg-white/90 text-[#5c3d28] hover:bg-white shadow-md hover:shadow-lg 
-                        transition-all duration-200 px-3 py-1.5 
-                        rounded-md font-medium text-xs 
-                        w-auto !min-w-fit flex items-center justify-center whitespace-nowrap
-                        border border-white/30 relative z-10 h-7"
+              className="bg-white/95 text-[#5c3d28] hover:bg-white shadow-md hover:shadow-lg 
+                        transition-all duration-200 px-4 py-2 
+                        rounded-lg font-medium text-sm 
+                        flex items-center justify-center gap-2
+                        border border-white/30"
               title="Refresh"
             >
-              <RefreshCw className="h-3 w-3" />
+              <RefreshCw className="h-4 w-4" />
             </Button>
             <Button 
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="bg-white text-[#5c3d28] hover:bg-[#faf9f8] shadow-md hover:shadow-lg 
-                        transition-all duration-200 px-3 py-1.5 
-                        rounded-md font-medium text-xs 
-                        w-auto !min-w-fit flex items-center justify-center whitespace-nowrap
-                        border border-white/30 relative z-10 h-7"
+              onClick={() => {
+                if (showCreateForm) {
+                  setShowCreateForm(false);
+                  setEditingWorkshop(null);
+                  resetForm();
+                } else {
+                  setShowCreateForm(true);
+                }
+              }}
+              style={{
+                backgroundColor: '#ffffff',
+                color: '#a4785a',
+                border: '2px solid rgba(255, 255, 255, 0.8)',
+                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+              }}
+              className="!bg-white !text-[#a4785a] hover:!bg-[#faf9f8] hover:!text-[#7b5a3b] !shadow-xl hover:!shadow-2xl 
+                        transition-all duration-200 px-5 py-2.5 
+                        rounded-lg font-bold text-sm 
+                        flex items-center justify-center gap-2
+                        border-2 border-white/80 backdrop-blur-sm
+                        relative z-10"
             >
-              <Plus className="h-3 w-3 mr-1.5 flex-shrink-0" /> 
-              <span>
-                {showCreateForm ? 'Cancel' : 'Create'}
-              </span>
+              <Plus className="h-4 w-4 font-bold" /> 
+              <span className="font-bold">{showCreateForm ? 'Cancel' : 'Create Workshop'}</span>
             </Button>
           </div>
         </div>
@@ -265,21 +314,26 @@ const WorkshopsEvents = () => {
 
       {/* Grid */}
       {workAndEvents.length === 0 ? (
-        <EmptyState
-          icon="🎨"
-          title="No Workshops Yet"
-          description="Create your first workshop or event to start engaging with customers"
-          action={
-            <Button onClick={() => setShowCreateForm(true)} className="text-xs sm:text-sm">
-              <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+        <div className="bg-white rounded-2xl shadow-lg border-2 border-[#e5ded7] p-12 md:p-16">
+          <div className="text-center">
+            <div className="text-7xl md:text-8xl mb-6">🎨</div>
+            <h2 className="text-2xl md:text-3xl font-bold text-[#5c3d28] mb-3">No Workshops Yet</h2>
+            <p className="text-[#7b5a3b] text-base md:text-lg mb-8 max-w-md mx-auto">
+              Create your first workshop or event to start engaging with customers
+            </p>
+            <Button 
+              onClick={() => setShowCreateForm(true)} 
+              className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-3 rounded-lg font-medium text-sm md:text-base"
+            >
+              <Plus className="h-5 w-5 mr-2" />
               Create Your First Workshop
             </Button>
-          }
-        />
+          </div>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {workAndEvents.map((workshop) => (
-          <WorkshopCard
+            <WorkshopCard
               key={workshop.works_and_events_id}
               title={workshop.title}
               date={workshop.date}
@@ -288,6 +342,7 @@ const WorkshopsEvents = () => {
               participants={workshop.participants}
               status={workshop.status}
               image={workshop.image_url}
+              onEdit={() => handleEdit(workshop)}
               onDelete={() => handleDelete(workshop.works_and_events_id)}
             />
           ))}
@@ -297,42 +352,43 @@ const WorkshopsEvents = () => {
       {/* Create Form Modal */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-6 rounded-t-2xl z-10">
+            <div className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] p-6 rounded-t-2xl z-10 shadow-lg flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold text-white flex items-center">
-                    <Plus className="h-7 w-7 mr-3" />
-                    Create New Workshop
+                    {editingWorkshop ? (
+                      <>
+                        <Edit className="h-7 w-7 mr-3" />
+                        Edit Workshop
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-7 w-7 mr-3" />
+                        Create New Workshop
+                      </>
+                    )}
                   </h2>
-                  <p className="text-white/90 mt-1">Set up an engaging workshop or event for your customers</p>
+                  <p className="text-white/90 mt-1">
+                    {editingWorkshop ? 'Update your workshop details' : 'Set up an engaging workshop or event for your customers'}
+                  </p>
                 </div>
                 <button
                   onClick={() => {
                     setShowCreateForm(false);
-                    setImagePreview(null);
-                    setFormData({
-                      title: '',
-                      description: '',
-                      location: '',
-                      date: '',
-                      time: '',
-                      participants: '',
-                      status: 'upcoming',
-                      link: '',
-                      image: null,
-                    });
+                    setEditingWorkshop(null);
+                    resetForm();
                   }}
-                  className="text-white bg-[#7b5a3b] hover:bg-[#6a4c34] rounded-full p-2 transition-all"
+                  className="text-white bg-[#7b5a3b] hover:bg-[#6a4c34] rounded-full p-2 transition-all shadow-md hover:shadow-lg"
                 >
                   <X className="h-6 w-6" />
                 </button>
               </div>
             </div>
 
-            <form onSubmit={handleSubmit}>
-              <div className="px-6 py-6 space-y-6">
+            <form onSubmit={handleSubmit} className="w-full flex-1 overflow-y-auto">
+              <div className="px-6 py-6 space-y-6 w-full">
                 {/* Info Banner */}
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
@@ -494,55 +550,63 @@ const WorkshopsEvents = () => {
                 </div>
 
                 {/* Image Upload */}
-                <div className="space-y-2 text-center">
-                  <Label htmlFor="image" className="text-base font-semibold text-[#5c3d28] block">
+                <div className="space-y-2 w-full">
+                  <Label htmlFor="image" className="text-base font-semibold text-[#5c3d28] block text-center w-full">
                     <div className="flex items-center justify-center gap-2">
                       <Upload className="h-4 w-4" />
-                      Workshop Image *
+                      Workshop Image {!editingWorkshop && '*'}
                     </div>
                   </Label>
-                  <div className="border-2 border-dashed border-[#d5bfae] rounded-lg p-6 hover:border-[#a4785a] transition-all bg-[#faf9f8] cursor-pointer">
-                    {!imagePreview ? (
-                      <Label htmlFor="image" className="cursor-pointer block">
-                        <div className="flex flex-col items-center justify-center text-center min-h-[200px]">
-                          <Upload className="h-12 w-12 text-[#a4785a] mb-3" />
-                          <p className="text-[#5c3d28] font-medium hover:text-[#a4785a] transition-all">
-                            <span className="underline">Click to upload</span> or drag and drop
-                          </p>
-                          <p className="text-xs text-[#7b5a3b] mt-1">PNG, JPG, GIF up to 10MB</p>
+                  {!imagePreview ? (
+                    <Label 
+                      htmlFor="image" 
+                      className="block w-full border-2 border-dashed border-[#d5bfae] rounded-lg p-8 hover:border-[#a4785a] transition-all bg-[#faf9f8] cursor-pointer"
+                    >
+                      <div className="flex flex-col items-center justify-center text-center min-h-[200px] w-full">
+                        <div className="flex items-center justify-center mb-4 w-full">
+                          <Upload className="h-16 w-16 text-[#a4785a]" />
                         </div>
-                        <Input
-                          id="image"
-                          name="image"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="hidden"
-                          required
-                        />
-                      </Label>
-                    ) : (
-                      <div className="relative inline-block">
-                        <img
-                          src={imagePreview}
-                          alt="Preview"
-                          className="h-48 w-full object-cover rounded-lg shadow-lg"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute -top-3 -right-3 h-8 w-8 rounded-full p-0 shadow-lg"
-                          onClick={() => {
-                            setImagePreview(null);
-                            setFormData(prev => ({ ...prev, image: null }));
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <p className="text-[#5c3d28] font-medium hover:text-[#a4785a] transition-all text-base w-full">
+                          <span className="underline">Click to upload</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-[#7b5a3b] mt-2 w-full">
+                          {editingWorkshop ? 'Leave empty to keep current image' : 'PNG, JPG, GIF up to 10MB'}
+                        </p>
                       </div>
-                    )}
-                  </div>
+                      <Input
+                        id="image"
+                        name="image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                        required={!editingWorkshop}
+                      />
+                    </Label>
+                  ) : (
+                    <div className="relative w-full">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="h-48 w-full object-cover rounded-lg shadow-lg border-2 border-[#e5ded7]"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-3 -right-3 h-8 w-8 rounded-full p-0 shadow-lg hover:shadow-xl transition-all"
+                        onClick={() => {
+                          setImagePreview(null);
+                          setFormData(prev => ({ ...prev, image: null }));
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      {editingWorkshop && (
+                        <p className="text-xs text-[#7b5a3b] mt-2 text-center">Click the X to remove and upload a new image</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -553,38 +617,37 @@ const WorkshopsEvents = () => {
                   variant="outline"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setImagePreview(null);
-                    setFormData({
-                      title: '',
-                      description: '',
-                      location: '',
-                      date: '',
-                      time: '',
-                      participants: '',
-                      status: 'upcoming',
-                      link: '',
-                      image: null,
-                    });
+                    setEditingWorkshop(null);
+                    resetForm();
                   }}
-                  className="flex-1 border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-white rounded-lg py-6"
+                  className="flex-1 border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-white hover:border-[#a4785a] rounded-lg py-6 font-medium transition-all duration-200"
                   disabled={loading}
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
-                  className="flex-1 rounded-lg bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-lg hover:shadow-xl transition-all duration-200 py-6"
+                  className="flex-1 rounded-lg bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-lg hover:shadow-xl transition-all duration-200 py-6 font-medium"
                   disabled={loading}
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Creating Workshop...
+                      {editingWorkshop ? 'Updating Workshop...' : 'Creating Workshop...'}
                     </div>
                   ) : (
                     <>
-                      <Plus className="h-5 w-5 mr-2" />
-                      Create Workshop
+                      {editingWorkshop ? (
+                        <>
+                          <Edit className="h-5 w-5 mr-2" />
+                          Update Workshop
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-5 w-5 mr-2" />
+                          Create Workshop
+                        </>
+                      )}
                     </>
                   )}
                 </Button>

@@ -133,11 +133,11 @@ const CommissionDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="min-h-screen bg-[#f5f0eb] py-8 px-4">
         <div className="container mx-auto max-w-7xl">
           <div className="flex items-center justify-center h-64">
             <RefreshCw className="h-8 w-8 animate-spin text-[#a4785a]" />
-            <span className="ml-2 text-gray-600">Loading commission data...</span>
+            <span className="ml-2 text-[#7b5a3b]">Loading commission data...</span>
           </div>
         </div>
       </div>
@@ -147,12 +147,12 @@ const CommissionDashboard = () => {
   // Show loading while checking authentication
   if (userLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="min-h-screen bg-[#f5f0eb] py-8 px-4">
         <div className="container mx-auto max-w-7xl">
           <div className="text-center">
-            <RefreshCw className="h-16 w-16 text-gray-400 mx-auto mb-4 animate-spin" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Loading...</h2>
-            <p className="text-gray-600">Checking authentication status...</p>
+            <RefreshCw className="h-16 w-16 text-[#d5bfae] mx-auto mb-4 animate-spin" />
+            <h2 className="text-2xl font-bold text-[#5c3d28] mb-2">Loading...</h2>
+            <p className="text-[#7b5a3b]">Checking authentication status...</p>
           </div>
         </div>
       </div>
@@ -162,23 +162,23 @@ const CommissionDashboard = () => {
   // Show authentication error if user is not authenticated
   if (!user || authError) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="min-h-screen bg-[#f5f0eb] py-8 px-4">
         <div className="container mx-auto max-w-7xl">
           <div className="text-center">
-            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
-            <p className="text-gray-600 mb-6">
+            <AlertCircle className="h-16 w-16 text-[#a4785a] mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-[#5c3d28] mb-2">Authentication Required</h2>
+            <p className="text-[#7b5a3b] mb-6">
               You need to be authenticated to view the commission dashboard.
             </p>
             <div className="space-y-4">
               <Button 
                 onClick={() => window.location.href = '/login'}
-                className="bg-[#a4785a] hover:bg-[#8a6a5a] text-white px-6 py-3"
+                className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white px-6 py-3"
               >
                 <Key className="h-5 w-5 mr-2" />
                 Go to Login
               </Button>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-[#7b5a3b]">
                 Please log in with your admin account to access the commission dashboard.
               </p>
             </div>
@@ -190,12 +190,12 @@ const CommissionDashboard = () => {
 
   if (!commissionData) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="min-h-screen bg-[#f5f0eb] py-8 px-4">
         <div className="container mx-auto max-w-7xl">
           <div className="text-center">
-            <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Commission Data</h3>
-            <p className="text-gray-500">No commission data available for the selected period.</p>
+            <BarChart3 className="h-12 w-12 text-[#d5bfae] mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-[#5c3d28] mb-2">No Commission Data</h3>
+            <p className="text-[#7b5a3b]">No commission data available for the selected period.</p>
           </div>
         </div>
       </div>
@@ -205,14 +205,14 @@ const CommissionDashboard = () => {
   const { summary, payment_methods, top_sellers } = commissionData;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-[#f5f0eb] py-8 px-4">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Commission Dashboard</h1>
-              <p className="text-gray-600">Monitor platform commission earnings and payment analytics</p>
+              <h1 className="text-3xl font-bold text-[#5c3d28] mb-2">Commission Dashboard</h1>
+              <p className="text-[#7b5a3b]">Monitor platform commission earnings and payment analytics</p>
             </div>
           </div>
         </div>
@@ -231,7 +231,7 @@ const CommissionDashboard = () => {
                 <SelectItem value="yearly">This Year</SelectItem>
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-[#7b5a3b]">
               <Calendar className="h-4 w-4" />
               <span>{dateRange.from} to {dateRange.to}</span>
             </div>
@@ -242,16 +242,11 @@ const CommissionDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="admin-table-container">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    ₱{summary.total_gross_revenue?.toLocaleString() || 0}
-                  </p>
-                </div>
-                <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <span className="h-4 w-4 text-[#a4785a] text-2xl mb-3"> ₱ </span>
-                </div>
+              <div>
+                <p className="text-sm font-medium text-[#7b5a3b]">Total Revenue</p>
+                <p className="text-2xl font-bold text-[#5c3d28]">
+                  ₱{summary.total_gross_revenue?.toLocaleString() || 0}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -260,14 +255,14 @@ const CommissionDashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Platform Commission</p>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-sm font-medium text-[#7b5a3b]">Platform Commission</p>
+                  <p className="text-2xl font-bold text-[#a4785a]">
                     ₱{summary.total_admin_fees?.toLocaleString() || 0}
                   </p>
-                  <p className="text-xs text-gray-500">{summary.commission_rate}</p>
+                  <p className="text-xs text-[#7b5a3b]">{summary.commission_rate}</p>
                 </div>
-                <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-green-600" />
+                <div className="h-12 w-12 bg-[#f5f0eb] rounded-lg flex items-center justify-center border border-[#d5bfae]">
+                  <TrendingUp className="h-6 w-6 text-[#a4785a]" />
                 </div>
               </div>
             </CardContent>
@@ -277,13 +272,13 @@ const CommissionDashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Seller Payments</p>
-                  <p className="text-2xl font-bold text-purple-600">
+                  <p className="text-sm font-medium text-[#7b5a3b]">Seller Payments</p>
+                  <p className="text-2xl font-bold text-[#7b5a3b]">
                     ₱{summary.total_seller_payments?.toLocaleString() || 0}
                   </p>
                 </div>
-                <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Users className="h-6 w-6 text-purple-600" />
+                <div className="h-12 w-12 bg-[#f5f0eb] rounded-lg flex items-center justify-center border border-[#d5bfae]">
+                  <Users className="h-6 w-6 text-[#a4785a]" />
                 </div>
               </div>
             </CardContent>
@@ -293,16 +288,16 @@ const CommissionDashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Transactions</p>
-                  <p className="text-2xl font-bold text-orange-600">
+                  <p className="text-sm font-medium text-[#7b5a3b]">Transactions</p>
+                  <p className="text-2xl font-bold text-[#5c3d28]">
                     {summary.transaction_count || 0}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[#7b5a3b]">
                     Avg: ₱{summary.average_transaction_value?.toLocaleString() || 0}
                   </p>
                 </div>
-                <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <CreditCard className="h-6 w-6 text-orange-600" />
+                <div className="h-12 w-12 bg-[#f5f0eb] rounded-lg flex items-center justify-center border border-[#d5bfae]">
+                  <CreditCard className="h-6 w-6 text-[#a4785a]" />
                 </div>
               </div>
             </CardContent>
@@ -333,16 +328,16 @@ const CommissionDashboard = () => {
                         {method.display_name === 'Card' ? 'GCash' : method.display_name}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-[#7b5a3b]">
                           ₱{method.total_amount?.toLocaleString()}
                         </span>
-                        <Badge variant="secondary">
+                        <Badge className="bg-[#d5bfae] text-[#5c3d28] border border-[#a4785a]">
                           {method.percentage}%
                         </Badge>
                       </div>
                     </div>
                     <Progress value={method.percentage} className="h-2" />
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-[#7b5a3b]">
                       {method.transaction_count} transactions • 
                       Avg: ₱{method.average_amount?.toLocaleString()}
                     </div>
@@ -364,23 +359,23 @@ const CommissionDashboard = () => {
             <CardContent>
               <div className="space-y-4">
                 {top_sellers?.slice(0, 5).map((seller, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 bg-[#f5f0eb] rounded-lg border border-[#d5bfae]">
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 bg-[#a4785a] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      <div className="h-8 w-8 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white rounded-full flex items-center justify-center text-sm font-bold">
                         {index + 1}
                       </div>
                       <div>
-                        <p className="font-medium">{seller.seller_name}</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="font-medium text-[#5c3d28]">{seller.seller_name}</p>
+                        <p className="text-sm text-[#7b5a3b]">
                           {seller.transaction_count} transactions
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-green-600">
+                      <p className="font-semibold text-[#a4785a]">
                         ₱{seller.total_earnings?.toLocaleString()}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-[#7b5a3b]">
                         Commission: ₱{seller.admin_fees_paid?.toLocaleString()}
                       </p>
                     </div>
@@ -404,23 +399,23 @@ const CommissionDashboard = () => {
             <CardContent>
               <div className="space-y-4">
                 {itemCommissionData.items.slice(0, 10).map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-4 bg-[#f5f0eb] rounded-lg border border-[#d5bfae]">
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 bg-[#a4785a] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      <div className="h-10 w-10 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] text-white rounded-full flex items-center justify-center text-sm font-bold">
                         {index + 1}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{item.product_name}</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="font-medium text-[#5c3d28]">{item.product_name}</p>
+                        <p className="text-sm text-[#7b5a3b]">
                           {item.total_quantity_sold} items sold • Avg: ₱{item.average_price?.toFixed(2)}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-green-600">
+                      <p className="font-semibold text-[#a4785a]">
                         ₱{item.total_commission?.toFixed(2)} commission
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-[#7b5a3b]">
                         Revenue: ₱{item.total_revenue?.toFixed(2)}
                       </p>
                     </div>
@@ -428,23 +423,23 @@ const CommissionDashboard = () => {
                 ))}
               </div>
               {itemCommissionData.summary && (
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <div className="mt-6 p-4 bg-[#f5f0eb] rounded-lg border border-[#d5bfae]">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                     <div>
-                      <p className="text-2xl font-bold text-blue-600">{itemCommissionData.summary.total_products}</p>
-                      <p className="text-sm text-blue-800">Products</p>
+                      <p className="text-2xl font-bold text-[#5c3d28]">{itemCommissionData.summary.total_products}</p>
+                      <p className="text-sm text-[#7b5a3b]">Products</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-green-600">{itemCommissionData.summary.total_items_sold}</p>
-                      <p className="text-sm text-green-800">Items Sold</p>
+                      <p className="text-2xl font-bold text-[#a4785a]">{itemCommissionData.summary.total_items_sold}</p>
+                      <p className="text-sm text-[#7b5a3b]">Items Sold</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-purple-600">₱{itemCommissionData.summary.total_commission?.toFixed(2)}</p>
-                      <p className="text-sm text-purple-800">Total Commission</p>
+                      <p className="text-2xl font-bold text-[#5c3d28]">₱{itemCommissionData.summary.total_commission?.toFixed(2)}</p>
+                      <p className="text-sm text-[#7b5a3b]">Total Commission</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-orange-600">₱{itemCommissionData.summary.average_commission_per_item?.toFixed(2)}</p>
-                      <p className="text-sm text-orange-800">Avg per Item</p>
+                      <p className="text-2xl font-bold text-[#a4785a]">₱{itemCommissionData.summary.average_commission_per_item?.toFixed(2)}</p>
+                      <p className="text-sm text-[#7b5a3b]">Avg per Item</p>
                     </div>
                   </div>
                 </div>
@@ -470,10 +465,10 @@ const CommissionDashboard = () => {
                     <div className="flex justify-between items-center">
                       <span className="font-medium">{category.category}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-[#7b5a3b]">
                           ₱{category.total_commission?.toFixed(2)}
                         </span>
-                        <Badge variant="secondary">
+                        <Badge className="bg-[#d5bfae] text-[#5c3d28] border border-[#a4785a]">
                           {category.items_sold} items
                         </Badge>
                       </div>
@@ -482,7 +477,7 @@ const CommissionDashboard = () => {
                       value={(category.total_commission / categoryCommissionData.summary.total_commission) * 100} 
                       className="h-2" 
                     />
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-[#7b5a3b]">
                       Revenue: ₱{category.total_revenue?.toFixed(2)} • 
                       {category.transaction_count} transactions
                     </div>

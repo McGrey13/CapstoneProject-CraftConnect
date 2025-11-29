@@ -250,17 +250,17 @@ const ArtisanTable = () => {
   
   if (error) return (
     <div className="p-8">
-      <Card className="border-2 border-red-200 shadow-xl">
+      <Card className="border-2 border-[#d5bfae] shadow-xl">
         <CardContent className="p-8">
           <div className="text-center space-y-4">
-            <div className="p-4 bg-red-100 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-              <X className="h-8 w-8 text-red-600" />
+            <div className="p-4 bg-[#f5f0eb] rounded-full w-16 h-16 mx-auto flex items-center justify-center border border-[#d5bfae]">
+              <X className="h-8 w-8 text-[#a4785a]" />
             </div>
-            <h3 className="text-2xl font-bold text-red-800">Failed to Load Artisans</h3>
-            <p className="text-red-600 text-lg">{error}</p>
+            <h3 className="text-2xl font-bold text-[#5c3d28]">Failed to Load Artisans</h3>
+            <p className="text-[#7b5a3b] text-lg">{error}</p>
             <Button 
               onClick={() => window.location.reload()}
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg px-6 py-3"
+              className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-lg px-6 py-3"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
@@ -297,7 +297,7 @@ const ArtisanTable = () => {
     <div className="space-y-8">
       {/* Action Message */}
       {actionMessage && (
-        <div className="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-500 text-green-800 px-6 py-4 rounded-xl shadow-md">
+        <div className="bg-gradient-to-r from-[#f5f0eb] to-[#ede5dc] border-2 border-[#a4785a] text-[#5c3d28] px-6 py-4 rounded-xl shadow-md">
           <span className="block sm:inline font-medium">✓ {actionMessage}</span>
         </div>
       )}
@@ -361,7 +361,7 @@ const ArtisanTable = () => {
           </div>
           <div className="mt-3 flex items-center justify-between">
             <div className="text-xs text-[#7b5a3b] flex items-center gap-2">
-              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+              <div className="h-2 w-2 bg-[#a4785a] rounded-full animate-pulse"></div>
               Auto-refreshing every 1 minute
             </div>
             <div className="text-sm text-[#7b5a3b] font-medium">
@@ -469,7 +469,7 @@ const ArtisanTable = () => {
                       </div>
                     </TableCell>
                     <TableCell className="py-5">
-                      <span className="font-bold text-green-700 text-base">
+                      <span className="font-bold text-[#a4785a] text-base">
                         ₱{seller.total_revenue?.toLocaleString() || '0.00'}
                       </span>
                     </TableCell>
@@ -479,8 +479,8 @@ const ArtisanTable = () => {
                       </div>
                     </TableCell>
                     <TableCell className="py-5">
-                      <div className="text-center bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-                        <span className="font-bold text-blue-700 text-base">{seller.total_orders || 0}</span>
+                      <div className="text-center bg-[#f5f0eb] px-3 py-2 rounded-lg border border-[#d5bfae]">
+                        <span className="font-bold text-[#5c3d28] text-base">{seller.total_orders || 0}</span>
                       </div>
                     </TableCell>
                     <TableCell className="py-5">
@@ -508,7 +508,7 @@ const ArtisanTable = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handleEditSeller(seller)}
-                          className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300 transition-all duration-200 font-medium"
+                          className="bg-[#f5f0eb] hover:bg-[#ede5dc] text-[#5c3d28] border-[#d5bfae] hover:border-[#a4785a] transition-all duration-200 font-medium"
                         >
                           <Edit className="h-4 w-4 mr-1" />
                           Edit
@@ -523,7 +523,7 @@ const ArtisanTable = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300 hover:border-gray-400"
+                              className="bg-white hover:bg-[#f5f0eb] text-[#5c3d28] border-[#d5bfae] hover:border-[#a4785a]"
                               onPointerDown={(event) => event.preventDefault()}
                               onClick={(event) => {
                                 event.preventDefault();
@@ -558,26 +558,26 @@ const ArtisanTable = () => {
                             <DropdownMenuSeparator className="bg-[#d5bfae]" />
                             <DropdownMenuItem
                               onClick={() => handleResetPassword(seller)}
-                              className="text-blue-600 hover:bg-blue-50 cursor-pointer"
+                              className="text-[#5c3d28] hover:bg-[#f5f0eb] cursor-pointer"
                             >
-                              <Key className="h-4 w-4 mr-2" />
+                              <Key className="h-4 w-4 mr-2 text-[#a4785a]" />
                               Reset Password
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-[#d5bfae]" />
                             {seller.status === 'active' ? (
                               <DropdownMenuItem 
                                 onClick={() => handleDeactivateArtisan(seller)}
-                                className="text-red-600 hover:bg-red-50 cursor-pointer"
+                                className="text-[#5c3d28] hover:bg-[#f5f0eb] cursor-pointer"
                               >
-                                <UserX className="h-4 w-4 mr-2" />
+                                <UserX className="h-4 w-4 mr-2 text-[#a4785a]" />
                                 Deactivate Account
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem 
                                 onClick={() => handleReactivateArtisan(seller)}
-                                className="text-green-600 hover:bg-green-50 cursor-pointer"
+                                className="text-[#5c3d28] hover:bg-[#f5f0eb] cursor-pointer"
                               >
-                                <UserCheck className="h-4 w-4 mr-2" />
+                                <UserCheck className="h-4 w-4 mr-2 text-[#a4785a]" />
                                 Reactivate Account
                               </DropdownMenuItem>
                             )}
@@ -646,8 +646,8 @@ const ArtisanTable = () => {
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-red-100 rounded-full">
-                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                <div className="p-2 bg-[#f5f0eb] rounded-full border border-[#d5bfae]">
+                  <AlertTriangle className="h-6 w-6 text-[#a4785a]" />
                 </div>
                 <h3 className="text-xl font-bold text-[#5c3d28]">{confirmAction.title}</h3>
               </div>
@@ -671,13 +671,7 @@ const ArtisanTable = () => {
                 <Button
                   onClick={handleConfirmAction}
                   disabled={isActionLoading}
-                  className={`flex-1 text-white ${
-                    confirmAction.type === 'deactivate' 
-                      ? 'bg-red-500 hover:bg-red-600' 
-                      : confirmAction.type === 'reactivate'
-                      ? 'bg-green-500 hover:bg-green-600'
-                      : 'bg-blue-500 hover:bg-blue-600'
-                  }`}
+                  className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white"
                 >
                   {isActionLoading ? (
                     <>

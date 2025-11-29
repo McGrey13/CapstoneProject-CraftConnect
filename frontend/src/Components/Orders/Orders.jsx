@@ -271,73 +271,73 @@ const Orders = () => {
         title: 'To Pay',
         description: paymentStatus === 'paid' ? 'Payment received, ready to ship' : 'Payment pending',
         icon: Clock,
-        color: 'bg-yellow-500',
-        textColor: 'text-yellow-700',
-        bgColor: 'bg-yellow-50',
-        borderColor: 'border-yellow-200'
+        color: 'bg-[#a4785a]',
+        textColor: 'text-[#5c3d28]',
+        bgColor: 'bg-[#f5f0eb]',
+        borderColor: 'border-[#d5bfae]'
       },
       'processing': {
         title: 'To Package',
         description: 'Payment received - Ready to package',
         icon: Package,
-        color: 'bg-yellow-500',
-        textColor: 'text-yellow-700',
-        bgColor: 'bg-yellow-50',
-        borderColor: 'border-yellow-200'
+        color: 'bg-[#a4785a]',
+        textColor: 'text-[#5c3d28]',
+        bgColor: 'bg-[#f5f0eb]',
+        borderColor: 'border-[#d5bfae]'
       },
       'packing': {
         title: 'To Ship',
         description: 'Seller is packing your order',
         icon: Truck,
-        color: 'bg-blue-500',
-        textColor: 'text-blue-700',
-        bgColor: 'bg-blue-50',
-        borderColor: 'border-blue-200'
+        color: 'bg-[#a4785a]',
+        textColor: 'text-[#5c3d28]',
+        bgColor: 'bg-[#f5f0eb]',
+        borderColor: 'border-[#d5bfae]'
       },
       'shipped': {
         title: 'To Receive',
         description: 'Out for delivery',
         icon: Truck,
-        color: 'bg-purple-500',
-        textColor: 'text-purple-700',
-        bgColor: 'bg-purple-50',
-        borderColor: 'border-purple-200'
+        color: 'bg-[#a4785a]',
+        textColor: 'text-[#5c3d28]',
+        bgColor: 'bg-[#f5f0eb]',
+        borderColor: 'border-[#d5bfae]'
       },
       'delivered': {
         title: 'Completed',
         description: 'Order delivered',
         icon: CheckCircle2,
-        color: 'bg-green-500',
-        textColor: 'text-green-700',
-        bgColor: 'bg-green-50',
-        borderColor: 'border-green-200'
+        color: 'bg-[#a4785a]',
+        textColor: 'text-[#5c3d28]',
+        bgColor: 'bg-[#f5f0eb]',
+        borderColor: 'border-[#d5bfae]'
       },
       'cancelled': {
         title: 'Cancelled',
         description: 'Order cancelled',
         icon: XCircle,
-        color: 'bg-red-500',
-        textColor: 'text-red-700',
-        bgColor: 'bg-red-50',
-        borderColor: 'border-red-200'
+        color: 'bg-[#a4785a]',
+        textColor: 'text-[#5c3d28]',
+        bgColor: 'bg-[#f5f0eb]',
+        borderColor: 'border-[#d5bfae]'
       },
       'payment_failed': {
         title: 'Return/Refund',
         description: 'Payment failed',
         icon: XCircle,
-        color: 'bg-red-500',
-        textColor: 'text-red-700',
-        bgColor: 'bg-red-50',
-        borderColor: 'border-red-200'
+        color: 'bg-[#a4785a]',
+        textColor: 'text-[#5c3d28]',
+        bgColor: 'bg-[#f5f0eb]',
+        borderColor: 'border-[#d5bfae]'
       },
       'returned': {
         title: 'Return/Refund',
         description: 'Return processed',
         icon: RotateCcw,
-        color: 'bg-orange-500',
-        textColor: 'text-orange-700',
-        bgColor: 'bg-orange-50',
-        borderColor: 'border-orange-200'
+        color: 'bg-[#a4785a]',
+        textColor: 'text-[#5c3d28]',
+        bgColor: 'bg-[#f5f0eb]',
+        borderColor: 'border-[#d5bfae]'
       }
     };
 
@@ -347,7 +347,7 @@ const Orders = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-[#a36b4f]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#a4785a]" />
       </div>
     );
   }
@@ -373,12 +373,7 @@ const Orders = () => {
       items: (order.items || []).filter(item => !userReviewedMap[item.product_id])
     })).filter(order => (order.items || []).length > 0), // Hide if all products reviewed
     'Return/Refund': orders.filter(order => 
-      order.status === 'returned' || 
-      order.status === 'cancelled' ||
-      order.status === 'payment_failed' ||
-      order.status === 'failed' || // Orders with failed status
-      order.hasActiveAfterSaleRequest === true // Orders with active after-sale requests (return/refund/exchange)
-      // Don't include pending online payments here anymore - they show in To Package
+      order.hasActiveAfterSaleRequest === true // Only show orders with active after-sale requests (return/refund/exchange)
     )
   };
 
@@ -740,13 +735,13 @@ const Orders = () => {
             disabled={readonly}
             className={`${readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110'} transition-transform duration-200`}
           >
-            <Star
-              className={`h-8 w-8 ${
-                star <= rating
-                  ? 'fill-amber-400 text-amber-400'
-                  : 'text-gray-300'
-              }`}
-            />
+      <Star
+        className={`h-8 w-8 ${
+          star <= rating
+            ? 'fill-[#a4785a] text-[#a4785a]'
+            : 'text-[#d5bfae]'
+        }`}
+      />
           </button>
         ))}
       </div>
@@ -853,64 +848,64 @@ const Orders = () => {
     return (
       <Card 
         key={order.orderID} 
-        className={`border-[#e5ded7] overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 mb-4 ${canViewDetails ? 'cursor-pointer' : ''}`}
+        className={`border-[#d5bfae] overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 mb-4 ${canViewDetails ? 'cursor-pointer' : ''}`}
         onClick={canViewDetails ? () => navigate('/orders/details', { state: { order } }) : undefined}
       >
-        <div className="bg-[#f8f5f2] px-4 py-3 border-b border-[#e5ded7]">
+        <div className="bg-[#f5f0eb] px-4 py-3 border-b border-[#d5bfae]">
           <div className="flex justify-between items-center">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm text-gray-500">Order Number:</span>
+                <span className="text-sm text-[#7b5a3b]">Order Number:</span>
                 <span className="font-bold text-[#5c3d28] bg-white px-2 py-1 rounded border border-[#e5ded7]">
                   {order.order_number || order.orderNumber || `ORD-${order.orderID}` || 'N/A'}
                 </span>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
                 {/* After-Sale Request Badge */}
                 {order.hasActiveAfterSaleRequest && order.afterSaleRequest && (
                   <Badge className={
                     order.afterSaleRequest.status === 'approved' 
-                      ? 'bg-green-100 text-green-800 border-green-300'
-                      : 'bg-orange-100 text-orange-800 border-orange-300'
+                      ? 'bg-[#d5bfae] text-[#5c3d28] border-[#a4785a]'
+                      : 'bg-[#f5f0eb] text-[#7b5a3b] border-[#d5bfae]'
                   }>
                     {order.afterSaleRequest.request_type.charAt(0).toUpperCase() + order.afterSaleRequest.request_type.slice(1)} Request ({order.afterSaleRequest.status})
                   </Badge>
                 )}
                 {/* Payment Status Badge */}
                 {order.paymentStatus === 'paid' && (
-                  <Badge className="bg-green-100 text-green-800 text-xs">
+                  <Badge className="bg-[#d5bfae] text-[#5c3d28] text-xs border-[#a4785a]">
                     ✓ Paid ({order.payment_method?.toUpperCase() || 'Online'})
                   </Badge>
                 )}
                 {order.paymentStatus === 'pending' && order.payment_method === 'cod' && (
-                  <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                  <Badge className="bg-[#f5f0eb] text-[#7b5a3b] text-xs border-[#d5bfae]">
                     COD
                   </Badge>
                 )}
                 {order.paymentStatus === 'pending' && order.payment_method === 'gcash' && (
-                  <Badge className="bg-blue-100 text-blue-800 text-xs">
+                  <Badge className="bg-[#f5f0eb] text-[#7b5a3b] text-xs border-[#d5bfae]">
                     GCash (Pending)
                   </Badge>
                 )}
                 {order.paymentStatus === 'pending' && order.payment_method === 'paymaya' && (
-                  <Badge className="bg-purple-100 text-purple-800 text-xs">
+                  <Badge className="bg-[#f5f0eb] text-[#7b5a3b] text-xs border-[#d5bfae]">
                     PayMaya (Pending)
                   </Badge>
                 )}
               </div>
             </div>
             <div className="text-sm text-right">
-              <span className="text-gray-500">Total:</span>{' '}
-              <span className="font-bold text-lg">₱{parseFloat(order.totalAmount).toFixed(2)}</span>
+              <span className="text-[#7b5a3b]">Total:</span>{' '}
+              <span className="font-bold text-lg text-[#5c3d28]">₱{parseFloat(order.totalAmount).toFixed(2)}</span>
             </div>
           </div>
-          <div className="text-xs text-gray-500 mt-2 flex items-center gap-3">
+          <div className="text-xs text-[#7b5a3b] mt-2 flex items-center gap-3">
             <span>
               <span className="mr-1">📅</span>
               {formatDate(order.orderDate)}
             </span>
             {order.tracking_number && (
-              <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-mono text-xs">
+              <span className="bg-[#f5f0eb] text-[#5c3d28] px-2 py-0.5 rounded font-mono text-xs border border-[#d5bfae]">
                 📦 {order.tracking_number}
               </span>
             )}
@@ -935,9 +930,9 @@ const Orders = () => {
               </div>
               
               <div className="flex-grow min-w-0">
-                <h4 className="font-medium text-[#4b3832] text-sm truncate">{item.product_name}</h4>
+                <h4 className="font-medium text-[#5c3d28] text-sm truncate">{item.product_name}</h4>
                 {item.sku && (
-                  <p className="text-xs text-[#7b5a3b] font-mono bg-[#faf9f8] px-2 py-0.5 rounded inline-block mt-1">
+                  <p className="text-xs text-[#7b5a3b] font-mono bg-[#f5f0eb] px-2 py-0.5 rounded inline-block mt-1 border border-[#d5bfae]">
                     SKU: {item.sku}
                   </p>
                 )}
@@ -963,28 +958,28 @@ const Orders = () => {
                     </div>
                   );
                 })()}
-                <p className="text-xs text-gray-600 mt-1">Qty: {item.quantity}</p>
-                <p className="text-xs text-[#a36b4f] font-medium">
+                <p className="text-xs text-[#7b5a3b] mt-1">Qty: {item.quantity}</p>
+                <p className="text-xs text-[#a4785a] font-medium">
                   ₱{parseFloat(item.price).toFixed(2)}
                 </p>
               </div>
             </div>
           ))}
           {order.items && order.items.length > 2 && (
-            <div className="text-xs text-gray-500 text-center py-1">
+            <div className="text-xs text-[#7b5a3b] text-center py-1">
               +{order.items.length - 2} more items
             </div>
           )}
           
           {/* Order Received Button - Only show for shipped orders */}
           {order.status === 'shipped' && (
-            <div className="mt-4 pt-3 border-t border-[#e5ded7]">
+            <div className="mt-4 pt-3 border-t border-[#d5bfae]">
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleMarkAsReceived(order.orderID);
                 }}
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 shadow-md hover:shadow-lg transition-all duration-200"
+                className="w-full bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white shadow-md hover:shadow-lg transition-all duration-200"
               >
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 Order Received
@@ -994,25 +989,25 @@ const Orders = () => {
 
           {/* Completed actions: Buy Again / Return-Refund - Only show in Completed tab, not in Return/Refund tab */}
           {order.status === 'delivered' && currentActiveTab !== 'Return/Refund' && (
-            <div className="mt-4 pt-3 border-t border-[#e5ded7]">
+            <div className="mt-4 pt-3 border-t border-[#d5bfae]">
               {order.hasActiveAfterSaleRequest ? (
                 <div className={
                   order.afterSaleRequest?.status === 'approved'
-                    ? 'bg-green-50 border border-green-200 rounded-lg p-3 mb-2'
-                    : 'bg-orange-50 border border-orange-200 rounded-lg p-3 mb-2'
+                    ? 'bg-[#d5bfae] border border-[#a4785a] rounded-lg p-3 mb-2'
+                    : 'bg-[#f5f0eb] border border-[#d5bfae] rounded-lg p-3 mb-2'
                 }>
                   <p className={`text-sm font-semibold mb-1 ${
                     order.afterSaleRequest?.status === 'approved'
-                      ? 'text-green-800'
-                      : 'text-orange-800'
+                      ? 'text-[#5c3d28]'
+                      : 'text-[#7b5a3b]'
                   }`}>
                     After-Sale Request Submitted
                   </p>
                   {order.afterSaleRequest && (
                     <p className={`text-xs ${
                       order.afterSaleRequest.status === 'approved'
-                        ? 'text-green-700'
-                        : 'text-orange-700'
+                        ? 'text-[#5c3d28]'
+                        : 'text-[#7b5a3b]'
                     }`}>
                       {order.afterSaleRequest.request_type.charAt(0).toUpperCase() + order.afterSaleRequest.request_type.slice(1)} request is {order.afterSaleRequest.status}. Request ID: {order.afterSaleRequest.request_id}
                     </p>
@@ -1036,7 +1031,7 @@ const Orders = () => {
                     openAfterSale(order);
                   }}
                   disabled={order.hasActiveAfterSaleRequest}
-                  className={`w-full border-2 ${order.hasActiveAfterSaleRequest ? 'border-gray-300 text-gray-400 cursor-not-allowed' : 'border-[#d5bfae] hover:bg-[#f5f0eb]'}`}
+                  className={`w-full border-2 ${order.hasActiveAfterSaleRequest ? 'border-[#d5bfae] text-[#7b5a3b] cursor-not-allowed opacity-50' : 'border-[#d5bfae] hover:bg-[#f5f0eb]'}`}
                 >
                   {order.hasActiveAfterSaleRequest ? 'Request Already Submitted' : 'Return / Refund'}
                 </Button>
@@ -1044,48 +1039,37 @@ const Orders = () => {
             </div>
           )}
           
-          {/* Return/Refund tab actions - Only show request info, no Buy Again button */}
-          {currentActiveTab === 'Return/Refund' && (
-            <div className="mt-4 pt-3 border-t border-[#e5ded7]">
-              {order.hasActiveAfterSaleRequest ? (
-                <div className={
+          {/* Return/Refund tab actions - Only show request info for orders with active after-sale requests */}
+          {currentActiveTab === 'Return/Refund' && order.hasActiveAfterSaleRequest && (
+            <div className="mt-4 pt-3 border-t border-[#d5bfae]">
+              <div className={
+                order.afterSaleRequest?.status === 'approved'
+                  ? 'bg-[#d5bfae] border border-[#a4785a] rounded-lg p-3 mb-2'
+                  : 'bg-[#f5f0eb] border border-[#d5bfae] rounded-lg p-3 mb-2'
+              }>
+                <p className={`text-sm font-semibold mb-1 ${
                   order.afterSaleRequest?.status === 'approved'
-                    ? 'bg-green-50 border border-green-200 rounded-lg p-3 mb-2'
-                    : 'bg-orange-50 border border-orange-200 rounded-lg p-3 mb-2'
-                }>
-                  <p className={`text-sm font-semibold mb-1 ${
-                    order.afterSaleRequest?.status === 'approved'
-                      ? 'text-green-800'
-                      : 'text-orange-800'
+                    ? 'text-[#5c3d28]'
+                    : 'text-[#7b5a3b]'
+                }`}>
+                  After-Sale Request Submitted
+                </p>
+                {order.afterSaleRequest && (
+                  <p className={`text-xs ${
+                    order.afterSaleRequest.status === 'approved'
+                      ? 'text-[#5c3d28]'
+                      : 'text-[#7b5a3b]'
                   }`}>
-                    After-Sale Request Submitted
+                    {order.afterSaleRequest.request_type.charAt(0).toUpperCase() + order.afterSaleRequest.request_type.slice(1)} request is {order.afterSaleRequest.status}. Request ID: {order.afterSaleRequest.request_id}
                   </p>
-                  {order.afterSaleRequest && (
-                    <p className={`text-xs ${
-                      order.afterSaleRequest.status === 'approved'
-                        ? 'text-green-700'
-                        : 'text-orange-700'
-                    }`}>
-                      {order.afterSaleRequest.request_type.charAt(0).toUpperCase() + order.afterSaleRequest.request_type.slice(1)} request is {order.afterSaleRequest.status}. Request ID: {order.afterSaleRequest.request_id}
-                    </p>
-                  )}
-                </div>
-              ) : null}
-              {order.status === 'delivered' && !order.hasActiveAfterSaleRequest && (
-              <Button
-                variant="outline"
-                onClick={() => openAfterSale(order)}
-                className="w-full border-2 border-[#d5bfae] hover:bg-[#f5f0eb]"
-              >
-                Return / Refund
-              </Button>
-              )}
+                )}
+              </div>
             </div>
           )}
           {currentActiveTab === 'To Package' &&
             order.paymentStatus === 'pending' &&
             ['gcash', 'paymaya'].includes(order.payment_method) && (
-              <div className="mt-4 pt-3 border-t border-[#e5ded7]">
+              <div className="mt-4 pt-3 border-t border-[#d5bfae]">
                 <Button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1117,17 +1101,20 @@ const Orders = () => {
           variant="ghost"
           size="icon"
           onClick={() => navigate(-1)}
-          className="mr-2"
+          className="mr-2 text-[#5c3d28] hover:text-[#7b5a3b]"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-2xl font-bold text-[#4b3832]">My Orders</h1>
+        <h1 className="text-2xl font-bold text-[#5c3d28]">My Orders</h1>
       </div>
 
       {orders.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-600 mb-4">You haven't placed any orders yet.</p>
-          <Button onClick={() => navigate('/products')}>
+          <p className="text-[#7b5a3b] mb-4">You haven't placed any orders yet.</p>
+          <Button 
+            onClick={() => navigate('/products')}
+            className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white"
+          >
             Start Shopping
           </Button>
         </div>
@@ -1143,70 +1130,27 @@ const Orders = () => {
               // Get button classes based on column
               const getButtonClasses = () => {
                 if (isActive) {
-                  switch (column.key) {
-                    case 'To Package': return 'bg-yellow-500 hover:bg-yellow-600 text-white border-2 border-yellow-600 shadow-lg';
-                    case 'To Ship': return 'bg-blue-500 hover:bg-blue-600 text-white border-2 border-blue-600 shadow-lg';
-                    case 'To Receive': return 'bg-purple-500 hover:bg-purple-600 text-white border-2 border-purple-600 shadow-lg';
-                    case 'Completed': return 'bg-green-500 hover:bg-green-600 text-white border-2 border-green-600 shadow-lg';
-                    case 'Rating & Review': return 'bg-amber-500 hover:bg-amber-600 text-white border-2 border-amber-600 shadow-lg';
-                    case 'Return/Refund': return 'bg-orange-500 hover:bg-orange-600 text-white border-2 border-orange-600 shadow-lg';
-                    default: return 'bg-gray-500 hover:bg-gray-600 text-white border-2 border-gray-600 shadow-lg';
-                  }
+                  return 'bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white border-2 border-[#7b5a3b] shadow-lg';
                 } else {
-                  switch (column.key) {
-                    case 'To Package': return 'border-2 border-yellow-300 text-yellow-600 hover:bg-yellow-50 bg-white';
-                    case 'To Ship': return 'border-2 border-blue-300 text-blue-600 hover:bg-blue-50 bg-white';
-                    case 'To Receive': return 'border-2 border-purple-300 text-purple-600 hover:bg-purple-50 bg-white';
-                    case 'Completed': return 'border-2 border-green-300 text-green-600 hover:bg-green-50 bg-white';
-                    case 'Rating & Review': return 'border-2 border-amber-300 text-amber-600 hover:bg-amber-50 bg-white';
-                    case 'Return/Refund': return 'border-2 border-orange-300 text-orange-600 hover:bg-orange-50 bg-white';
-                    default: return 'border-2 border-gray-300 text-gray-600 hover:bg-gray-50 bg-white';
-                  }
+                  return 'border-2 border-[#d5bfae] text-[#5c3d28] hover:bg-[#f5f0eb] bg-white';
                 }
               };
               
               const getBadgeClasses = () => {
                 if (isActive) {
-                  switch (column.key) {
-                    case 'To Package': return 'bg-yellow-600 text-white font-bold border border-yellow-700';
-                    case 'To Ship': return 'bg-blue-600 text-white font-bold border border-blue-700';
-                    case 'To Receive': return 'bg-purple-600 text-white font-bold border border-purple-700';
-                    case 'Completed': return 'bg-green-600 text-white font-bold border border-green-700';
-                    case 'Rating & Review': return 'bg-amber-600 text-white font-bold border border-amber-700';
-                    case 'Return/Refund': return 'bg-orange-600 text-white font-bold border border-orange-700';
-                    default: return 'bg-gray-600 text-white font-bold border border-gray-700';
-                  }
+                  return 'bg-[#5c3d28] text-white font-bold border border-[#5c3d28]';
                 } else {
-                  switch (column.key) {
-                    case 'To Package': return 'bg-white text-yellow-600 border border-yellow-300';
-                    case 'To Ship': return 'bg-white text-blue-600 border border-blue-300';
-                    case 'To Receive': return 'bg-white text-purple-600 border border-purple-300';
-                    case 'Completed': return 'bg-white text-green-600 border border-green-300';
-                    case 'Rating & Review': return 'bg-white text-amber-600 border border-amber-300';
-                    case 'Return/Refund': return 'bg-white text-orange-600 border border-orange-300';
-                    default: return 'bg-white text-gray-600 border border-gray-300';
-                  }
+                  return 'bg-white text-[#7b5a3b] border border-[#d5bfae]';
                 }
               };
               
               const getActiveTabStyles = () => {
                 if (!isActive) return {};
-                const bgColor = column.key === 'To Package' ? '#eab308' : 
-                               column.key === 'To Ship' ? '#2563eb' :
-                               column.key === 'To Receive' ? '#9333ea' :
-                               column.key === 'Completed' ? '#16a34a' :
-                               column.key === 'Rating & Review' ? '#f59e0b' :
-                               column.key === 'Return/Refund' ? '#ea580c' : '#6b7280';
-                const borderColor = column.key === 'To Package' ? '#ca8a04' : 
-                                   column.key === 'To Ship' ? '#1d4ed8' :
-                                   column.key === 'To Receive' ? '#7e22ce' :
-                                   column.key === 'Completed' ? '#15803d' :
-                                   column.key === 'Rating & Review' ? '#d97706' :
-                                   column.key === 'Return/Refund' ? '#c2410c' : '#4b5563';
                 return {
-                  backgroundColor: bgColor,
+                  backgroundColor: '#a4785a',
+                  background: 'linear-gradient(to right, #a4785a, #7b5a3b)',
                   color: 'white',
-                  borderColor: borderColor,
+                  borderColor: '#7b5a3b',
                   borderWidth: '2px',
                   borderStyle: 'solid',
                   fontWeight: '600',
@@ -1217,13 +1161,8 @@ const Orders = () => {
               if (isActive) {
                 // Use plain button for active tabs to ensure full control
                 const activeStyles = getActiveTabStyles();
-                // Use a slightly darker shade for the badge to create contrast
-                const badgeBgColor = column.key === 'To Package' ? '#ca8a04' : 
-                                   column.key === 'To Ship' ? '#1d4ed8' :
-                                   column.key === 'To Receive' ? '#7e22ce' :
-                                   column.key === 'Completed' ? '#15803d' :
-                                   column.key === 'Rating & Review' ? '#d97706' :
-                                   column.key === 'Return/Refund' ? '#c2410c' : '#4b5563';
+                // Use a darker shade for the badge to create contrast
+                const badgeBgColor = '#5c3d28';
                 return (
                   <button
                     key={column.key}
@@ -1242,7 +1181,7 @@ const Orders = () => {
                       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                       cursor: 'pointer',
                       backgroundColor: activeStyles.backgroundColor,
-                      background: activeStyles.backgroundColor,
+                      background: activeStyles.background,
                       color: '#ffffff',
                       borderColor: activeStyles.borderColor,
                       border: `2px solid ${activeStyles.borderColor}`,
@@ -1289,21 +1228,6 @@ const Orders = () => {
                   <span className="font-semibold">{column.title}</span>
                   <span 
                     className={`ml-1 text-xs font-bold inline-flex items-center justify-center rounded-md border px-2 py-0.5 ${getBadgeClasses()}`}
-                    style={{
-                      backgroundColor: 'white',
-                      color: column.key === 'To Package' ? '#ca8a04' : 
-                             column.key === 'To Ship' ? '#2563eb' :
-                             column.key === 'To Receive' ? '#9333ea' :
-                             column.key === 'Completed' ? '#16a34a' :
-                             column.key === 'Rating & Review' ? '#f59e0b' :
-                             column.key === 'Return/Refund' ? '#ea580c' : '#6b7280',
-                      borderColor: column.key === 'To Package' ? '#fbbf24' : 
-                                  column.key === 'To Ship' ? '#93c5fd' :
-                                  column.key === 'To Receive' ? '#c084fc' :
-                                  column.key === 'Completed' ? '#86efac' :
-                                  column.key === 'Rating & Review' ? '#fcd34d' :
-                                  column.key === 'Return/Refund' ? '#fdba74' : '#d1d5db'
-                    }}
                   >
                     {ordersInColumn.length} {ordersInColumn.length === 1 ? 'order' : 'orders'}
                   </span>
@@ -1313,107 +1237,43 @@ const Orders = () => {
           </div>
 
           {/* Active Column Content */}
-          <div className="bg-white rounded-lg border border-[#e5ded7] shadow-sm">
+          <div className="bg-white rounded-lg border border-[#d5bfae] shadow-sm">
             {(() => {
               const activeColumn = statusColumns.find(col => col.key === activeTab);
               const ColumnIcon = activeColumn.icon;
               const ordersInColumn = groupedOrders[activeTab];
               
-              // Get color classes based on active tab
+              // Get color classes based on active tab - all use theme colors
               const getHeaderClasses = () => {
-                switch (activeTab) {
-                  case 'To Package': return 'bg-yellow-50 border-b border-yellow-200';
-                  case 'To Ship': return 'bg-blue-50 border-b border-blue-200';
-                  case 'To Receive': return 'bg-purple-50 border-b border-purple-200';
-                  case 'Completed': return 'bg-green-50 border-b border-green-200';
-                  case 'Rating & Review': return 'bg-amber-50 border-b border-amber-200';
-                  case 'Return/Refund': return 'bg-orange-50 border-b border-orange-200';
-                  default: return 'bg-gray-50 border-b border-gray-200';
-                }
+                return 'bg-[#f5f0eb] border-b border-[#d5bfae]';
               };
               
               const getIconClasses = () => {
-                switch (activeTab) {
-                  case 'To Package': return 'h-6 w-6 text-yellow-600';
-                  case 'To Ship': return 'h-6 w-6 text-blue-600';
-                  case 'To Receive': return 'h-6 w-6 text-purple-600';
-                  case 'Completed': return 'h-6 w-6 text-green-600';
-                  case 'Rating & Review': return 'h-6 w-6 text-amber-600';
-                  case 'Return/Refund': return 'h-6 w-6 text-orange-600';
-                  default: return 'h-6 w-6 text-gray-600';
-                }
+                return 'h-6 w-6 text-[#7b5a3b]';
               };
               
               const getTitleClasses = () => {
-                switch (activeTab) {
-                  case 'To Package': return 'text-xl font-bold text-yellow-800';
-                  case 'To Ship': return 'text-xl font-bold text-blue-800';
-                  case 'To Receive': return 'text-xl font-bold text-purple-800';
-                  case 'Completed': return 'text-xl font-bold text-green-800';
-                  case 'Rating & Review': return 'text-xl font-bold text-amber-800';
-                  case 'Return/Refund': return 'text-xl font-bold text-orange-800';
-                  default: return 'text-xl font-bold text-gray-800';
-                }
+                return 'text-xl font-bold text-[#5c3d28]';
               };
               
               const getBadgeClasses = () => {
-                switch (activeTab) {
-                  case 'To Package': return 'bg-yellow-200 text-yellow-800';
-                  case 'To Ship': return 'bg-blue-200 text-blue-800';
-                  case 'To Receive': return 'bg-purple-200 text-purple-800';
-                  case 'Completed': return 'bg-green-200 text-green-800';
-                  case 'Rating & Review': return 'bg-amber-200 text-amber-800';
-                  case 'Return/Refund': return 'bg-orange-200 text-orange-800';
-                  default: return 'bg-gray-200 text-gray-800';
-                }
+                return 'bg-[#d5bfae] text-[#5c3d28]';
               };
               
               const getDescriptionClasses = () => {
-                switch (activeTab) {
-                  case 'To Package': return 'text-sm text-yellow-600 mt-1';
-                  case 'To Ship': return 'text-sm text-blue-600 mt-1';
-                  case 'To Receive': return 'text-sm text-purple-600 mt-1';
-                  case 'Completed': return 'text-sm text-green-600 mt-1';
-                  case 'Rating & Review': return 'text-sm text-amber-600 mt-1';
-                  case 'Return/Refund': return 'text-sm text-orange-600 mt-1';
-                  default: return 'text-sm text-gray-600 mt-1';
-                }
+                return 'text-sm text-[#7b5a3b] mt-1';
               };
               
               const getEmptyIconClasses = () => {
-                switch (activeTab) {
-                  case 'To Package': return 'h-16 w-16 text-yellow-300 mx-auto mb-4';
-                  case 'To Ship': return 'h-16 w-16 text-blue-300 mx-auto mb-4';
-                  case 'To Receive': return 'h-16 w-16 text-purple-300 mx-auto mb-4';
-                  case 'Completed': return 'h-16 w-16 text-green-300 mx-auto mb-4';
-                  case 'Rating & Review': return 'h-16 w-16 text-amber-300 mx-auto mb-4';
-                  case 'Return/Refund': return 'h-16 w-16 text-orange-300 mx-auto mb-4';
-                  default: return 'h-16 w-16 text-gray-300 mx-auto mb-4';
-                }
+                return 'h-16 w-16 text-[#d5bfae] mx-auto mb-4';
               };
               
               const getEmptyTitleClasses = () => {
-                switch (activeTab) {
-                  case 'To Package': return 'text-lg font-semibold text-yellow-600 mb-2';
-                  case 'To Ship': return 'text-lg font-semibold text-blue-600 mb-2';
-                  case 'To Receive': return 'text-lg font-semibold text-purple-600 mb-2';
-                  case 'Completed': return 'text-lg font-semibold text-green-600 mb-2';
-                  case 'Rating & Review': return 'text-lg font-semibold text-amber-600 mb-2';
-                  case 'Return/Refund': return 'text-lg font-semibold text-orange-600 mb-2';
-                  default: return 'text-lg font-semibold text-gray-600 mb-2';
-                }
+                return 'text-lg font-semibold text-[#7b5a3b] mb-2';
               };
               
               const getEmptyTextClasses = () => {
-                switch (activeTab) {
-                  case 'To Package': return 'text-sm text-yellow-500 mb-6';
-                  case 'To Ship': return 'text-sm text-blue-500 mb-6';
-                  case 'To Receive': return 'text-sm text-purple-500 mb-6';
-                  case 'Completed': return 'text-sm text-green-500 mb-6';
-                  case 'Rating & Review': return 'text-sm text-amber-500 mb-6';
-                  case 'Return/Refund': return 'text-sm text-orange-500 mb-6';
-                  default: return 'text-sm text-gray-500 mb-6';
-                }
+                return 'text-sm text-[#7b5a3b] mb-6';
               };
               
               return (
@@ -1438,7 +1298,7 @@ const Orders = () => {
                       {activeTab === 'To Receive' && 'Orders on their way to you'}
                       {activeTab === 'Completed' && 'Orders successfully delivered'}
                       {activeTab === 'Rating & Review' && 'Share your experience and help other shoppers'}
-                      {activeTab === 'Return/Refund' && 'Cancelled, failed, or COD unpaid orders'}
+                      {activeTab === 'Return/Refund' && 'Orders with active return, refund, or exchange requests'}
                     </p>
                   </div>
                   
@@ -1456,11 +1316,11 @@ const Orders = () => {
                           {activeTab === 'To Receive' && 'Your orders will appear here once they ship.'}
                           {activeTab === 'Completed' && 'Completed orders will appear here after delivery.'}
                           {activeTab === 'Rating & Review' && 'No orders available for review yet.'}
-                          {activeTab === 'Return/Refund' && 'Orders with return/refund requests, cancelled, failed, or unpaid orders will appear here.'}
+                          {activeTab === 'Return/Refund' && 'Orders with active return, refund, or exchange requests will appear here.'}
                         </p>
                         <Button 
                           onClick={() => navigate('/products')}
-                          className="bg-[#a36b4f] hover:bg-[#8b5a47] text-white"
+                          className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white"
                         >
                           Continue Shopping
                         </Button>
@@ -1483,7 +1343,7 @@ const Orders = () => {
         <DialogContent className="!grid-cols-1 max-w-5xl max-h-[90vh] bg-gradient-to-br from-white to-[#faf9f8] border-2 border-[#d5bfae] overflow-hidden flex flex-col" style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
           <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-4">
             <DialogTitle className="text-2xl font-bold text-[#5c3d28] flex items-center gap-2">
-              <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
+              <Star className="h-6 w-6 fill-[#a4785a] text-[#a4785a]" />
               Rate Your Experience
             </DialogTitle>
             <DialogDescription className="text-[#7b5a3b]">
@@ -1597,7 +1457,7 @@ const Orders = () => {
                     <button
                       type="button"
                       onClick={() => removeReviewImage(index)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      className="absolute -top-2 -right-2 bg-[#a4785a] text-white rounded-full p-1 hover:bg-[#8f674a]"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -1634,7 +1494,7 @@ const Orders = () => {
                   <button
                     type="button"
                     onClick={removeReviewVideo}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    className="absolute top-2 right-2 bg-[#a4785a] text-white rounded-full p-1 hover:bg-[#8f674a]"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -1765,7 +1625,16 @@ const Orders = () => {
                   <label className="text-sm font-semibold text-[#5c3d28]">Request Type</label>
                   <div className="mt-1 flex gap-2 flex-wrap">
                     {['return','exchange','refund','support'].map(t => (
-                      <Button key={t} variant={afterSaleType === t ? 'default' : 'outline'} size="sm" onClick={() => setAfterSaleType(t)}>
+                      <Button 
+                        key={t} 
+                        variant={afterSaleType === t ? 'default' : 'outline'} 
+                        size="sm" 
+                        onClick={() => setAfterSaleType(t)}
+                        className={afterSaleType === t 
+                          ? 'bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white' 
+                          : 'border-2 border-[#d5bfae] hover:bg-[#f5f0eb] text-[#5c3d28]'
+                        }
+                      >
                         {t.charAt(0).toUpperCase() + t.slice(1)}
                       </Button>
                     ))}
@@ -1789,7 +1658,7 @@ const Orders = () => {
                   {/* Video uploader */}
                   <div className="h-[140px]">
                     <label className="text-xs font-semibold text-[#5c3d28] flex items-center gap-1">
-                      <VideoIcon className="h-3 w-3" /> Unboxing/Proof Video {['return','refund'].includes(afterSaleType) && <span className="text-red-600">(required)</span>}
+                      <VideoIcon className="h-3 w-3" /> Unboxing/Proof Video {['return','refund'].includes(afterSaleType) && <span className="text-[#a4785a]">(required)</span>}
                     </label>
                     <div
                       onDragOver={(e) => e.preventDefault()}
@@ -1841,7 +1710,7 @@ const Orders = () => {
                   {/* Images uploader */}
                   <div className="h-[140px]">
                     <label className="text-xs font-semibold text-[#5c3d28] flex items-center gap-1">
-                      <ImageIcon className="h-3 w-3" /> Photos (up to 5) {['return','refund'].includes(afterSaleType) && <span className="text-red-600">(required)</span>}
+                      <ImageIcon className="h-3 w-3" /> Photos (up to 5) {['return','refund'].includes(afterSaleType) && <span className="text-[#a4785a]">(required)</span>}
                     </label>
                     <div
                       onDragOver={(e) => e.preventDefault()}
@@ -1942,28 +1811,28 @@ const Orders = () => {
 
 const toastStyles = {
   info: {
-    icon: <Loader2 className="h-5 w-5 animate-spin text-blue-500" />,
-    border: 'border-blue-200',
-    bg: 'bg-blue-50',
-    text: 'text-blue-700',
+    icon: <Loader2 className="h-5 w-5 animate-spin text-[#a4785a]" />,
+    border: 'border-[#d5bfae]',
+    bg: 'bg-[#f5f0eb]',
+    text: 'text-[#5c3d28]',
   },
   success: {
-    icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
-    border: 'border-green-200',
-    bg: 'bg-green-50',
-    text: 'text-green-700',
+    icon: <CheckCircle2 className="h-5 w-5 text-[#a4785a]" />,
+    border: 'border-[#d5bfae]',
+    bg: 'bg-[#f5f0eb]',
+    text: 'text-[#5c3d28]',
   },
   warning: {
-    icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
-    border: 'border-amber-200',
-    bg: 'bg-amber-50',
-    text: 'text-amber-700',
+    icon: <AlertTriangle className="h-5 w-5 text-[#a4785a]" />,
+    border: 'border-[#d5bfae]',
+    bg: 'bg-[#f5f0eb]',
+    text: 'text-[#5c3d28]',
   },
   error: {
-    icon: <XCircle className="h-5 w-5 text-red-500" />,
-    border: 'border-red-200',
-    bg: 'bg-red-50',
-    text: 'text-red-700',
+    icon: <XCircle className="h-5 w-5 text-[#a4785a]" />,
+    border: 'border-[#d5bfae]',
+    bg: 'bg-[#f5f0eb]',
+    text: 'text-[#5c3d28]',
   },
 };
 
