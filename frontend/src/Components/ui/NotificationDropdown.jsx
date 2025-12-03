@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, X, Check, CheckCheck, Trash2, Loader2 } from 'lucide-react';
+import { X, Check, CheckCheck, Trash2, Loader2 } from 'lucide-react';
+import { FaBell } from 'react-icons/fa';
 import useNotifications from '../../hooks/useNotifications';
 import { useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../Context/UserContext';
@@ -226,7 +227,7 @@ const NotificationDropdown = ({ className = '' }) => {
         title="Notifications"
       >
         <div className="relative p-1.5 sm:p-2 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] rounded-lg">
-          <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+          <FaBell size={20} className="text-white" />
           {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white shadow-sm">
               {unreadCount > 9 ? '9+' : unreadCount}
@@ -268,7 +269,7 @@ const NotificationDropdown = ({ className = '' }) => {
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-[#7b5a3b] bg-white" style={{ backgroundColor: 'white' }}>
-                <Bell className="h-12 w-12 text-[#d5bfae] mb-2" />
+                <FaBell className="h-12 w-12 text-[#d5bfae] mb-2" />
                 <p className="text-sm font-medium">No notifications</p>
               </div>
             ) : (

@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, ArrowRight } from "lucide-react";
+import { User, ArrowRight, X, AlertCircle } from "lucide-react";
 import api from "../../api";
 import "./Register.css";
 import { useUser } from "../Context/UserContext";
@@ -17,8 +17,23 @@ const Register = () => {
 
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessages, setErrorMessages] = useState([]);
   const navigate = useNavigate();
   const { register } = useUser();
+
+  // Auto-dismiss error modal after 7 seconds
+  useEffect(() => {
+    if (showErrorModal) {
+      const timer = setTimeout(() => {
+        setShowErrorModal(false);
+        setError("");
+        setErrorMessages([]);
+      }, 7000); // 7 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [showErrorModal]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,7 +68,9 @@ const Register = () => {
     
     // Ensure all required fields are filled
     if (!form.role) {
+      setErrorMessages(["Please select a role"]);
       setError("Please select a role");
+      setShowErrorModal(true);
       return;
     }
     
@@ -86,7 +103,10 @@ const Register = () => {
     // If there are client-side validation errors, show them and don't submit
     if (Object.keys(validationErrors).length > 0) {
       setFieldErrors(validationErrors);
+      const messages = Object.values(validationErrors).flat();
+      setErrorMessages(messages);
       setError("Please correct the errors below.");
+      setShowErrorModal(true);
       return;
     }
 
@@ -138,41 +158,71 @@ const Register = () => {
         if (err.response.status === 422 && err.response.data?.errors) {
           // Set field-specific errors
           setFieldErrors(err.response.data.errors);
-          // Set a general error message if available, or use a default
+          // Collect all error messages
+          const messages = Object.values(err.response.data.errors).flat();
+          setErrorMessages(messages.length > 0 ? messages : [err.response.data.message || 'Please correct the errors below.']);
           setError(err.response.data.message || 'Please correct the errors below.');
+          setShowErrorModal(true);
           
           // Log detailed validation errors
           console.error("🔴 Validation errors:", JSON.stringify(err.response.data.errors, null, 2));
           return;
         } else if (err.response.data?.message) {
           // For other types of errors with a message
+          setErrorMessages([err.response.data.message]);
           setError(err.response.data.message);
+          setShowErrorModal(true);
           return;
         }
       }
       
       // Fallback error message
+      setErrorMessages(['Registration failed. Please try again later.']);
       setError('Registration failed. Please try again later.');
+      setShowErrorModal(true);
     }
   };
   
 
+  const handleCloseErrorModal = () => {
+    setShowErrorModal(false);
+    setError("");
+    setErrorMessages([]);
+  };
+
   return (
     <div className="register-bg">
-      {error && (
-        <div className="error-message mb-4 p-3 bg-red-50 text-red-700 rounded-md">
-          {error}
-          {Object.keys(fieldErrors).length > 0 && (
-            <ul className="mt-2 list-disc list-inside">
-              {Object.entries(fieldErrors).map(([field, messages]) => (
-                <li key={field}>
-                  {messages.map((message, index) => (
-                    <div key={index}>{message}</div>
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="error-modal-overlay" onClick={handleCloseErrorModal}>
+          <div className="error-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="error-modal-header">
+              <div className="error-modal-icon-wrapper">
+                <AlertCircle className="error-modal-icon" />
+              </div>
+              <h3 className="error-modal-title">Registration Error</h3>
+              <button
+                onClick={handleCloseErrorModal}
+                className="error-modal-close"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="error-modal-body">
+              {errorMessages.length > 0 ? (
+                <ul className="error-modal-list">
+                  {errorMessages.map((message, index) => (
+                    <li key={index} className="error-modal-item">
+                      {message}
+                    </li>
                   ))}
-                </li>
-              ))}
-            </ul>
-          )}
+                </ul>
+              ) : (
+                <p className="error-modal-text">{error}</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
       <div className="register-card register-card-large">
@@ -291,7 +341,6 @@ const Register = () => {
               {Array.isArray(fieldErrors.userContactNumber) ? fieldErrors.userContactNumber[0] : fieldErrors.userContactNumber}
             </div>
           )}
-          {error && <div style={{ color: "red", marginBottom: 8 }}>{error}</div>}
           <button type="submit" className="submit-btn">
             Register <ArrowRight className="h-4 w-4" />
           </button>

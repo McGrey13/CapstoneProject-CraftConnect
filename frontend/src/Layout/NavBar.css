@@ -93,8 +93,23 @@
   flex-shrink: 0;
 }
 
+.navbar-icon-link {
+  color: white;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.navbar-icon-link:hover {
+  opacity: 0.8;
+}
+
 .navbar-cart {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .cart-link {
@@ -102,6 +117,7 @@
   text-decoration: none;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .cart-count {
@@ -117,9 +133,18 @@
   text-align: center;
 }
 
+.user-account {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .user-icon {
   color: white;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dropdown-content {

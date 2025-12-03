@@ -164,7 +164,21 @@ class StoreController extends Controller
             $user = Auth::user();
 
             $validated = $request->validate([
-                'store_name' => 'required|string|max:255',
+                'store_name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    function ($attribute, $value, $fail) {
+                        // Check for duplicate store names (case-insensitive)
+                        $existingStore = Store::whereRaw('LOWER(store_name) = ?', [strtolower(trim($value))])
+                            ->where('status', '!=', 'rejected') // Allow same name if previous was rejected
+                            ->first();
+                        
+                        if ($existingStore) {
+                            $fail('The store name "' . $value . '" has already been taken. Please choose a different name or add a branch location (e.g., "' . $value . ' - [City] Branch").');
+                        }
+                    },
+                ],
                 'store_description' => 'nullable|string',
                 'category' => 'nullable|string|max:255',
                 'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240', // 10MB for HD logo images
@@ -177,6 +191,7 @@ class StoreController extends Controller
                 'owner_email' => 'required|email|max:255',
                 'owner_phone' => 'nullable|string|max:50',
                 'owner_address' => 'nullable|string',
+                'owner_city' => 'nullable|string|max:255',
                 'submission_token' => 'nullable|string|max:255', // Made optional to handle missing column
             ]);
 

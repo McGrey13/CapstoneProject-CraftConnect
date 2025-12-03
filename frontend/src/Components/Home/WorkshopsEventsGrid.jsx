@@ -70,20 +70,70 @@ const WorkshopsEventsGrid = () => {
       return;
     }
 
+    // Find the workshop to check current participant count
+    const currentWorkshop = workshops.find(w => 
+      (w.works_and_events_id === workshopId) || (w.id === workshopId)
+    );
+
+    if (!currentWorkshop) {
+      setNotification({ show: true, type: 'error', message: 'Workshop not found' });
+      return;
+    }
+
+    // Check if already full
+    if (currentWorkshop.participants <= 0) {
+      setNotification({ show: true, type: 'error', message: 'No available spots remaining for this event' });
+      return;
+    }
+
     try {
       setRegistering(prev => ({ ...prev, [workshopId]: true }));
+      
+      // Optimistically update the UI immediately for better UX
+      const newParticipantCount = Math.max(0, (currentWorkshop.participants || 0) - 1);
+      setWorkshops(prev => prev.map(w => 
+        (w.works_and_events_id === workshopId || w.id === workshopId)
+          ? { ...w, participants: newParticipantCount }
+          : w
+      ));
+
       const response = await api.post(`/work-and-events/public/${workshopId}/register`);
       
-      if (response.data.success) {
-        // Update the workshop in the list with new participant count
+      // Update with actual response data from backend
+      if (response.data && (response.data.success !== false)) {
+        const updatedParticipants = response.data.data?.participants ?? response.data.participants ?? newParticipantCount;
+        
+        // Update the workshop in the list with new participant count from backend
         setWorkshops(prev => prev.map(w => 
-          w.works_and_events_id === workshopId || w.id === workshopId
-            ? { ...w, participants: response.data.data.participants }
+          (w.works_and_events_id === workshopId || w.id === workshopId)
+            ? { ...w, participants: updatedParticipants }
             : w
         ));
-        setNotification({ show: true, type: 'success', message: response.data.message || 'Successfully registered for the event!' });
+        
+        setNotification({ 
+          show: true, 
+          type: 'success', 
+          message: response.data.message || 'Successfully registered for the event!' 
+        });
+      } else {
+        // If registration failed, revert the optimistic update
+        setWorkshops(prev => prev.map(w => 
+          (w.works_and_events_id === workshopId || w.id === workshopId)
+            ? { ...w, participants: currentWorkshop.participants }
+            : w
+        ));
+        
+        const errorMsg = response.data?.message || 'Failed to register for event. Please try again.';
+        setNotification({ show: true, type: 'error', message: errorMsg });
       }
     } catch (err) {
+      // Revert optimistic update on error
+      setWorkshops(prev => prev.map(w => 
+        (w.works_and_events_id === workshopId || w.id === workshopId)
+          ? { ...w, participants: currentWorkshop.participants }
+          : w
+      ));
+      
       const errorMessage = err.response?.data?.message || 'Failed to register for event. Please try again.';
       setNotification({ show: true, type: 'error', message: errorMessage });
     } finally {

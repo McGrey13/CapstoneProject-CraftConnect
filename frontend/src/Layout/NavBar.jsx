@@ -1,7 +1,7 @@
 import './NavBar.css';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaShoppingCart, FaUser, FaBars, FaTimes, FaSearch } from 'react-icons/fa';
+import { FaShoppingCart, FaUser, FaHeart, FaBars, FaTimes, FaSearch } from 'react-icons/fa';
 import { useUser } from '../Components/Context/UserContext';
 import { useCart } from '../Components/Cart/CartContext';
 import NotificationDropdown from '../Components/ui/NotificationDropdown';
@@ -52,20 +52,25 @@ const Navbar = () => {
 
       {/* Right Side Icons */}
       <div className="navbar-right">
+        {/* Favorites Icon */}
+        <Link to="/favorites" className="navbar-icon-link">
+          <FaHeart size={20} />
+        </Link>
+
         {/* Notifications - Only show if user is logged in */}
         {user && <NotificationDropdown />}
 
         {/* Cart Icon */}
         <div className="navbar-cart">
           <Link to="/cart" className="cart-link">
-            <FaShoppingCart size={20} className="md:w-6 md:h-6" />
+            <FaShoppingCart size={20} />
             <span className="cart-count">{cartItems.reduce((total, item) => total + (item.quantity || 1), 0)}</span>
           </Link>
         </div>
 
         {/* User Profile Icon */}
         <div className="user-account">
-          <FaUser size={18} className="user-icon" onClick={toggleDropdown} />
+          <FaUser size={20} className="user-icon" onClick={toggleDropdown} />
           {isDropdownOpen && (
             <div className="dropdown-content">
               {!user ? (

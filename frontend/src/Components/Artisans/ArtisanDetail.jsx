@@ -384,6 +384,18 @@ const ArtisanDetail = () => {
     }
   };
 
+  // Function to fetch store data separately (for theme updates)
+  const fetchStoreData = async () => {
+    try {
+      const storeRes = await api.get(`/sellers/${id}/store`);
+      if (storeRes.data) {
+        setStoreData(storeRes.data);
+      }
+    } catch (storeError) {
+      console.log("Error fetching store data:", storeError);
+    }
+  };
+
   useEffect(() => {
     const fetchArtisan = async () => {
       try {
@@ -450,14 +462,7 @@ const ArtisanDetail = () => {
         setArtisanProducts(mappedProducts);
 
         // Fetch store data for this artisan
-        try {
-          const storeRes = await api.get(`/sellers/${id}/store`);
-          if (storeRes.data) {
-            setStoreData(storeRes.data);
-          }
-        } catch (storeError) {
-          console.log("Error fetching store data:", storeError);
-        }
+        await fetchStoreData();
       } catch {
         setNotFound(true);
       } finally {
@@ -466,8 +471,33 @@ const ArtisanDetail = () => {
     };
     fetchArtisan();
 
+    // Poll for artisan data every 30 seconds
     const intervalId = setInterval(fetchArtisan, 30000);
-    return () => clearInterval(intervalId);
+    
+    // Poll for store data more frequently (every 10 seconds) to catch theme changes faster
+    const storeIntervalId = setInterval(fetchStoreData, 10000);
+    
+    return () => {
+      clearInterval(intervalId);
+      clearInterval(storeIntervalId);
+    };
+  }, [id]);
+
+  // Refresh store data when page regains focus (in case seller changed theme while user was away)
+  useEffect(() => {
+    const handleFocus = async () => {
+      try {
+        const storeRes = await api.get(`/sellers/${id}/store`);
+        if (storeRes.data) {
+          setStoreData(storeRes.data);
+        }
+      } catch (storeError) {
+        console.log("Error fetching store data:", storeError);
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [id]);
 
   // Fetch seller discount statistics
@@ -804,6 +834,32 @@ const ArtisanStorePreview = ({
     desktop_columns: storeData?.store?.desktop_columns || 4,
     mobile_columns: storeData?.store?.mobile_columns || 2,
     product_card_style: storeData?.store?.product_card_style || "minimal",
+  };
+
+  // Helper function to darken a color for hover states
+  const darkenColor = (color, percent = 15) => {
+    try {
+      let hex = color.replace('#', '').trim();
+      
+      // Handle 3-character hex colors
+      if (hex.length === 3) {
+        hex = hex.split('').map(char => char + char).join('');
+      }
+      
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      
+      // Darken by reducing RGB values
+      const darkenedR = Math.max(0, Math.floor(r * (1 - percent / 100)));
+      const darkenedG = Math.max(0, Math.floor(g * (1 - percent / 100)));
+      const darkenedB = Math.max(0, Math.floor(b * (1 - percent / 100)));
+      
+      return `rgb(${darkenedR}, ${darkenedG}, ${darkenedB})`;
+    } catch (error) {
+      console.error('Error darkening color:', error);
+      return color;
+    }
   };
 
   // Helper function to blend blue with theme color for button backgrounds
@@ -1460,7 +1516,18 @@ const ArtisanStorePreview = ({
                   <Button
                     onClick={() => handleAddToCart(product)}
                     disabled={addingToCart || product.quantity === 0}
-                    className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 text-white font-semibold py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    style={{
+                      background: `linear-gradient(to right, ${customization.primary_color}, ${customization.secondary_color})`,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!e.currentTarget.disabled) {
+                        e.currentTarget.style.background = `linear-gradient(to right, ${darkenColor(customization.primary_color)}, ${darkenColor(customization.secondary_color)})`;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = `linear-gradient(to right, ${customization.primary_color}, ${customization.secondary_color})`;
+                    }}
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />
                     {product.quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
@@ -1643,7 +1710,18 @@ const ArtisanStorePreview = ({
                   <Button
                     onClick={() => handleAddToCart(product)}
                     disabled={addingToCart || product.quantity === 0}
-                    className="flex-1 bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white font-semibold py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 text-white font-semibold py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    style={{
+                      background: `linear-gradient(to right, ${customization.primary_color}, ${customization.secondary_color})`,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!e.currentTarget.disabled) {
+                        e.currentTarget.style.background = `linear-gradient(to right, ${darkenColor(customization.primary_color)}, ${darkenColor(customization.secondary_color)})`;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = `linear-gradient(to right, ${customization.primary_color}, ${customization.secondary_color})`;
+                    }}
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />
                     {product.quantity === 0 ? 'Out of Stock' : 'Add to Cart'}

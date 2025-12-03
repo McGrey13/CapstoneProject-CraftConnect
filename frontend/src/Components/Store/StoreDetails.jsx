@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -11,7 +11,8 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Button } from "../ui/button";
-import { Upload, ImageIcon } from "lucide-react";
+import { Upload, ImageIcon, AlertCircle, Info } from "lucide-react";
+import api from "../../api";
 
 const StoreDetails = ({
   storeData = {
@@ -19,6 +20,7 @@ const StoreDetails = ({
     storeDescription: "",
     category: "Native Handicraft",
     logo: null,
+    ownerCity: "",
   },
   updateStoreData = () => {},
   onNext = () => {},
@@ -29,6 +31,8 @@ const StoreDetails = ({
     logo: "",
   });
   const [logoPreview, setLogoPreview] = useState(null);
+  const [checkingName, setCheckingName] = useState(false);
+  const [nameSuggestion, setNameSuggestion] = useState("");
 
   // File size limits (10MB for logo)
   const MAX_LOGO_SIZE = 10 * 1024 * 1024; // 10MB
@@ -75,9 +79,106 @@ const StoreDetails = ({
     setLogoPreview(URL.createObjectURL(file));
   };
 
+  // Check store name availability (debounced)
+  const checkStoreName = useCallback(async (storeName) => {
+    if (!storeName || storeName.trim().length < 3) {
+      setErrors(prev => ({ ...prev, name: "" }));
+      setNameSuggestion("");
+      return;
+    }
+
+    setCheckingName(true);
+    try {
+      // Check if store name exists by trying to get stores with similar names
+      const response = await api.get('/stores', { 
+        params: { search: storeName.trim() } 
+      });
+      
+      const stores = response.data || [];
+      const trimmedName = storeName.trim().toLowerCase();
+      
+      // Check if name already includes branch format
+      const hasBranchFormat = / - .+ Branch$/i.test(storeName.trim());
+      
+      // Check for exact match (case-insensitive)
+      const exactMatch = stores.find(
+        store => store.store_name?.toLowerCase() === trimmedName
+      );
+
+      if (exactMatch) {
+        // If name already has branch format, just show error
+        if (hasBranchFormat) {
+          setErrors(prev => ({
+            ...prev,
+            name: "This store name is already taken. Please choose a different name."
+          }));
+          setNameSuggestion("");
+        } else {
+          // Suggest adding branch location if city is available
+          if (storeData.ownerCity) {
+            const cityName = storeData.ownerCity;
+            const suggestedName = `${storeName.trim()} - ${cityName} Branch`;
+            setNameSuggestion(suggestedName);
+            setErrors(prev => ({
+              ...prev,
+              name: `This store name is already taken. Please use a different name or add your branch location. Suggested: "${suggestedName}"`
+            }));
+          } else {
+            setErrors(prev => ({
+              ...prev,
+              name: "This store name is already taken. Please choose a different name or add a branch location (e.g., 'Store Name - City Branch')."
+            }));
+            setNameSuggestion("");
+          }
+        }
+      } else {
+        // Name is available - clear errors and show suggestion if city is available
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.name;
+          return newErrors;
+        });
+        
+        // If city is available and name doesn't have branch format, show suggestion
+        if (storeData.ownerCity && !hasBranchFormat) {
+          const suggestedName = `${storeName.trim()} - ${storeData.ownerCity} Branch`;
+          setNameSuggestion(suggestedName);
+        } else {
+          setNameSuggestion("");
+        }
+      }
+    } catch (error) {
+      // If API fails, don't block user - validation will happen on submit
+      console.error('Error checking store name:', error);
+    } finally {
+      setCheckingName(false);
+    }
+  }, [storeData.ownerCity]);
+
+  // Debounce store name check
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (storeData.storeName) {
+        checkStoreName(storeData.storeName);
+      }
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [storeData.storeName, checkStoreName]);
+
+  // Update suggestion when city changes
+  useEffect(() => {
+    if (storeData.ownerCity && storeData.storeName) {
+      const suggestedName = `${storeData.storeName.trim()} - ${storeData.ownerCity} Branch`;
+      setNameSuggestion(suggestedName);
+    } else {
+      setNameSuggestion("");
+    }
+  }, [storeData.ownerCity, storeData.storeName]);
+
   const validateForm = () => {
     let valid = true;
-    const newErrors = { name: "", description: "" };
+    const newErrors = { ...errors };
 
     if (!storeData.storeName.trim()) {
       newErrors.name = "Store name is required";
@@ -93,7 +194,7 @@ const StoreDetails = ({
     }
 
     setErrors(newErrors);
-    return valid;
+    return valid && !newErrors.name; // Don't proceed if name error exists
   };
 
   const handleSubmit = () => {
@@ -115,14 +216,65 @@ const StoreDetails = ({
             {/* Store Name */}
             <div className="space-y-2">
               <Label htmlFor="store-name">Store Name</Label>
-              <Input
-                id="store-name"
-                placeholder="Enter your store name"
-                value={storeData.storeName}
-                onChange={(e) => updateStoreData({ storeName: e.target.value })}
-              />
+              <div className="relative">
+                <Input
+                  id="store-name"
+                  placeholder="Enter your store name"
+                  value={storeData.storeName}
+                  onChange={(e) => {
+                    updateStoreData({ storeName: e.target.value });
+                    // Clear error when user starts typing
+                    if (errors.name) {
+                      setErrors(prev => ({ ...prev, name: "" }));
+                    }
+                  }}
+                  className={errors.name ? "border-red-500" : ""}
+                />
+                {checkingName && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Branch naming instruction */}
+              {storeData.ownerCity && !errors.name && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-2">
+                  <div className="flex items-start gap-2">
+                    <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium mb-1">Branch Location Detected</p>
+                      <p>Since you're located in <strong>{storeData.ownerCity}</strong>, consider naming your store with the branch location:</p>
+                      {nameSuggestion && (
+                        <p className="mt-1 font-semibold text-blue-900">"{nameSuggestion}"</p>
+                      )}
+                      <p className="mt-1 text-xs">Example: "Gio Store's - Calamba Branch"</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {errors.name && (
-                <p className="text-sm text-red-500">{errors.name}</p>
+                <div className="bg-red-50 border border-red-200 rounded-md p-3 mt-2">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-red-800">
+                      <p>{errors.name}</p>
+                      {nameSuggestion && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateStoreData({ storeName: nameSuggestion });
+                            setErrors(prev => ({ ...prev, name: "" }));
+                          }}
+                          className="mt-2 text-sm font-medium text-red-900 underline hover:text-red-700"
+                        >
+                          Use suggested name: "{nameSuggestion}"
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 

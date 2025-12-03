@@ -283,7 +283,10 @@ const CreateStore = () => {
       case 1:
         return (
           <StoreDetails
-            storeData={storeData}
+            storeData={{
+              ...storeData,
+              ownerCity: storeData.ownerCity || "",
+            }}
             updateStoreData={updateStoreData}
             onNext={handleNext}
           />
