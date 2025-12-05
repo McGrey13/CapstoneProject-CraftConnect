@@ -97,43 +97,24 @@ export const UserProvider = ({ children }) => {
       return;
     }
     
-    // First check if we have a saved user in localStorage
+    // Check if we have saved user data (for potential restoration on network error only)
     const savedUser = localStorage.getItem('user_data');
+    let parsedSavedUser = null;
     if (savedUser) {
       try {
-        const userData = JSON.parse(savedUser);
-        console.log('📦 Found saved user data:', userData);
-        
-        // Ensure profile picture URL is properly constructed
-        if (userData.profilePicture && !userData.profilePicture.startsWith('http')) {
-          userData.profilePicture = getStorageUrl(userData.profilePicture);
-        }
-        
-        setUser(userData);
-        ensureSessionTimer();
-        setSessionModalVisible(false);
-        sessionExpiryHandledRef.current = false;
+        parsedSavedUser = JSON.parse(savedUser);
+        console.log('📦 Found saved user data (will verify with backend first)');
       } catch (e) {
         console.error('Failed to parse saved user data:', e);
         localStorage.removeItem('user_data');
       }
     }
     
-    // If we have neither a saved user nor a bearer token, skip calling profile
-    // This avoids unnecessary 401s before login
-    const hasBearerToken = !!getToken();
-    if (!hasBearerToken) {
-      // No token - clear saved user if exists and return early
-      if (savedUser) {
-        clearStoredAuthState();
-      }
-      setLoading(false);
-      setIsCheckingAuth(false);
-      return;
-    }
-
+    // IMPORTANT: Verify with backend FIRST before restoring from localStorage
+    // This prevents restoring stale user data after logout
     try {
       // Verify with backend - cookies are automatically sent with withCredentials: true
+      // For cookie-based auth, we should try even without bearer token since cookies are sent automatically
       const response = await api.get('/auth/profile', {
         withCredentials: true
       });
@@ -152,15 +133,37 @@ export const UserProvider = ({ children }) => {
       setSessionModalVisible(false);
       sessionExpiryHandledRef.current = false;
     } catch (error) {
-      // Silently handle 401 errors - don't log to console
-      if (error.response?.status === 401) {
-        // Clear stored auth data on 401 - token is invalid
+      // Handle 401 (Unauthorized) - user is not authenticated, clear everything
+      if (error.response?.status === 401 || error.suppressError) {
+        console.log('🚫 Authentication failed (401) - clearing all auth data');
         clearStoredAuthState();
-        // Don't log 401 errors as they're expected when not authenticated
-      } else {
+        // Clear any saved user data since backend says we're not authenticated
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('session_start_time');
+      } 
+      // Handle network errors - only restore from localStorage if backend is unreachable
+      else if (error.code === 'ERR_NETWORK' || error.message === 'Network Error' || error.message?.includes('ERR_INTERNET_DISCONNECTED')) {
+        console.log('⚠️ Network error - backend unreachable, restoring from localStorage if available');
+        // Only restore from localStorage if we have saved user data and backend is down
+        if (parsedSavedUser) {
+          // Ensure profile picture URL is properly constructed
+          if (parsedSavedUser.profilePicture && !parsedSavedUser.profilePicture.startsWith('http')) {
+            parsedSavedUser.profilePicture = getStorageUrl(parsedSavedUser.profilePicture);
+          }
+          setUser(parsedSavedUser);
+          ensureSessionTimer();
+          setSessionModalVisible(false);
+          sessionExpiryHandledRef.current = false;
+        } else {
+          // No saved user, clear everything
+          clearStoredAuthState();
+        }
+      } 
+      // Handle other errors
+      else {
         console.error('❌ Authentication check failed:', error);
-        // For network errors, clear auth state
         clearStoredAuthState();
+        localStorage.removeItem('user_data');
       }
     } finally {
       setLoading(false);
@@ -233,10 +236,15 @@ export const UserProvider = ({ children }) => {
     } finally {
       // Clear user state and all stored data
       clearStoredAuthState();
+      
+      // Explicitly clear token to ensure Authorization header is removed
+      setToken(null);
+      
+      // Clear all storage
       localStorage.clear();
       sessionStorage.clear();
       
-      // Clear CSRF token
+      // Clear CSRF token (redundant after sessionStorage.clear but explicit)
       sessionStorage.removeItem('csrf_token');
       
       console.log('✅ User logged out successfully - all auth data cleared');

@@ -212,10 +212,10 @@ export const CartProvider = ({ children }) => {
         } catch (error) {
           lastError = error;
           
-          // Silently handle 401 errors - don't log or retry
-          if (error.response?.status === 401) {
+          // Silently handle 401 errors and network errors - don't log or retry
+          if (error.response?.status === 401 || error.suppressError || error.code === 'ERR_NETWORK' || error.message === 'Network Error' || error.message?.includes('ERR_INTERNET_DISCONNECTED')) {
             setCartItems([]);
-            return; // Don't retry for auth errors
+            return; // Don't retry for auth errors or network issues
           }
           
           // Check if it's an HTML error from backend
@@ -239,13 +239,13 @@ export const CartProvider = ({ children }) => {
       }
       
       // If we get here, all retries failed
-      if (lastError && lastError.response?.status !== 401) {
+      if (lastError && lastError.response?.status !== 401 && !lastError.suppressError && lastError.code !== 'ERR_NETWORK' && lastError.message !== 'Network Error' && !lastError.message?.includes('ERR_INTERNET_DISCONNECTED')) {
         console.error("All retries failed for cart:", lastError);
       }
       setCartItems([]);
     } catch (error) {
-      // Silently handle 401 errors
-      if (error.response?.status !== 401) {
+      // Silently handle 401 errors and network errors
+      if (error.response?.status !== 401 && !error.suppressError && error.code !== 'ERR_NETWORK' && error.message !== 'Network Error' && !error.message?.includes('ERR_INTERNET_DISCONNECTED')) {
         console.error("Failed to fetch cart:", error);
       }
       setCartItems([]);

@@ -30,13 +30,14 @@ const useNotifications = () => {
       setNotifications(response.data.notifications || []);
       return response.data;
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch notifications');
-      console.error('Error fetching notifications:', err);
-      // Don't set error state if it's just an auth issue - user might not be logged in
-      if (err.response?.status === 401) {
+      // Suppress expected 401 errors (user not logged in)
+      if (err.response?.status === 401 || err.suppressError) {
         setUnreadCount(0);
         setNotifications([]);
+        return null;
       }
+      setError(err.response?.data?.message || 'Failed to fetch notifications');
+      console.error('Error fetching notifications:', err);
       return null;
     } finally {
       setLoading(false);
@@ -56,7 +57,8 @@ const useNotifications = () => {
       setUnreadCount(response.data.count || 0);
       return response.data.count || 0;
     } catch (err) {
-      if (err.response?.status !== 401) {
+      // Suppress expected 401 errors and network errors
+      if (err.response?.status !== 401 && !err.suppressError) {
         console.error('Error fetching unread count:', err);
       }
       setUnreadCount(0);

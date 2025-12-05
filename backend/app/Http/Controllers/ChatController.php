@@ -434,12 +434,16 @@ class ChatController extends Controller
                     return [
                         'conversation_id' => $conversation->conversation_id,
                         'seller' => [
+                            'userID' => $receiverUser->userID ?? null,
                             'userName' => $receiverUser->userName ?? 'Seller',
                             'userEmail' => $receiverUser->userEmail ?? '',
+                            'profilePicture' => $receiverUser->profilePicture ?? null,
                         ],
                         'receiver' => [
+                            'userID' => $receiverUser->userID ?? null,
                             'userName' => $receiverUser->userName ?? 'Seller',
                             'userEmail' => $receiverUser->userEmail ?? '',
+                            'profilePicture' => $receiverUser->profilePicture ?? null,
                         ],
                         'messages' => $conversation->messages,
                         'created_at' => $conversation->created_at,

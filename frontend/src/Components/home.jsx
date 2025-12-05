@@ -6,9 +6,12 @@ import WorkshopsEventsGrid from "./Home/WorkshopsEventsGrid";
 import { useCart } from "./Cart/CartContext";
 import { useFavorites } from "./favorites/FavoritesContext";
 import NotificationModal from "./ui/NotificationModal";
+import CustomerMessengerPopup from "./Messenger/CustomerMessengerPopup";
+import { MessageCircle } from 'lucide-react';
 
 const Home = () => {
   const [notification, setNotification] = useState({ show: false, type: '', message: '' });
+  const [isMessengerOpen, setMessengerOpen] = useState(false);
   const { addToCart } = useCart();
   const { favorites, addFavorite, removeFavorite } = useFavorites();
 
@@ -69,6 +72,12 @@ const Home = () => {
           <WorkshopsEventsGrid />
         </div>
       </main>
+      
+      {/* Customer Messenger Popup - opened from navbar button */}
+      <CustomerMessengerPopup 
+        isOpen={isMessengerOpen}
+        onClose={() => setMessengerOpen(false)}
+      />
       
       {/* Notification Modal */}
       <NotificationModal

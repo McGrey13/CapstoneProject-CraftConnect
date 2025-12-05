@@ -287,13 +287,20 @@ api.interceptors.response.use(
       }
     }
 
-    // Silently handle 401 errors when no token exists
+    // Silently handle 401 errors when no token exists or for expected auth failures
     if (error.response?.status === 401 && !originalRequest._retry) {
       const existingToken = getToken();
       if (!existingToken) {
         // Mark as handled to prevent console logging
         error._handled = true;
+        // Suppress console errors for expected 401s (user not logged in)
+        error.suppressError = true;
       }
+    }
+
+    // Suppress network errors that are expected when backend is down
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error' || error.message.includes('ERR_INTERNET_DISCONNECTED')) {
+      error.suppressError = true;
     }
 
     return Promise.reject(error);

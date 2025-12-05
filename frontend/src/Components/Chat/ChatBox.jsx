@@ -158,11 +158,12 @@ export default function ChatBox({ conversationId, user, customer }) {
                     : "bg-[#f8f1ec] text-[#5c3d28]"
                 } shadow`}
               >
+                {/* Show message type badge for ALL messages consistently */}
                 <div className="text-xs mb-1">
                   <span className={`px-2 py-0.5 rounded ${
                     m.sender_id === user.userID ? "bg-white/20 text-white" : "bg-white text-[#7b5a3b]"
                   }`}>
-                    {m.message_type}
+                    {m.message_type || 'General'}
                   </span>
                 </div>
                 

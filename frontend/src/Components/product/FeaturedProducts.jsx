@@ -326,8 +326,16 @@ const FeaturedProducts = ({
       setProducts(transformedProducts);
       setError(null);
     } catch (err) {
-      console.error("Error fetching featured products:", err);
-      setError("Failed to load products. Please try again later.");
+      // Suppress network errors and expected 401 errors
+      if (!err.suppressError && err.code !== 'ERR_NETWORK' && err.message !== 'Network Error' && !err.message?.includes('ERR_INTERNET_DISCONNECTED')) {
+        if (err.response?.status !== 401) {
+          console.error("Error fetching featured products:", err);
+        }
+      }
+      // Only set error message for actual API errors, not network issues
+      if (err.response && err.response.status !== 401) {
+        setError("Failed to load products. Please try again later.");
+      }
     } finally {
       setLoading(false);
     }

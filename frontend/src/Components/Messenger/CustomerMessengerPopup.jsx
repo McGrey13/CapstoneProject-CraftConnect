@@ -20,6 +20,7 @@ const CustomerMessengerPopup = ({
   const [currentUserId, setCurrentUserId] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const messagesEndRef = useRef(null);
+  const retryCountRef = useRef(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -60,6 +61,7 @@ const CustomerMessengerPopup = ({
     if (isOpen) {
       getCurrentUserId();
       fetchAllConversations();
+      retryCountRef.current = 0; // Reset retry counter when opening
     } else {
       // Reset when popup closes
       setNewMessage('');
@@ -67,6 +69,7 @@ const CustomerMessengerPopup = ({
       setConversationId(null);
       setSelectedConversation(null);
       setMessages([]);
+      retryCountRef.current = 0; // Reset retry counter when closing
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, user]);
@@ -100,7 +103,17 @@ const CustomerMessengerPopup = ({
         const data = Array.isArray(response.data) ? response.data : response.data.messages || [];
         setMessages(data);
       } catch (err) {
-        console.error("Failed to fetch messages:", err);
+        // Only log errors that aren't network-related or are actual API errors
+        if (err.response) {
+          // This is an actual API error (4xx, 5xx) - only log if it's not a network issue
+          if (err.response.status !== 0) {
+            console.error("Failed to fetch messages:", err.response.status, err.response.data);
+          }
+        } else if (err.code !== 'ERR_NETWORK' && err.message !== 'Network Error' && !err.message.includes('ERR_INTERNET_DISCONNECTED')) {
+          // Log other errors but not network disconnection errors
+          console.error("Failed to fetch messages:", err.message);
+        }
+        // Silently handle network errors to avoid console spam
       }
     };
 
@@ -128,6 +141,12 @@ const CustomerMessengerPopup = ({
   };
 
   const handleConversationClick = async (conv) => {
+    if (!conv || !conv.conversation_id) {
+      console.error('Invalid conversation selected');
+      return;
+    }
+    
+    retryCountRef.current = 0; // Reset retry counter when selecting a new conversation
     setConversationId(conv.conversation_id);
     setSelectedConversation(conv);
     setIsLoading(true);
@@ -136,7 +155,12 @@ const CustomerMessengerPopup = ({
       const data = Array.isArray(response.data) ? response.data : response.data.messages || [];
       setMessages(data);
     } catch (err) {
-      console.error("Failed to fetch messages:", err);
+      // Only log actual API errors, not network disconnection errors
+      if (err.response && err.response.status !== 0) {
+        console.error("Failed to fetch messages:", err.response.status, err.response.data);
+      } else if (err.code !== 'ERR_NETWORK' && err.message !== 'Network Error' && !err.message.includes('ERR_INTERNET_DISCONNECTED')) {
+        console.error("Failed to fetch messages:", err.message);
+      }
       setMessages([]);
     } finally {
       setIsLoading(false);
@@ -153,11 +177,47 @@ const CustomerMessengerPopup = ({
     }
 
     // Get seller user ID from the conversation
-    const sellerUserId = selectedConversation.receiver?.userID || selectedConversation.seller?.userID;
+    // Try multiple possible paths to get the userID
+    const sellerUserId = selectedConversation.receiver?.userID 
+      || selectedConversation.seller?.userID
+      || selectedConversation.receiver_id
+      || selectedConversation.seller_id;
+    
     if (!sellerUserId) {
-      console.error('sellerUserId is missing, cannot send message');
+      console.error('sellerUserId is missing, cannot send message', {
+        conversation: selectedConversation,
+        receiver: selectedConversation.receiver,
+        seller: selectedConversation.seller
+      });
+      
+      // Try to fetch the conversation again to get updated data (only once)
+      if (retryCountRef.current === 0) {
+        retryCountRef.current = 1;
+        try {
+          const convResponse = await api.get('/chat/conversations');
+          const updatedConv = convResponse.data?.find(c => c.conversation_id === conversationId);
+          if (updatedConv) {
+            const updatedSellerUserId = updatedConv.receiver?.userID || updatedConv.seller?.userID;
+            if (updatedSellerUserId) {
+              setSelectedConversation(updatedConv);
+              // Retry sending the message
+              setTimeout(() => {
+                retryCountRef.current = 0;
+                sendMessage();
+              }, 100);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('Failed to refresh conversation:', err);
+        }
+        retryCountRef.current = 0;
+      }
       return;
     }
+    
+    // Reset retry count on successful send
+    retryCountRef.current = 0;
 
     const messageText = newMessage.trim();
     setNewMessage('');
@@ -262,7 +322,7 @@ const CustomerMessengerPopup = ({
 
   return (
     <div 
-      className="fixed bottom-4 right-4 z-50 w-[750px] h-[600px] bg-white rounded-2xl shadow-2xl border-2 border-[#e5ded7] overflow-hidden flex flex-col"
+      className="fixed bottom-4 right-4 z-[9999] w-[750px] h-[600px] bg-white rounded-2xl shadow-2xl border-2 border-[#e5ded7] overflow-hidden flex flex-col"
     >
       <div className="flex flex-1 overflow-hidden">
         {/* Conversation List */}
@@ -415,13 +475,16 @@ const CustomerMessengerPopup = ({
                             : 'bg-gray-200 text-gray-900 rounded-bl-none'
                         }`}
                       >
-                        {!isCustomerMessage && (
-                          <div className="text-xs mb-1">
-                            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                              {message.message_type}
-                            </span>
-                          </div>
-                        )}
+                        {/* Show message type badge for ALL messages (both customer and seller) */}
+                        <div className="text-xs mb-1">
+                          <span className={`px-2 py-0.5 rounded ${
+                            isCustomerMessage 
+                              ? "bg-white/20 text-white" 
+                              : "bg-white text-[#7b5a3b]"
+                          }`}>
+                            {message.message_type || 'General'}
+                          </span>
+                        </div>
                         
                         {message.message && <p className="break-words text-sm font-medium">{message.message}</p>}
                         
