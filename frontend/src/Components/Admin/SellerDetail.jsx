@@ -92,9 +92,9 @@ const SellerDetail = ({ sellerId, isOpen, onClose, onEdit }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-screen h-screen max-w-none max-h-none left-0 top-0 translate-x-0 translate-y-0 rounded-none border-none p-0 bg-white">
+      <DialogContent className="w-screen h-screen max-w-none max-h-none left-0 top-0 translate-x-0 translate-y-0 rounded-none border-none p-0 bg-white overflow-hidden">
         <div className="flex flex-col h-full">
-          <DialogHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] px-8 py-6 border-b border-[#e5ddd4]">
+          <DialogHeader className="bg-gradient-to-r from-[#f8f6f4] to-[#f0ebe7] px-8 py-6 border-b border-[#e5ddd4] flex-shrink-0">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-3xl font-bold text-[#5c3d28] flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-[#a4785a] to-[#7b5a3b] rounded-full flex items-center justify-center">
@@ -102,19 +102,29 @@ const SellerDetail = ({ sellerId, isOpen, onClose, onEdit }) => {
                 </div>
                 Seller Details
               </DialogTitle>
-              {seller && (
+              <div className="flex items-center gap-3">
+                {seller && (
+                  <Button 
+                    onClick={() => onEdit(seller)} 
+                    className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white px-4 py-2 rounded-lg shadow-md transition-all"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Seller
+                  </Button>
+                )}
                 <Button 
-                  onClick={() => onEdit(seller)} 
-                  className="bg-gradient-to-r from-[#a4785a] to-[#7b5a3b] hover:from-[#8f674a] hover:to-[#6a4c34] text-white px-4 py-2 rounded-lg shadow-md transition-all"
+                  onClick={onClose}
+                  variant="outline"
+                  size="sm"
+                  className="border-[#d5bfae] text-[#5c3d28] hover:bg-[#f5f0eb]"
                 >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Seller
+                  <X className="h-4 w-4" />
                 </Button>
-              )}
+              </div>
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-8 py-8 bg-white">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-8 py-8 bg-white" style={{ maxHeight: 'calc(100vh - 120px)' }}>
             {loading && renderLoadingState()}
             {error && !loading && renderErrorState()}
             {seller && !loading && !error && (

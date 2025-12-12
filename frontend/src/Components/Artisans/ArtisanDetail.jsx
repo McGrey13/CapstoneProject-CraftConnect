@@ -1213,6 +1213,7 @@ const ArtisanStorePreview = ({
           className="rounded-xl sm:rounded-2xl shadow p-4 sm:p-6"
           style={{ backgroundColor: customization.background_color }}
         >
+
           <div 
             className="w-full rounded-xl border p-3 sm:p-4"
             style={{ borderColor: customization.accent_color, backgroundColor: customization.background_color }}
