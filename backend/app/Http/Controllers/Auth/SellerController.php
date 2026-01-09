@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use App\Models\Seller;
 
 
 class SellerController extends AuthController
@@ -56,4 +58,221 @@ class SellerController extends AuthController
 
         return redirect()->back()->with('success', 'Your seller information has been updated!');
     }
+
+      public function getAllSellers()
+    {
+        $sellers = Seller::with('user')->get();
+        
+        // Transform the data to include profile image URLs
+        $sellersWithImages = $sellers->map(function ($seller) {
+            $profileImageUrl = $seller->profile_picture_path
+                ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
+                : '';
+                
+            return [
+                'sellerID' => $seller->sellerID,
+                'user' => $seller->user,
+                'profile_picture_path' => $seller->profile_picture_path,
+                'profile_image_url' => $profileImageUrl,
+                'specialty' => $seller->specialty ?? '',
+                'story' => $seller->story ?? '',
+                'video_url' => $seller->video_url ?? '',
+                'featured' => $seller->featured ?? false,
+                'rating' => $seller->rating ?? 0,
+                'productCount' => $seller->products()->count(),
+            ];
+        });
+
+        return response()->json($sellersWithImages);
+    }
+
+     public function getSellerById($sellerID)
+    {
+        // Fetch seller with their related user info
+        $seller = Seller::with('user')->where('sellerID', $sellerID)->first();
+
+        if (!$seller) {
+            return response()->json(['message' => 'Seller not found'], 404);
+        }
+
+        // Get profile image URL
+        $profileImageUrl = $seller->profile_picture_path
+            ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
+            : '';
+
+        return response()->json([
+            'sellerID' => $seller->sellerID,
+            'user' => $seller->user,
+            'profile_picture_path' => $seller->profile_picture_path,
+            'profile_image_url' => $profileImageUrl,
+            'specialty' => $seller->specialty ?? '',
+            'story' => $seller->story ?? '',
+            'video_url' => $seller->video_url ?? '',
+            'featured' => $seller->featured ?? false,
+            'rating' => $seller->rating ?? 0,
+        ]);
+    }
+
+    public function getArtisanDetails($id)
+    {
+        $seller = Seller::with(['user', 'products' => function ($q) {
+            $q->where('approval_status', 'approved');
+        }])->where('sellerID', $id)->first();
+
+        if (!$seller) {
+            return response()->json(['message' => 'Seller not found'], 404);
+        }
+
+        // Get profile image URL
+        $profileImageUrl = $seller->profile_picture_path
+            ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
+            : '';
+
+        return response()->json([
+            'id' => $seller->sellerID,
+            'user' => [
+                'userName' => $seller->user->userName,
+                'userAddress' => $seller->user->userAddress,
+                'profile_photo_url' => $profileImageUrl, // Use the constructed URL
+            ],
+            'profile_picture_path' => $seller->profile_picture_path,
+            'profile_image_url' => $profileImageUrl, // Add this field for consistency
+            'specialty' => $seller->specialty ?? '',
+            'story' => $seller->story ?? '',
+            'video_url' => $seller->video_url ?? '',
+            'products' => $seller->products->map(function ($p) {
+                $image = $p->productImage;
+                $imageUrl = $image && str_starts_with($image, 'http')
+                    ? $image
+                    : ($image ? url('storage/' . ltrim($image, '/')) : '');
+                return [
+                    'id' => $p->product_id,
+                    'productName' => $p->productName,
+                    'productPrice' => $p->productPrice,
+                    'productImage' => $imageUrl,
+                    'productDescription' => $p->productDescription,
+                    'category' => $p->category,
+                    'status' => $p->status,
+                    'approval_status' => $p->approval_status,
+                ];
+            }),
+        ]);
+    }
+
+    // Show the authenticated seller's profile
+    public function showProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        // Ensure seller exists
+        $seller = $user->seller;
+        if (!$seller) {
+            $seller = Seller::create([
+                'user_id' => $user->userID,
+                'story' => '',
+                'website' => '',
+            ]);
+        }
+
+        $profileImageUrl = $seller->profile_picture_path
+            ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
+            : '';
+
+        return response()->json([
+            'sellerID' => $seller->sellerID,
+            'userName' => $user->userName,
+            'userEmail' => $user->userEmail,
+            'role' => $user->role,
+            'userBirthday' => $user->userBirthday,
+            'userContactNumber' => $user->userContactNumber,
+            'userAddress' => $user->userAddress,
+            'profileImage' => $profileImageUrl,
+            'story' => $seller->story ?? '',
+            'website' => $seller->website ?? '',
+        ]);
+}
+
+
+        // Update the seller's profile
+        public function updateProfile(Request $request, $sellerID)
+    {
+        $seller = Seller::find($sellerID);
+        if (!$seller) {
+            return response()->json(['message' => 'Seller not found.'], 404);
+        }
+
+        $user = $seller->user;
+        if (!$user) {
+            return response()->json(['message' => 'User not found for this seller.'], 404);
+        }
+
+        $request->validate([
+            'story' => 'nullable|string|max:1000',
+            'userName' => 'nullable|string|max:255',
+            'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ], [
+            'profileImage.image' => 'The file must be an image.',
+            'profileImage.mimes' => 'The image must be a file of type: jpeg, png, jpg, gif.',
+            'profileImage.max' => 'The image may not be greater than 2MB.',
+        ]);
+
+        if ($request->hasFile('profileImage')) {
+            \Log::info('Profile image upload detected', [
+                'original_name' => $request->file('profileImage')->getClientOriginalName(),
+                'size' => $request->file('profileImage')->getSize(),
+                'mime_type' => $request->file('profileImage')->getMimeType(),
+            ]);
+            
+            // Delete old image if it exists
+            if ($seller->profile_picture_path) {
+                \Log::info('Deleting old profile image', ['path' => $seller->profile_picture_path]);
+                \Storage::disk('public')->delete($seller->profile_picture_path);
+            }
+            
+            $path = $request->file('profileImage')->store('profile_images', 'public');
+            \Log::info('Profile image stored', ['path' => $path]);
+            
+            // Save relative path; response will convert to public URL
+            $seller->profile_picture_path = $path;
+            $seller->save();
+        } else {
+            \Log::info('No profile image in request');
+        }
+
+        if ($request->filled('userName')) {
+            $user->userName = $request->input('userName');
+            $user->save();
+        }
+
+        if ($request->filled('story')) {
+            $seller->story = $request->input('story');
+            $seller->save();
+        }
+
+        // Always get the current profile image URL, whether updated or existing
+        $profileImageUrl = $seller->profile_picture_path
+            ? url('storage/' . ltrim($seller->profile_picture_path, '/'))
+            : '';
+
+        \Log::info('Profile update response', [
+            'seller_id' => $seller->sellerID,
+            'profile_picture_path' => $seller->profile_picture_path,
+            'profile_image_url' => $profileImageUrl,
+            'story' => $seller->story,
+        ]);
+
+        return response()->json([
+            'sellerID' => $seller->sellerID,
+            'userName' => $user->userName,
+            'userEmail' => $user->userEmail,
+            'role' => $user->role,
+            'userBirthday' => $user->userBirthday,
+            'userContactNumber' => $user->userContactNumber,
+            'userAddress' => $user->userAddress,
+            'profileImage' => $profileImageUrl,
+            'story' => $seller->story ?? '',
+            'website' => $seller->website ?? '',
+        ]);
+    }
+
 }

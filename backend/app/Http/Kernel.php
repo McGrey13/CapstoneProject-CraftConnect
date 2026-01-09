@@ -4,13 +4,15 @@ namespace App\Http;
 
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use App\Http\Middleware\RoleMiddleware;
+use Illuminate\Http\Middleware\HandleCors;
 
 class Kernel extends HttpKernel
 {
 
     protected $routeMiddleware = [
-    // ... other middleware
-    'role' => RoleMiddleware::class,
+        // ... other middleware
+        'role' => RoleMiddleware::class,
+        'cors' => \Illuminate\Http\Middleware\HandleCors::class,
     ];
     /**
      * The application's global HTTP middleware stack.
@@ -21,11 +23,9 @@ class Kernel extends HttpKernel
      */
     protected $middleware = [
         // \App\Http\Middleware\TrustHosts::class,
-        \App\Http\Middleware\TrustProxies::class,
         \Illuminate\Http\Middleware\HandleCors::class,
-        \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
-        \App\Http\Middleware\TrimStrings::class,
+        \Illuminate\Foundation\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
     ];
 
@@ -47,8 +47,9 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
+            \Illuminate\Http\Middleware\HandleCors::class, // Ensure CORS is handled for API routes
+            \App\Http\Middleware\DisableSessionsForApi::class, // Custom middleware to disable sessions
+            'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
@@ -75,5 +76,6 @@ class Kernel extends HttpKernel
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'seller' => \App\Http\Middleware\SellerMiddleware::class,
         'customer' => \App\Http\Middleware\CustomerMiddleware::class,
+        'is.seller' => \App\Http\Middleware\EnsureUserIsSeller::class,
     ];
 }

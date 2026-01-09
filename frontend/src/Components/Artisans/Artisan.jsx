@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Filter, Search } from "lucide-react";
 import { Button } from "../ui/button";
@@ -6,56 +6,68 @@ import { Input } from "../ui/input";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 
-const mockArtisans = [
-  {
-    id: "art-1",
-    name: "Sheweliz M. Antinero",
-    location: "Calamba, Laguna",
-    specialty: "Ceramics",
-    bio: "Creating handcrafted pottery inspired by nature and traditional Filipino designs.",
-    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&q=80",
-    rating: 4.8,
-    productCount: 24,
-    featured: true,
-    story:
-      "Sheweliz's passion for ceramics started in her childhood surrounded by nature. Her work blends traditional Filipino techniques with modern styles to create unique pottery that tells a story.",
-    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-  },
-  {
-    id: "art-2",
-    name: "Gio Mc Grey O. Calugas",
-    location: "San Pedro, Laguna",
-    specialty: "Jewelry",
-    bio: "Crafting unique jewelry pieces using locally sourced materials and traditional techniques.",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&q=80",
-    rating: 4.5,
-    productCount: 18,
-    featured: true,
-    story:
-      "Gio sources local materials and uses time-honored jewelry techniques to craft unique pieces inspired by Philippine heritage.",
-    videoUrl: "https://www.youtube.com/embed/3JZ_D3ELwOQ",
-  },
-  {
-    id: "art-3",
-    name: "Denisse Kaith D. Malabana",
-    location: "Victoria, Laguna",
-    specialty: "Textiles",
-    bio: "Weaving beautiful textiles that blend traditional patterns with contemporary designs.",
-    image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=500&q=80",
-    rating: 4.9,
-    productCount: 31,
-    featured: true,
-    story:
-      "Denisse's textiles merge traditional patterns with modern aesthetics, preserving cultural heritage while embracing innovation.",
-    videoUrl: "https://www.youtube.com/embed/tgbNymZ7vqY",
-  },
-  // add more artisans as needed
-];
-
 const Artisan = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [artisans, setArtisans] = useState(mockArtisans);
+  const [artisans, setArtisans] = useState([]);
   const [filterFeatured, setFilterFeatured] = useState(false);
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/get/sellers", {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+        return res.json();
+      })
+      .then((data) => {
+        console.log("Raw seller data:", data);
+        const mapped = data.map((seller) => {
+          // Get the profile image URL properly
+          let profileImageUrl = "https://api.dicebear.com/7.x/avataaars/svg?seed=artisan";
+          
+          // Use the new profile_image_url field if available
+          if (seller.profile_image_url && seller.profile_image_url.trim() !== "") {
+            profileImageUrl = seller.profile_image_url;
+            console.log(`Seller ${seller.sellerID} profile image from URL:`, profileImageUrl);
+          } else if (seller.profile_picture_path) {
+            // Fallback to constructing URL from path
+            if (!seller.profile_picture_path.startsWith('http')) {
+              profileImageUrl = `http://localhost:8000/storage/${seller.profile_picture_path}`;
+            } else {
+              profileImageUrl = seller.profile_picture_path;
+            }
+            console.log(`Seller ${seller.sellerID} profile image from path:`, profileImageUrl);
+          }
+          
+          return {
+            // Access nested user object for user details
+            id: seller.sellerID,
+            name: seller.user.userName, // Corrected to use seller.user.userName
+            location: seller.user.userAddress || "Unknown", // Corrected
+            bio: seller.story || "No bio provided.", // Bio is on the seller object
+            image: profileImageUrl,
+            // These properties should be on the seller object, not user
+            specialty: seller.specialty || "Crafts", 
+            rating: seller.rating || 0,
+            productCount: seller.productCount || 0,
+            featured: seller.featured || false,
+            story: seller.story || "",
+            videoUrl: seller.video_url || "",
+          };
+        });
+        console.log("Mapped seller data:", mapped);
+        setArtisans(mapped);
+      })
+      .catch((err) => {
+        console.error("Error fetching sellers:", err);
+        setArtisans([]);
+      });
+  }, [token]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -63,22 +75,20 @@ const Artisan = () => {
   };
 
   const filterArtisans = (query, onlyFeatured) => {
-    let filtered = mockArtisans;
-
+    // The filter logic is fine, it will work on the 'mapped' data
+    let filtered = artisans;
     if (query.trim() !== "") {
       filtered = filtered.filter(
         (artisan) =>
-          artisan.name.toLowerCase().includes(query.toLowerCase()) ||
-          artisan.specialty.toLowerCase().includes(query.toLowerCase()) ||
-          artisan.location.toLowerCase().includes(query.toLowerCase()) ||
-          artisan.bio.toLowerCase().includes(query.toLowerCase())
+          artisan.name?.toLowerCase().includes(query.toLowerCase()) ||
+          artisan.specialty?.toLowerCase().includes(query.toLowerCase()) ||
+          artisan.location?.toLowerCase().includes(query.toLowerCase()) ||
+          artisan.bio?.toLowerCase().includes(query.toLowerCase())
       );
     }
-
     if (onlyFeatured) {
       filtered = filtered.filter((artisan) => artisan.featured);
     }
-
     setArtisans(filtered);
   };
 
@@ -146,7 +156,7 @@ const Artisan = () => {
                 <Card className="h-full overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer">
                   <div className="relative h-64 overflow-hidden bg-gray-100">
                     <img
-                      src={artisan.image}
+                      src={artisan.image} // This now correctly uses the image URL from the API response
                       alt={artisan.name}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     />
@@ -180,14 +190,14 @@ const Artisan = () => {
                           </svg>
                         ))}
                         <span className="ml-1 text-sm text-gray-600">
-                          {artisan.rating.toFixed(1)}
+                          {artisan.rating?.toFixed(1) ?? "0.0"}
                         </span>
                       </div>
                       <span className="ml-auto text-sm text-gray-500">
                         {artisan.productCount} products
                       </span>
                     </div>
-                    <p className="text-gray-600 line-clamp-2">{artisan.bio}</p>
+                    <p className="text-gray-600 line-clamp-2">{artisan.story}</p>
                   </CardContent>
                 </Card>
               </Link>
@@ -200,7 +210,52 @@ const Artisan = () => {
               onClick={() => {
                 setSearchQuery("");
                 setFilterFeatured(false);
-                setArtisans(mockArtisans);
+                // The useEffect hook already handles re-fetching on mount, so just reset state
+                // Re-fetch logic can be simplified by calling the original fetch function
+                fetch("http://localhost:8000/api/get/sellers", {
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                })
+                  .then((res) => res.json())
+                  .then((data) => {
+                    console.log("Raw seller data:", data);
+                    const mapped = data.map((seller) => {
+                      // Get the profile image URL properly
+                      let profileImageUrl = "https://api.dicebear.com/7.x/avataaars/svg?seed=artisan";
+                      
+                      // Use the new profile_image_url field if available
+                      if (seller.profile_image_url && seller.profile_image_url.trim() !== "") {
+                        profileImageUrl = seller.profile_image_url;
+                        console.log(`Seller ${seller.sellerID} profile image from URL:`, profileImageUrl);
+                      } else if (seller.profile_picture_path) {
+                        // Fallback to constructing URL from path
+                        if (!seller.profile_picture_path.startsWith('http')) {
+                          profileImageUrl = `http://localhost:8000/storage/${seller.profile_picture_path}`;
+                        } else {
+                          profileImageUrl = seller.profile_picture_path;
+                        }
+                        console.log(`Seller ${seller.sellerID} profile image from path:`, profileImageUrl);
+                      }
+                      
+                      return {
+                        id: seller.sellerID,
+                        name: seller.user.userName,
+                        location: seller.user.userAddress || "Unknown",
+                        bio: seller.story || "No bio provided.",
+                        image: profileImageUrl,
+                        specialty: seller.specialty || "Crafts",
+                        rating: seller.rating || 0,
+                        productCount: seller.productCount || 0,
+                        featured: seller.featured || false,
+                        story: seller.story || "",
+                        videoUrl: seller.video_url || "",
+                      };
+                    });
+                    console.log("Mapped seller data:", mapped);
+                    setArtisans(mapped);
+                  });
               }}
             >
               Clear Filters

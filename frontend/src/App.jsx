@@ -1,73 +1,117 @@
-import './App.css';
 import React from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import Navbar from './Components/Layout/NavBar';
-import Footer from './Components/Layout/Footer';
-import About from './Components/About/About.jsx';
-import Categories from './Components/Categories/Categories.jsx';
-import Artisan from './Components/Artisans/Artisan.jsx';
-import Contact from './Components/Contact/Contact.jsx';
-import Login from './Components/Auth/Login.jsx';
-import Register from './Components/Auth/Register.jsx';
-import Home from './Components/home.jsx';
-import ProductsPage from './Components/Product/ProductsPage.jsx';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
-import SellerLayout from './Components/Seller/SellerLayout.jsx';
-import WorkshopsEvents from './Components/Seller/WorkshopsEvents.jsx';
-import StorefrontCustomizer from './Components/Seller/StorefrontCustomizer.jsx';
-import PaymentSettings from './Components/Seller/PaymentSettings.jsx';
-import OrderInventoryManager from './Components/Seller/OrderInventoryManager.jsx';
-import MarketingTools from './Components/Seller/MarketingTools.jsx';
-import ShippingSettings from './Components/Seller/ShippingSettings.jsx';
-import SocialMedia from './Components/Seller/SocialMedia.jsx';
-import SellerSettings from './Components/Seller/SellerSettings.jsx';
-import Dashboard from './Components/Admin/Dashboard';
+// Layouts
+import PublicLayout from './Components/Routes/PublicLayout';
+import SellerLayout from './Components/Seller/SellerLayout';
 import AdminLayout from './Components/Admin/AdminLayout';
+
+// Public Pages
+import Home from './Components/home';
 import ShoppingCart from './Components/Cart/ShoppingCart';
+import Checkout from './Components/Cart/Checkout';
 import SearchResults from './Components/SearchResult/SearchResults';
-import ArtisanDetail from './Components/Artisans/ArtisanDetail';
+import About from './Components/About/About';
+import Contact from './Components/Contact/Contact';
+import Categories from './Components/Categories/Categories';
 import CategoryProducts from './Components/Categories/CategoryProducts';
+import Artisan from './Components/Artisans/Artisan';
+import ArtisanDetail from './Components/Artisans/ArtisanDetail';
+import Register from './Components/Auth/Register';
+import Login from './Components/Auth/Login';
+import ProductsPage from './Components/Product/ProductsPage';
+import ProductDetails from './Components/product/ProductDetails';
+import { Favorites } from './Components/pages/Favorites';
+import Orders from './Components/Orders/Orders';
+import Profile from './Components/Profile/Profile';
+import Settings from './Components/Settings/Settings';
+
+// Seller Pages
+import MarketingTools from './Components/Seller/MarketingTools';
+import OrderInventoryManager from './Components/Seller/OrderInventoryManager';
+import PaymentSettings from './Components/Seller/PaymentSettings';
+import SellerSettings from './Components/Seller/SellerSettings';
+import ShippingSettings from './Components/Seller/ShippingSettings';
+import SocialMedia from './Components/Seller/SocialMedia';
+import StorefrontCustomizer from './Components/Seller/StorefrontCustomizer';
+import WorkshopsEvents from './Components/Seller/WorkshopsEvents';
+import ProfilePage from './Components/Seller/ProfilePage';
+import EditableSellerDetail from './Components/Seller/EditableSellerDetail';
+
+// Admin Pages
+import Dashboard from './Components/Admin/AdminDashboard';
+import AdminDetails from './Components/Admin/AdminDetail';
+import AdminTable from './Components/Admin/AdminTable';
+import AdminProfilePage from './Components/Admin/AdminSettings';
+import ArtisanTable from './Components/Admin/ArtisanTable';
+import CustomerDetail from './Components/Admin/CustomerDetail';
+import CustomerTable from './Components/Admin/CustomerTable';
+import EditableaAdminDetail from './Components/Admin/EditableAdminDetail';
+import OrdersOverview from './Components/Admin/OrdersOverview';
+import ProductsTable from './Components/Admin/ProductsTable';
+import SellerDetail from './Components/Admin/SellerDetail';
+import SellersTable from './Components/Admin/SellersTable';
+import SimplifiedCustomerDetail from './Components/Admin/SimplifiedCustomerDetail';
+import SimplifiedCustomerTable from './Components/Admin/SimplifiedCustomerTable';
 
 function App() {
   return (
     <BrowserRouter>
-      <Navbar />
-      <div className="container">
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Home />} />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<PublicLayout />}>
+          <Route path="home" element={<Home />} />
+          <Route path="favorites" element={<Favorites />} />
           <Route path="/cart" element={<ShoppingCart />} />
-          <Route path="/search" element={<SearchResults />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route path="/category/:id" element={<CategoryProducts />} />
-          <Route path="/artisan" element={<Artisan />} />
-          <Route path="/artisans/:id" element={<ArtisanDetail />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/products" element={<ProductsPage />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="search" element={<SearchResults />} />
+          <Route path="about" element={<About />} />
+          <Route path="contact" element={<Contact />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="category/:id" element={<CategoryProducts />} />
+          <Route path="artisan" element={<Artisan />} />
+          <Route path="artisans/:id" element={<ArtisanDetail />} />
+          <Route path="register" element={<Register />} />
+          <Route path="login" element={<Login />} />
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="product/:id" element={<ProductDetails />} />
+        </Route>
 
-          {/* Seller routes */}
-          <Route path="/seller" element={<SellerLayout />}>
-            <Route path="workshops-events" element={<WorkshopsEvents />} />
-            <Route path="storefront-customizer" element={<StorefrontCustomizer />} />
-            <Route path="payment-settings" element={<PaymentSettings />} />
-            <Route path="order-inventory" element={<OrderInventoryManager />} />
-            <Route path="marketing-tools" element={<MarketingTools />} />
-            <Route path="shipping-settings" element={<ShippingSettings />} />
-            <Route path="social-media" element={<SocialMedia />} />
-            <Route path="settings" element={<SellerSettings />} />
-          </Route>
+        {/* Seller Routes */}
+        <Route path="/seller" element={<SellerLayout />}>
+          <Route path="marketing-tools" element={<MarketingTools />} />
+          <Route path="order-inventory-manager" element={<OrderInventoryManager />} />
+          <Route path="payment-settings" element={<PaymentSettings />} />
+          <Route path="seller-settings" element={<SellerSettings />} />
+          <Route path="shipping-settings" element={<ShippingSettings />} />
+          <Route path="social-media" element={<SocialMedia />} />
+          <Route path="storefront-customizer" element={<StorefrontCustomizer />} />
+          <Route path="workshops-events" element={<WorkshopsEvents />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="editable-seller-detail" element={<EditableSellerDetail />} />
+        </Route>
 
-          {/* Admin routes */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route path="dashboard" element={<Dashboard />} />
-            {/* Add more admin routes here if needed */}
-          </Route>
-        </Routes>
-      </div>
-      <Footer />
+        {/* Admin Routes */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="detail" element={<AdminDetails />} />
+          <Route path="table" element={<AdminTable />} />
+          <Route path="profile" element={<AdminProfilePage />} />
+          <Route path="artisan-table" element={<ArtisanTable />} />
+          <Route path="customer-detail" element={<CustomerDetail />} />
+          <Route path="customer-table" element={<CustomerTable />} />
+          <Route path="editable-seller-detail" element={<EditableaAdminDetail />} />
+          <Route path="orders-overview" element={<OrdersOverview />} />
+          <Route path="products-table" element={<ProductsTable />} />
+          <Route path="seller-detail" element={<SellerDetail />} />
+          <Route path="sellers-table" element={<SellersTable />} />
+          <Route path="simplified-customer-detail" element={<SimplifiedCustomerDetail />} />
+          <Route path="simplified-customer-table" element={<SimplifiedCustomerTable />} />
+        </Route>
+      </Routes>
     </BrowserRouter>
   );
 }

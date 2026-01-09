@@ -1,5 +1,13 @@
-import React, { useState } from "react";
-import { Edit, Trash2, Eye, MoreHorizontal, Plus, Filter } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  Edit,
+  Trash2,
+  Eye,
+  MoreHorizontal,
+  Filter,
+  Check,
+  X,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import {
@@ -19,114 +27,145 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Badge } from "../ui/badge";
-
-const mockProducts = [
-  {
-    id: "PRD-1234",
-    name: "Handcrafted Ceramic Mug",
-    artisan: "Sarah's Pottery",
-    category: "Home",
-    price: 24.99,
-    stock: 15,
-    status: "active",
-  },
-  {
-    id: "PRD-2345",
-    name: "Woven Basket Set",
-    artisan: "Weaving Wonders",
-    category: "Home",
-    price: 49.99,
-    stock: 8,
-    status: "active",
-  },
-  {
-    id: "PRD-3456",
-    name: "Hand-Poured Soy Candle",
-    artisan: "Glow Artisan",
-    category: "Home",
-    price: 18.99,
-    stock: 0,
-    status: "out-of-stock",
-  },
-  {
-    id: "PRD-4567",
-    name: "Macrame Wall Hanging",
-    artisan: "Knot & Fiber",
-    category: "Home",
-    price: 89.99,
-    stock: 3,
-    status: "active",
-  },
-  {
-    id: "PRD-5678",
-    name: "Hand-Carved Wooden Bowl",
-    artisan: "Forest Crafts",
-    category: "Kitchen",
-    price: 42.5,
-    stock: 7,
-    status: "active",
-  },
-  {
-    id: "PRD-6789",
-    name: "Beaded Statement Necklace",
-    artisan: "Bead & Gem Studio",
-    category: "Jewelry",
-    price: 65.0,
-    stock: 12,
-    status: "active",
-  },
-  {
-    id: "PRD-7890",
-    name: "Embroidered Linen Pillow",
-    artisan: "Stitch & Thread",
-    category: "Home",
-    price: 55.0,
-    stock: 0,
-    status: "draft",
-  },
-];
+import ProductDetail from "./ProductDetail";
+import ProductEdit from "./ProductEdit";
 
 function ProductsTable() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [products, setProducts] = useState(mockProducts);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const token = localStorage.getItem("token");
+  
+  // State for view and edit dialogs
+  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  // ✅ Fetch products for admin
+  const fetchProducts = () => {
+    setLoading(true);
+    fetch("http://localhost:8000/api/products", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+        return res.json();
+      })
+      .then((data) => {
+        console.log("Products data:", data);
+        setProducts(data);
+      })
+      .catch((err) => {
+        console.error("Error fetching products:", err);
+        setError(err.message);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const handleSearch = (e) => {
     const query = e.target.value.toLowerCase();
     setSearchQuery(query);
 
     if (query.trim() === "") {
-      setProducts(mockProducts);
+      fetchProducts();
     } else {
-      const filtered = mockProducts.filter(
-        (product) =>
-          product.name.toLowerCase().includes(query) ||
-          product.artisan.toLowerCase().includes(query) ||
-          product.id.toLowerCase().includes(query)
+      setProducts((prev) =>
+        prev.filter(
+          (product) =>
+            product.productName?.toLowerCase().includes(query) ||
+            product.category?.toLowerCase().includes(query) ||
+            product.id?.toString().includes(query)
+        )
       );
-      setProducts(filtered);
     }
+  };
+
+  const handleViewProduct = (productId) => {
+    setSelectedProductId(productId);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleEditProduct = (product) => {
+    setSelectedProduct(product);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveProduct = (updatedProduct) => {
+    setProducts(prev => 
+      prev.map(product => 
+        product.id === updatedProduct.id ? updatedProduct : product
+      )
+    );
+  };
+
+  const handleApprove = (id) => {
+    fetch(`http://localhost:8000/api/products/${id}/approve`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(() => {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === id ? { ...p, approval_status: "approved" } : p
+          )
+        );
+      })
+      .catch((err) => console.error("Error approving product:", err));
+  };
+
+  const handleReject = (id) => {
+    fetch(`http://localhost:8000/api/products/${id}/reject`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(() => {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === id ? { ...p, approval_status: "rejected" } : p
+          )
+        );
+      })
+      .catch((err) => console.error("Error rejecting product:", err));
   };
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case "active":
-        return <Badge className="bg-green-500">Active</Badge>;
-      case "draft":
-        return <Badge variant="outline">Draft</Badge>;
-      case "out-of-stock":
+      case "approved":
+        return <Badge className="bg-green-500">Approved</Badge>;
+      case "pending":
+        return <Badge variant="outline">Pending</Badge>;
+      case "rejected":
+        return <Badge variant="destructive">Rejected</Badge>;
+      case "out of stock":
         return <Badge variant="destructive">Out of Stock</Badge>;
       default:
         return null;
     }
   };
 
+  if (loading) return <div className="p-6">Loading products...</div>;
+  if (error) return <div className="p-6 text-red-600">Failed to load products: {error}</div>;
+
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Products</h1>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" /> Add Product
-        </Button>
       </div>
 
       <div className="flex items-center justify-between">
@@ -162,11 +201,11 @@ function ProductsTable() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Image</TableHead>
               <TableHead>Product</TableHead>
-              <TableHead>Artisan</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
+              <TableHead>Quantity</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -175,16 +214,28 @@ function ProductsTable() {
             {products.map((product) => (
               <TableRow key={product.id}>
                 <TableCell>
+                  {product.productImage ? (
+                    <img
+                      src={product.productImage}
+                      alt={product.productName}
+                      className="w-24 h-24 object-cover rounded-md"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 bg-gray-200 rounded-md flex items-center justify-center text-xs text-gray-500">
+                      No Image
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>
                   <div>
-                    <div className="font-medium">{product.name}</div>
+                    <div className="font-medium">{product.productName}</div>
                     <div className="text-sm text-gray-500">{product.id}</div>
                   </div>
                 </TableCell>
-                <TableCell>{product.artisan}</TableCell>
-                <TableCell>{product.category}</TableCell>
-                <TableCell>${product.price.toFixed(2)}</TableCell>
-                <TableCell>{product.stock}</TableCell>
-                <TableCell>{getStatusBadge(product.status)}</TableCell>
+                <TableCell>{product.category || "N/A"}</TableCell>
+                <TableCell>₱{Number(product.productPrice).toFixed(2)}</TableCell>
+                <TableCell>{product.productQuantity}</TableCell>
+                <TableCell>{getStatusBadge(product.approval_status)}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -194,13 +245,25 @@ function ProductsTable() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleViewProduct(product.id)}>
                         <Eye className="h-4 w-4 mr-2" /> View
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditProduct(product)}>
                         <Edit className="h-4 w-4 mr-2" /> Edit
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => handleApprove(product.id)}
+                        className="text-green-600"
+                      >
+                        <Check className="h-4 w-4 mr-2" /> Approve
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleReject(product.id)}
+                        className="text-red-600"
+                      >
+                        <X className="h-4 w-4 mr-2" /> Reject
+                      </DropdownMenuItem>
                       <DropdownMenuItem className="text-red-600">
                         <Trash2 className="h-4 w-4 mr-2" /> Delete
                       </DropdownMenuItem>
@@ -215,7 +278,7 @@ function ProductsTable() {
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500">
-          Showing {products.length} of {mockProducts.length} products
+          Showing {products.length} of {products.length} products
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="sm" disabled>
@@ -226,6 +289,28 @@ function ProductsTable() {
           </Button>
         </div>
       </div>
+
+      {/* Product Detail Dialog */}
+      <ProductDetail
+        productId={selectedProductId}
+        isOpen={isViewDialogOpen}
+        onClose={() => {
+          setIsViewDialogOpen(false);
+          setSelectedProductId(null);
+        }}
+        onEdit={handleEditProduct}
+      />
+
+      {/* Product Edit Dialog */}
+      <ProductEdit
+        product={selectedProduct}
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setSelectedProduct(null);
+        }}
+        onSave={handleSaveProduct}
+      />
     </div>
   );
 }

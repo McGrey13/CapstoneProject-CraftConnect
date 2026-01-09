@@ -1,103 +1,91 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
-import { ArrowLeft } from "lucide-react";
-
-const mockArtisans = [
-  {
-    id: "art-1",
-    name: "Sheweliz M. Antinero",
-    location: "Calamba, Laguna",
-    specialty: "Ceramics",
-    story:
-      "Sheweliz's passion for ceramics started in her childhood surrounded by nature. Her work blends traditional Filipino techniques with modern styles to create unique pottery that tells a story.",
-    videoUrl: "https://www.youtube.com/embed/VXeaSKjpceI?si=bJLXoKlPDYnOHiHg",
-    image:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&q=80",
-  },
-  {
-    id: "art-2",
-    name: "Gio Mc Grey O. Calugas",
-    location: "San Pedro, Laguna",
-    specialty: "Jewelry",
-    story:
-      "Gio sources local materials and uses time-honored jewelry techniques to craft unique pieces inspired by Philippine heritage.",
-    videoUrl: "https://www.youtube.com/embed/ZzFP2UCR_64?si=zp12_F1AImSJyRWq",
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=80",
-  },
-  {
-    id: "art-3",
-    name: "Denisse Kaith D. Malabana",
-    location: "Victoria, Laguna",
-    specialty: "Textiles",
-    story:
-      "Denisse's textiles merge traditional patterns with modern aesthetics, preserving cultural heritage while embracing innovation.",
-    videoUrl: "https://www.youtube.com/embed/9apzhyHYdpI?si=wpZAt_O6kmDj3DCH",
-    image:
-      "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&q=80",
-  },
-];
-
-const mockProducts = [
-  {
-    id: "prod-1",
-    artisanId: "art-1",
-    title: "Handcrafted Ceramic Mug",
-    price: 24.99,
-    image:
-      "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=400&q=80",
-  },
-  {
-    id: "prod-2",
-    artisanId: "art-1",
-    title: "Ceramic Vase",
-    price: 49.99,
-    image:
-      "https://images.unsplash.com/photo-1549887530-3b8a945ec160?w=400&q=80",
-  },
-  {
-    id: "prod-3",
-    artisanId: "art-2",
-    title: "Silver Necklace",
-    price: 65.0,
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
-  },
-  {
-    id: "prod-4",
-    artisanId: "art-2",
-    title: "Gold Earrings",
-    price: 80.5,
-    image:
-      "https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?w=400&q=80",
-  },
-  {
-    id: "prod-5",
-    artisanId: "art-3",
-    title: "Woven Textile Scarf",
-    price: 38.99,
-    image:
-      "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80",
-  },
-  {
-    id: "prod-6",
-    artisanId: "art-3",
-    title: "Handmade Textile Bag",
-    price: 45.0,
-    image:
-      "https://images.unsplash.com/photo-1601924921557-45e6dea0a157?w=400&q=80",
-  },
-];
+import { ArrowLeft, MessageCircle } from "lucide-react";
 
 const ArtisanDetail = () => {
   const { id } = useParams();
+  const [artisan, setArtisan] = useState(null);
+  const [artisanProducts, setArtisanProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  const artisan = mockArtisans.find((a) => a.id === id);
-  const artisanProducts = mockProducts.filter((p) => p.artisanId === id);
+  // Chat states
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { sender: "bot", text: "Hi! Feel free to chat with the artisan." },
+  ]);
+  const [newMessage, setNewMessage] = useState("");
 
-  if (!artisan) {
+  useEffect(() => {
+    const fetchArtisan = async () => {
+      try {
+        const res = await fetch(`http://localhost:8000/api/sellers/${id}/details`, {
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) throw new Error("Not found");
+        const data = await res.json();
+        if (!data || !data.user) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        setArtisan({
+          id: data.id,
+          name: data.user.userName,
+          location: data.user.userAddress || "Unknown",
+          specialty: data.specialty || "Crafts",
+          story: data.story || "",
+          videoUrl: data.video_url || "",
+          image: (() => {
+            if (data.profile_picture_path) {
+              return `http://localhost:8000/storage/${data.profile_picture_path}`;
+            }
+            if (data.user.profile_photo_url && data.user.profile_photo_url.trim() !== "") {
+              return data.user.profile_photo_url;
+            }
+            return "https://api.dicebear.com/7.x/avataaars/svg?seed=artisan";
+          })(),
+        });
+        const mappedProducts = (data.products || []).map((p) => ({
+          id: p.id,
+          title: p.productName,
+          price: p.productPrice,
+          image: p.productImage || "",
+        }));
+        setArtisanProducts(mappedProducts);
+      } catch {
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchArtisan();
+  }, [id]);
+
+  // Chat send handler
+  const handleSend = () => {
+    if (!newMessage.trim()) return;
+    setMessages([...messages, { sender: "user", text: newMessage }]);
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: "Thanks for your message! The artisan will reply soon." },
+      ]);
+    }, 800);
+    setNewMessage("");
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p className="text-lg font-semibold text-gray-600 mb-4">Loading...</p>
+      </div>
+    );
+  }
+
+  if (notFound || !artisan) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <p className="text-lg font-semibold text-red-600 mb-4">Artisan not found.</p>
@@ -109,8 +97,8 @@ const ArtisanDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white py-16">
-      <div className="container mx-auto px-6 max-w-6xl">
+    <div className="min-h-screen bg-white pb-48"> {/* space for chat */}
+      <div className="container mx-auto px-6 max-w-6xl py-16">
         <Link
           to="/artisan"
           className="inline-flex items-center mb-12 text-[#a4785a] hover:text-[#7a5c44] transition-colors font-semibold cursor-pointer"
@@ -128,7 +116,18 @@ const ArtisanDetail = () => {
             loading="lazy"
           />
           <div className="flex-1">
-            <h1 className="text-5xl font-extrabold text-gray-900 mb-3">{artisan.name}</h1>
+            <div className="flex items-center justify-between mb-3">
+              <h1 className="text-5xl font-extrabold text-gray-900">{artisan.name}</h1>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 border-[#a4785a] text-[#a4785a] hover:bg-[#a4785a] hover:text-white"
+                onClick={() => setIsChatOpen(true)}
+              >
+                <MessageCircle className="h-5 w-5" />
+                Chat
+              </Button>
+            </div>
             <p className="uppercase text-[#a4785a] font-semibold tracking-wide mb-6">
               {artisan.location} &bull; {artisan.specialty}
             </p>
@@ -142,21 +141,23 @@ const ArtisanDetail = () => {
         </div>
 
         {/* Demo Video Container */}
-        <section className="mt-14 max-w-6xl mx-auto bg-white rounded-xl shadow-md border border-gray-300 p-8">
-          <h2 className="text-3xl font-semibold text-gray-800 border-b border-gray-300 pb-4 mb-6">
-            Demo Video
-          </h2>
-          <div className="aspect-video rounded-lg overflow-hidden shadow-lg border border-gray-200">
-            <iframe
-              src={artisan.videoUrl}
-              title={`${artisan.name} demo video`}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full"
-            />
-          </div>
-        </section>
+        {artisan.videoUrl && (
+          <section className="mt-14 max-w-6xl mx-auto bg-white rounded-xl shadow-md border border-gray-300 p-8">
+            <h2 className="text-3xl font-semibold text-gray-800 border-b border-gray-300 pb-4 mb-6">
+              Demo Video
+            </h2>
+            <div className="aspect-video rounded-lg overflow-hidden shadow-lg border border-gray-200">
+              <iframe
+                src={artisan.videoUrl}
+                title={`${artisan.name} demo video`}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full"
+              />
+            </div>
+          </section>
+        )}
 
         {/* Products Container */}
         <section className="mt-16 max-w-6xl mx-auto bg-white rounded-xl shadow-md border border-gray-300 p-8">
@@ -168,26 +169,80 @@ const ArtisanDetail = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
               {artisanProducts.map((product) => (
-                <Card
-                  key={product.id}
-                  className="overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer border border-gray-200"
-                >
-                  <img
-                    src={product.image}
-                    alt={product.title}
-                    className="w-full h-48 object-cover rounded-t-lg"
-                    loading="lazy"
-                  />
-                  <CardContent className="p-5">
-                    <h3 className="font-semibold text-lg mb-2 text-gray-900">{product.title}</h3>
-                    <p className="text-[#a4785a] font-bold text-xl">${product.price.toFixed(2)}</p>
-                  </CardContent>
-                </Card>
+                <Link to={`/product/${product.id}`} key={product.id}>
+                  <Card className="overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer border border-gray-200">
+                    <img
+                      src={product.image}
+                      alt={product.title}
+                      className="w-full h-48 object-cover rounded-t-lg"
+                      loading="lazy"
+                    />
+                    <CardContent className="p-5">
+                      <h3 className="font-semibold text-lg mb-2 text-gray-900">{product.title}</h3>
+                      <p className="text-[#a4785a] font-bold text-xl">
+                        ₱{Number(product.price).toFixed(2)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           )}
         </section>
       </div>
+
+      {/* Fixed Chat at Bottom */}
+      {isChatOpen && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 shadow-lg">
+          <div className="max-w-6xl mx-auto p-4">
+            {/* Header */}
+            <div className="flex justify-between items-center bg-[#a4785a] text-white px-4 py-2 rounded-t-lg">
+              <h3 className="font-semibold">Chat with {artisan.name}</h3>
+              <button onClick={() => setIsChatOpen(false)} className="border border-[#a4785a] text-[#a4785a] hover:bg-[#a4785a] hover:text-white px-4 py-2 rounded-full text-sm font-semibold transition">
+                ✕
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="p-4 h-64 overflow-y-auto bg-gray-50 rounded-b-lg">
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex mb-3 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`px-4 py-2 rounded-xl max-w-[70%] text-sm shadow-sm ${
+                      msg.sender === "user"
+                        ? "bg-[#a4785a] text-white rounded-br-none"
+                        : "bg-gray-200 text-gray-800 rounded-bl-none"
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Input */}
+            <div className="flex items-center gap-2 border-t p-3 bg-white">
+              <input
+                type="text"
+                placeholder="Type your message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#a4785a]"
+              />
+              <button
+                onClick={handleSend}
+                className="border border-[#a4785a] text-[#a4785a] hover:bg-[#a4785a] hover:text-white px-4 py-2 rounded-full text-sm font-semibold transition"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

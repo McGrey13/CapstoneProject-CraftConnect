@@ -19,6 +19,12 @@ return new class extends Migration
             $table->id('sellerID'); // Primary key for sellers table
             $table->foreignId('user_id')->constrained('users', 'userID')->onDelete('cascade'); // Foreign key to users table
             // Note: sellerEmail and sellerPassword are typically handled by the 'users' table.
+            $table->string(column:'website')->nullable();
+            $table->string(column:'story')->nullable();
+            $table->string(column:'businessName')->nullable();
+            $table->string('profile_picture_path')->nullable(); 
+            $table->string('background_picture_path')->nullable(); 
+            $table->string('promotional_video_path')->nullable(); 
             $table->timestamps();
         });
     }

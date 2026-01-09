@@ -6,10 +6,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Order;
+use App\Models\User;
+
 
 class Seller extends Model
 {
     use HasFactory;
+
+    
 
     /**
      * The primary key for the model.
@@ -25,7 +30,12 @@ class Seller extends Model
      */
     protected $fillable = [
         'user_id',
-        // If you had specific seller-only fields not in User, they would go here.
+        'businessName',
+        'story',
+        'website',
+        'profile_picture_path',
+        'background_picture_path',
+        'promotional_video_path',
     ];
 
     /**
@@ -35,4 +45,63 @@ class Seller extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'userID');
     }
+
+    /**
+     * Get the full URL for the profile picture
+     */
+    public function getProfileImageUrlAttribute()
+    {
+        if (!$this->profile_picture_path) {
+            return null;
+        }
+        
+        if (str_starts_with($this->profile_picture_path, 'http')) {
+            return $this->profile_picture_path;
+        }
+        
+        return url('storage/' . ltrim($this->profile_picture_path, '/'));
+    }
+
+    /**
+     * Get the full URL for the background picture
+     */
+    public function getBackgroundImageUrlAttribute()
+    {
+        if (!$this->background_picture_path) {
+            return null;
+        }
+        
+        if (str_starts_with($this->background_picture_path, 'http')) {
+            return $this->background_picture_path;
+        }
+        
+        return url('storage/' . ltrim($this->background_picture_path, '/'));
+    }
+
+    /**
+     * Get the full URL for the promotional video
+     */
+    public function getPromotionalVideoUrlAttribute()
+    {
+        if (!$this->promotional_video_path) {
+            return null;
+        }
+        
+        if (str_starts_with($this->promotional_video_path, 'http')) {
+            return $this->promotional_video_path;
+        }
+        
+        return url('storage/' . ltrim($this->promotional_video_path, '/'));
+    }
+
+    public function products()
+    {
+        return $this->hasMany(Product::class, 'seller_id', 'sellerID');
+    }
+
+public function orders()
+{
+    return $this->hasMany(Order::class);
 }
+}
+

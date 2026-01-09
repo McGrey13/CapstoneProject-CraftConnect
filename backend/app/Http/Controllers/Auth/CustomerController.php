@@ -1,115 +1,104 @@
-<?php 
-
-// namespace App\Http\Controllers;
-
-// use Illuminate\Http\Request;
-// use App\Models\Customer;
-// use app\Models\User;
-// use Illuminate\Support\Facades\Auth;
-// use Illuminate\Support\Facades\Hash;
-
-// class CustomerAuthController extends Controller
-// {
-//     public function index()
-//     {
-//         $customer  = Customer::all();
-//     }
-    
-//     public function register(Request $request)
-//     {
-//         // Logic for customer registration
-//          // Validate the request data
-//         $customerData = $request->validate([
-//             'customerEmail' => 'required|email|unique:customers,customerEmail',
-//             'customerPassword' => 'required|min:8',
-//             'customerFirstName' => 'required|string|max:255',
-//             'customerLastName' => 'required|string|max:255',
-//         ]);
-
-//         $user = User::create([
-//             'customerFirstName' => 'required|string|max:255',
-//             'customerLastName' => 'required|string|max:255',
-//             'customerBirthDay' => 'nullable|date',
-//             'customerContactNumber' => 'nullable|string|max:15',
-//             'customerAddress' => 'nullable|string|max:255',
-//         ]);
-
-//              $customer = Customer::create([
-//             'user_id' => $user->id,
-//             'customerEmail' => $request->email,
-//             'customerPassword' => Hash::make($request->password),
-//         ]);
-
-//         // Create a new customer record
-//         Customer::create($customerData);
-//         // Return a response or redirect
-//         return redirect()->route('customer.dashboard')->with('success', 'Account created successfully!');
-//     }
-
-//     public function login(Request $request)
-//     {
-//         // Logic for customer login
-//         $credentials = $request->validate([
-//             'customerEmail' => 'required|email',
-//             'customerPassword' => 'required|min:8, ',
-//         ]);
-
-//       $customer = Customer::where('email', $request->email)->first();
-
-//        if ($customer && Hash::check($request->password, $customer->password)) {
-//             Auth::login($customer->user);
-//             return redirect()->route('customer.dashboard')->with('success', 'Login successful!');
-//         }
-
-//         return back()->withErrors(['email' => 'Invalid credentials.']);
-//     }
-
+<?php
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
-class CustomerController extends AuthController
+class CustomerController extends Controller
 {
     /**
-     * Display the customer dashboard.
-     *
-     * @return \Illuminate\View\View
+     * Get all customers
      */
-    public function dashboard()
+    public function index()
     {
-        // You can fetch customer-specific data here, e.g., their orders, wishlists, etc.
-        $customer = Auth::user()->customer; // Get the authenticated user's customer profile
-        return view('customer.dashboard', compact('customer'));
+        try {
+            $customers = User::where('role', 'customer')->get();
+            
+            return response()->json($customers);
+        } catch (\Exception $e) {
+            Log::error('Error fetching customers:', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Error fetching customers: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
-     * Implement the editCustomerInformation() method from UML.
-     * This would typically be a form submission to update customer's profile.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
+     * Get a specific customer by ID
      */
-    public function editCustomerInformation(Request $request)
+    public function show($id)
     {
-        $user = Auth::user();
+        try {
+            $customer = User::where('userID', $id)->where('role', 'customer')->first();
+            
+            if (!$customer) {
+                return response()->json(['message' => 'Customer not found'], 404);
+            }
+            
+            return response()->json($customer);
+        } catch (\Exception $e) {
+            Log::error('Error fetching customer:', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Error fetching customer: ' . $e->getMessage()], 500);
+        }
+    }
 
-        $request->validate([
-            'userName' => ['required', 'string', 'max:255'],
-            'userEmail' => ['required', 'string', 'email', 'max:255', 'unique:users,userEmail,' . $user->userID . ',userID'],
-            'userContactNumber' => ['nullable', 'string', 'max:255'],
-            'userAddress' => ['nullable', 'string', 'max:255'],
-            // Add other user fields that a customer can edit
-        ]);
+    /**
+     * Update a customer
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $customer = User::where('userID', $id)->where('role', 'customer')->first();
+            
+            if (!$customer) {
+                return response()->json(['message' => 'Customer not found'], 404);
+            }
 
-        $user->customer->update([
-            'userName' => $request->userName,
-            'userEmail' => $request->userEmail,
-            'userContactNumber' => $request->userContactNumber,
-            'userAddress' => $request->userAddress,
-        ]);
+            $request->validate([
+                'userName' => 'nullable|string|max:255',
+                'userEmail' => 'nullable|email|unique:users,userEmail,' . $id . ',userID',
+                'userContactNumber' => 'nullable|string|max:255',
+                'userAddress' => 'nullable|string|max:255',
+                'userBirthday' => 'nullable|date',
+                'userAge' => 'nullable|integer|min:0',
+                'status' => 'nullable|in:active,inactive',
+            ]);
 
-        return redirect()->back()->with('success', 'Your customer information has been updated!');
+            $customer->update($request->only([
+                'userName', 'userEmail', 'userContactNumber', 'userAddress', 
+                'userBirthday', 'userAge', 'status'
+            ]));
+
+            Log::info('Customer updated successfully:', ['customer_id' => $id]);
+            
+            return response()->json($customer);
+        } catch (\Exception $e) {
+            Log::error('Error updating customer:', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Error updating customer: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete a customer
+     */
+    public function destroy($id)
+    {
+        try {
+            $customer = User::where('userID', $id)->where('role', 'customer')->first();
+            
+            if (!$customer) {
+                return response()->json(['message' => 'Customer not found'], 404);
+            }
+
+            $customer->delete();
+
+            Log::info('Customer deleted successfully:', ['customer_id' => $id]);
+            
+            return response()->json(['message' => 'Customer deleted successfully']);
+        } catch (\Exception $e) {
+            Log::error('Error deleting customer:', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Error deleting customer: ' . $e->getMessage()], 500);
+        }
     }
 }
